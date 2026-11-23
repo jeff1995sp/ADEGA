@@ -11,10 +11,18 @@ test('fotos provisórias do catálogo aparecem como pendentes',()=>{
  assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)).length);
  assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,products.filter(p=>!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)).length);
  for(const p of products)assert.ok(statSync(new URL('../public'+p.image_url,import.meta.url)).size>200,p.name);
- for(const name of ['Corona','Draft','Refrigerante em lata']){
+ for(const name of ['Draft','Refrigerante em lata']){
   const p=products.find(p=>p.name===name);
   assert.equal(photoFor(p),PHOTO_PENDING);
   assert.equal(photoFallbackFor(p),PHOTO_PENDING);
+ }
+ // Quando a importação licencia uma foto e a salva localmente, ela deixa de ser pendente.
+ for(const name of ['Heineken','Caipirinha de Morango','Corona','Budweiser']){
+  const p=products.find(p=>p.name===name);
+  if(!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)){
+   assert.equal(photoFor(p),p.image_url);
+   assert.equal(photoFallbackFor(p),p.image_url);
+  }
  }
  assert.equal(photoFor(products.find(p=>p.name==='Fandangos')),'/imagens/fandangos.webp');
 });
