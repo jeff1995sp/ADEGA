@@ -474,9 +474,9 @@
     },
     {
       "id": "produto-037",
-      "name": "Bala Felicidades",
+      "name": "Caixa de bombons Lacta Felicidades",
       "category": "Doces e Balas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Caixa de bombons sortidos Lacta. Preço e estoque a confirmar.",
       "price_cents": 0,
       "stock": 0,
       "unlimited": false,
@@ -487,9 +487,9 @@
     },
     {
       "id": "produto-038",
-      "name": "Bala Te Adoro",
+      "name": "Caixa de bombons Lacta Te Adoro",
       "category": "Doces e Balas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Caixa de bombons Lacta Sonho de Valsa e Ouro Branco. Preço e estoque a confirmar.",
       "price_cents": 0,
       "stock": 0,
       "unlimited": false,
