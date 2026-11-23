@@ -79,6 +79,13 @@ async function loadCatalog(){
 }
 function showCheckout(){
   if(!count())return;
+  try{
+    const saved=JSON.parse(sessionStorage.getItem('adega_customer_profile_v1')||'null');
+    if(saved && typeof saved.first==='string' && typeof saved.last==='string'){
+      $('first').value=saved.first;$('last').value=saved.last;
+      $('ageAck').checked=sessionStorage.getItem('adega_age_ok')==='1';
+    }
+  }catch{}
   const chosen=products.filter(p=>cart.get(p.id));
   $('checkoutSummary').innerHTML=chosen.map(p=>`<div class="order-line"><span>${cart.get(p.id)}x ${esc(p.name)}</span><strong>${fmt(cart.get(p.id)*p.price_cents)}</strong></div>`).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
   $('paymentOptions').innerHTML=[
@@ -134,9 +141,43 @@ function start(){
   $('closeTracking').onclick=()=>close('trackingModal');
   $('checkoutForm').addEventListener('submit',submitOrder);
   $('paymentOptions').addEventListener('change',refreshCash);
-  $('ageYes').onclick=()=>{sessionStorage.setItem('adega_age_ok','1');$('ageGate').classList.add('hidden');};
-  $('ageNo').onclick=()=>{$('ageGate').innerHTML='<div class="age-box"><h2>Acesso restrito a maiores de 18 anos</h2><p>Não é possível continuar.</p></div>';};
-  if(sessionStorage.getItem('adega_age_ok')!=='1')$('ageGate').classList.remove('hidden');
+  const profileKey='adega_customer_profile_v1';
+  const readProfile=()=>{try{const p=JSON.parse(sessionStorage.getItem(profileKey)||'null');
+    return p && typeof p.first==='string' && typeof p.last==='string' && p.first.trim().length>=2 && p.last.trim().length>=2?p:null;
+  }catch{return null;}};
+  const fillProfile=p=>{
+    $('first').value=p.first;$('last').value=p.last;
+    $('ageAck').checked=true;
+    $('ageGate').classList.add('hidden');
+  };
+  $('ageYes').onclick=()=>{
+    sessionStorage.setItem('adega_age_ok','1');
+    $('ageStep').classList.add('hidden');
+    $('entryNameStep').classList.remove('hidden');
+    $('entryFirst').focus();
+  };
+  $('ageNo').onclick=()=>{
+    $('ageGate').innerHTML='<div class="age-box"><h2>Acesso restrito a maiores de 18 anos</h2><p>O catálogo é destinado exclusivamente a adultos. Não é possível continuar.</p></div>';
+  };
+  $('customerEntryForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    const first=$('entryFirst').value.trim().replace(/\\s+/g,' ');
+    const last=$('entryLast').value.trim().replace(/\\s+/g,' ');
+    if(first.length<2||last.length<2)return toast('Informe nome e sobrenome.',true);
+    const profile={first,last};
+    sessionStorage.setItem(profileKey,JSON.stringify(profile));
+    fillProfile(profile);
+  });
+  const savedProfile=readProfile();
+  if(sessionStorage.getItem('adega_age_ok')==='1' && savedProfile){
+    fillProfile(savedProfile);
+  }else if(sessionStorage.getItem('adega_age_ok')==='1'){
+    $('ageStep').classList.add('hidden');
+    $('entryNameStep').classList.remove('hidden');
+  }else{
+    $('ageStep').classList.remove('hidden');
+    $('entryNameStep').classList.add('hidden');
+  }
   try{currentOrder=JSON.parse(localStorage.getItem('adega_my_order_v1')||'null');}catch{}
   if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();}
   $('trackBtn')?.addEventListener('click',()=>{loadTracking();open('trackingModal');});
