@@ -22,6 +22,20 @@ SRC = [
         "page": "https://unsplash.com/photos/heineken-beer-bottle-7jwSErtrzpk",
     },
     {
+        "name": "Corona",
+        "path": "/imagens/corona.webp",
+        "url": "https://images.unsplash.com/photo-1598653159917-c71062dbe30e?auto=format&fit=max&w=1200&q=85",
+        "license": "Unsplash License",
+        "page": "https://unsplash.com/photos/corona-extra-beer-bottle-on-gray-wooden-table-Enb1FV3l6Pg",
+    },
+    {
+        "name": "Budweiser",
+        "path": "/imagens/budweiser.webp",
+        "url": "https://images.unsplash.com/photo-1589266213027-5c7f45b72008?auto=format&fit=max&w=1200&q=85",
+        "license": "Unsplash License",
+        "page": "https://unsplash.com/photos/black-and-brown-glass-bottle-CuOuLh_ELjo",
+    },
+    {
         "name": "Caipirinha de Morango",
         "path": "/imagens/caipirinha-de-morango.webp",
         "url": "https://images.unsplash.com/photo-1560433901-019188a1a9f5?auto=format&fit=max&w=1200&q=85",
@@ -76,9 +90,9 @@ def main():
     shared = shared_path.read_text(encoding="utf-8")
     for item in SRC:
         flag = '  "' + item['path'] + '",\n'
-        if flag not in shared:
-            raise ValueError(f"Imagem {item['path']} nao esta na lista de desenhos provisórios")
-        shared = shared.replace(flag, "", 1)
+        # Uma imagem ja importada pode continuar no catalogo sem voltar a ser pendente.
+        if flag in shared:
+            shared = shared.replace(flag, "", 1)
     inventory = ROOT / "FOTOS-POR-PRODUTO.csv"
     with inventory.open("r", encoding="utf-8-sig", newline="") as file:
         rows = list(csv.reader(file, delimiter=";"))

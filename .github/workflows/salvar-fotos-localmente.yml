@@ -30,6 +30,8 @@ jobs:
       - name: Verificar arquivos e testes
         run: |
           npm run build
+          test -s public/imagens/corona.webp
+          test -s public/imagens/budweiser.webp
           test -s public/imagens/heineken.webp
           test -s public/imagens/caipirinha-de-morango.webp
       - name: Gravar fotos dentro do GitHub
