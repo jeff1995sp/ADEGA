@@ -161,8 +161,8 @@ function start(){
   };
   $('customerEntryForm').addEventListener('submit',event=>{
     event.preventDefault();
-    const first=$('entryFirst').value.trim().replace(/\\s+/g,' ');
-    const last=$('entryLast').value.trim().replace(/\\s+/g,' ');
+    const first=$('entryFirst').value.trim().replace(/\s+/g,' ');
+    const last=$('entryLast').value.trim().replace(/\s+/g,' ');
     if(first.length<2||last.length<2)return toast('Informe nome e sobrenome.',true);
     const profile={first,last};
     sessionStorage.setItem(profileKey,JSON.stringify(profile));
