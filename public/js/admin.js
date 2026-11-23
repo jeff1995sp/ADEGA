@@ -208,7 +208,21 @@ async function start(){
   $('logoutBtn').onclick=()=>{authClear();showLogin();};
   $('loginForm').addEventListener('submit',async e=>{
     e.preventDefault();$('loginError').textContent='';
-    try{const d=await api('login',{email:$('email').value.trim(),password:$('pass').value});authSave(d);showAdmin();await refreshData();}
+    try{
+      const username=$('email').value.trim(),password=$('pass').value;
+      let d;
+      if(username.toLowerCase()==='admin'){
+        const response=await fetch('/api/admin-login',{
+          method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body:JSON.stringify({username,password}),cache:'no-store'
+        });
+        d=await response.json().catch(()=>({error:'Resposta inválida do servidor.'}));
+        if(!response.ok)throw Error(d.error||'Falha ao entrar no painel.');
+      }else{
+        d=await api('login',{email:username,password});
+      }
+      authSave(d);showAdmin();await refreshData();
+    }
     catch(err){$('loginError').textContent=err.message;}
   });
   if(authRead()?.token){showAdmin();await refreshData();}else showLogin();

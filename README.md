@@ -34,3 +34,17 @@ npm run check
 - O login administrativo continua exigindo e-mail e senha validados no Supabase. **Não armazene senhas simples como 2027 no código público** e não confunda o atalho visual com uma autenticação.
 - Os pedidos exigem nome e sobrenome; o administrador vê o nome completo, e a TV passa a receber o nome completo junto ao número do pedido. A validação é feita no servidor.
 - Fotos dos itens fumígenos continuam restritas ao estoque interno. Preços e quantidades não foram alterados nesta revisão.
+
+## Login com usuário admin — configuração privada no Netlify
+
+A tela `/admin` (ou `/admin.html`) aceita **usuário `admin`** ou **e-mail cadastrado no Supabase**. O login antigo por e-mail permanece funcionando. O login rápido utiliza a função `/api/admin-login`, que tem limitação de tentativas por IP e cria uma sessão Supabase real. Não são aceitas senhas configuradas em arquivos públicos.
+
+Para habilitar o nome de usuário `admin`, abra o Netlify da ADEGA em **Project configuration > Environment variables**, crie estas três variáveis com escopo **Functions**:
+
+- `ADEGA_ADMIN_PIN`: PIN privado escolhido pelo proprietário (por segurança, prefira uma senha longa; um PIN de apenas quatro dígitos é vulnerável a tentativas de adivinhação).
+- `ADEGA_ADMIN_EMAIL`: e-mail de login da conta administrativa **existente no Supabase**.
+- `ADEGA_ADMIN_PASSWORD`: senha real da mesma conta no Supabase (deve ser forte).
+
+A conta precisa estar autorizada na tabela `admin_users`. Depois de configurar as variáveis, **faça um novo deploy** para elas valerem. Não compartilhe essas variáveis por mensagens nem as grave no GitHub. Se não configurar, o acesso `admin` retornará uma mensagem informativa; o acesso por e-mail continuará funcionando.
+
+Limitação: a restrição de três tentativas por 180 segundos por IP é uma proteção auxiliar do Netlify, não substitui senha forte ou MFA. Recomendamos usar uma senha longa, e não PIN curto, para um painel com dados de clientes e pedidos.
