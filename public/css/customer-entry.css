@@ -1,0 +1,15 @@
+/* Entrada em duas etapas: idade, depois nome e sobrenome. */
+.catalog-body:has(.age-overlay:not(.hidden)){overflow:hidden}
+.age-overlay{z-index:500!important;background:rgba(10,7,11,.96)!important;backdrop-filter:blur(9px)}
+.age-box{width:min(460px,100%);padding:clamp(22px,5vw,37px)!important;border:1px solid #c69a56!important;border-radius:22px!important;text-align:center}
+.age-box .age-mark{display:inline-grid;place-items:center;min-width:75px;height:75px;padding:10px;border-radius:50%;background:linear-gradient(135deg,#c9984f,#f9d797);color:#2c1a0d;font-weight:900;font-size:1.7rem;margin-bottom:12px}
+.age-box h2{font-size:clamp(1.55rem,4vw,2rem)!important;line-height:1.2;margin:10px 0}
+.age-box p{font-size:.92rem;line-height:1.65;color:#d1c1ac;margin:12px 0 18px}
+.age-box .btn{min-height:47px;white-space:normal}
+.customer-entry-form{text-align:left;display:flex;flex-direction:column;gap:9px;margin-top:20px}
+.customer-entry-form label{font-size:.86rem;font-weight:750;color:#f7d89f}
+.customer-entry-form input{width:100%;min-height:48px;padding:11px 13px;border-radius:10px;border:1px solid #80613d;background:#221e20;color:#fff;font:inherit;margin-bottom:8px}
+.customer-entry-form input:focus{outline:2px solid #dcb16b;outline-offset:2px}
+.customer-entry-form button{margin-top:8px}
+.customer-entry-form small{display:block;color:#d2bd9f;text-align:center;line-height:1.5;margin-top:4px}
+@media(max-width:600px){.age-box{max-height:calc(100dvh - 28px);overflow-y:auto}.age-overlay{padding:14px}}
