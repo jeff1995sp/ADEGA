@@ -9,7 +9,7 @@
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/premium.css"><link rel="stylesheet" href="/css/concept.css"><link rel="stylesheet" href="/css/product-gallery.css?v=20261123">
+  <link rel="stylesheet" href="/css/premium.css"><link rel="stylesheet" href="/css/concept.css"><link rel="stylesheet" href="/css/product-gallery.css?v=20261123"><link rel="stylesheet" href="/css/customer-entry.css?v=20261123">
 </head>
 <body class="catalog-body">
   <div id="modeBanner" class="mode-banner">Conectando ao catálogo...</div>
@@ -89,7 +89,29 @@
   <div class="cart-bar" id="cartBar"><div class="cart-inner"><div class="cart-meta"><small class="sub" id="cartCount">0 itens</small><strong id="cartTotal">R$ 0,00</strong></div><button type="button" class="btn btn-primary" id="openCart" disabled>Ver meu carrinho <span aria-hidden="true">↗</span></button></div></div>
   <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-label="Finalizar pedido"><div class="modal"><div class="modal-head"><div><div class="eyebrow">QUASE LÁ</div><h2>Finalizar pedido</h2></div><button class="close" id="closeCart" aria-label="Fechar">×</button></div><div id="checkoutSummary" class="order-items"></div><div class="muted-separator"></div><form id="checkoutForm"><div class="grid-2"><div class="form-field"><label for="first">Primeiro nome</label><input id="first" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Ex.: Bruna"></div><div class="form-field"><label for="last">Sobrenome</label><input id="last" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Ex.: Silva"></div></div><div class="form-field"><label>Como deseja pagar?</label><div class="pay-options" id="paymentOptions"></div></div><div class="form-field hidden" id="cashField"><label for="cash">Vai pagar com quanto? (opcional)</label><input id="cash" inputmode="decimal" placeholder="Ex.: 10,00"><small class="tiny">Informe o valor para calcular o troco, se precisar.</small></div><div id="payWarning" class="notice hidden" style="margin:12px 0"></div><label class="age-ack"><input type="checkbox" id="ageAck" required><span class="small">Confirmo ter 18 anos ou mais e apresentarei documento na retirada, se solicitado.</span></label><button type="submit" class="btn btn-primary btn-wide" id="placeOrder">Confirmar meu pedido <span aria-hidden="true">↗</span></button><p class="tiny" style="text-align:center;margin-top:12px">Sem cadastro. Sem telefone. Sem complicação.</p></form></div></div>
   <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-label="Acompanhar pedido"><div class="modal"><div class="modal-head"><h2>Acompanhe seu pedido</h2><button class="close" id="closeTracking" aria-label="Fechar">×</button></div><div id="trackingContent"></div></div></div>
-  <div id="ageGate" class="age-overlay hidden"><div class="age-box"><span class="age-mark">18+</span><div class="eyebrow">BEM-VINDO À ADEGA</div><h2>Aproveite com responsabilidade.</h2><p>Este catálogo contém bebidas alcoólicas e é destinado a maiores de 18 anos. A idade poderá ser conferida na retirada.</p><button id="ageYes" class="btn btn-primary btn-wide">Tenho 18 anos ou mais ↗</button><button id="ageNo" class="btn btn-outline btn-wide">Sou menor de 18 anos</button></div></div>
+  <div id="ageGate" class="age-overlay" role="dialog" aria-modal="true" aria-label="Confirmação de idade e identificação">
+    <div class="age-box">
+      <section id="ageStep"><span class="age-mark">18+</span><div class="eyebrow">BEM-VINDO À ADEGA</div>
+        <h2>Você tem 18 anos ou mais?</h2>
+        <p>Este site oferece bebidas alcoólicas. A idade poderá ser conferida por documento na retirada.</p>
+        <button type="button" id="ageYes" class="btn btn-primary btn-wide">Sim, tenho 18 anos ou mais</button>
+        <button type="button" id="ageNo" class="btn btn-outline btn-wide">Não, sou menor de idade</button>
+      </section>
+      <section id="entryNameStep" class="hidden">
+        <div class="eyebrow">QUASE PRONTO</div>
+        <h2>Como podemos chamar você?</h2>
+        <p>Informe seu nome e sobrenome para identificar seu pedido. Não é necessário criar uma conta.</p>
+        <form id="customerEntryForm" class="customer-entry-form">
+          <label for="entryFirst">Primeiro nome</label>
+          <input id="entryFirst" name="first_name" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Seu nome">
+          <label for="entryLast">Sobrenome</label>
+          <input id="entryLast" name="last_name" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Seu sobrenome">
+          <button type="submit" class="btn btn-primary btn-wide">Entrar no catálogo →</button>
+          <small>As informações ficam nesta sessão e serão preenchidas automaticamente no pedido.</small>
+        </form>
+      </section>
+    </div>
+  </div>
   <footer class="shell footer"><span>RETIRADA NO PORTÃO · VENDA PROIBIDA A MENORES DE 18 ANOS</span><span>Desenvolvido por <strong>Jefferson Felix</strong></span></footer>
   <script type="module" src="/js/catalog.js"></script>
 </body>
