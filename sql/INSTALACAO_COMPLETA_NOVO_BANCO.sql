@@ -97,7 +97,7 @@ begin
     v_age:=v_age or v_product.age_restricted;
   end loop;
   if v_total<1 or v_total>100000000 then raise exception 'VALOR_INVALIDO'; end if;
-  if p_payment_method='cash' and p_cash_given_cents is not null and p_cash_given_cents<v_total then raise exception 'VALOR_PARA_TROCO_INSUFICIENTE'; end if;
+  if p_payment_method='cash' and (p_cash_given_cents is null or p_cash_given_cents<v_total) then raise exception 'VALOR_PARA_TROCO_INSUFICIENTE'; end if;
   insert into public.orders(first_name,last_name,payment_method,cash_given_cents,total_cents,age_required)
     values(trim(p_first_name),trim(p_last_name),p_payment_method,case when p_payment_method='cash' then p_cash_given_cents else null end,v_total::integer,v_age) returning * into v_order;
   for v_i in select (value->>'id')::uuid id, sum((value->>'quantity')::integer)::integer qty

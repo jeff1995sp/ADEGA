@@ -18,6 +18,20 @@
 #doseModal .form-field{margin:18px 0}
 #doseModal .form-field label{display:block;margin-bottom:8px;font-weight:700}
 #doseModal .btn-wide{margin-top:15px}
+
+/* Complementos opcionais no checkout (sem bloquear o pagamento). */
+.checkout-extras{border:1px solid rgba(232,190,114,.32);border-radius:16px;padding:15px;margin:14px 0;background:rgba(232,190,114,.055)}
+.checkout-extras-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.checkout-extras-head h3{font-size:1.1rem;line-height:1.3;margin:4px 0 0}
+.checkout-extras-head .btn{white-space:nowrap;font-size:.76rem;padding:8px 10px}
+.checkout-extras-list{display:grid;gap:8px;margin-bottom:10px}
+.checkout-extra{display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.025);padding:10px}
+.checkout-extra-emoji{font-size:1.6rem;width:33px;text-align:center}
+.checkout-extra-name{min-width:0;flex:1}
+.checkout-extra-name strong{display:block;font-size:.92rem}
+.checkout-extra-name small{display:block;color:var(--sub);font-size:.74rem;margin-top:2px}
+.checkout-extra .btn{white-space:nowrap;font-size:.77rem;padding:8px 9px}
+@media(max-width:380px){.checkout-extras-head{flex-direction:column}.checkout-extra{gap:6px}.checkout-extra-emoji{width:28px}.checkout-extra .btn{padding:7px 6px}}
 </style>
 </head>
 <body class="catalog-body">
@@ -109,7 +123,16 @@
       </form>
     </div>
   </div>
-  <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-label="Finalizar pedido"><div class="modal"><div class="modal-head"><div><div class="eyebrow">QUASE LÁ</div><h2>Finalizar pedido</h2></div><button class="close" id="closeCart" aria-label="Fechar">×</button></div><div id="checkoutSummary" class="order-items"></div><div class="muted-separator"></div><form id="checkoutForm"><div class="grid-2"><div class="form-field"><label for="first">Primeiro nome</label><input id="first" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Ex.: Bruna"></div><div class="form-field"><label for="last">Sobrenome</label><input id="last" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Ex.: Silva"></div></div><div class="form-field"><label>Como deseja pagar?</label><div class="pay-options" id="paymentOptions"></div></div><div class="form-field hidden" id="cashField"><label for="cash">Vai pagar com quanto? (opcional)</label><input id="cash" inputmode="decimal" placeholder="Ex.: 10,00"><small class="tiny">Informe o valor para calcular o troco, se precisar.</small></div><div id="payWarning" class="notice hidden" style="margin:12px 0"></div><label class="age-ack"><input type="checkbox" id="ageAck" required><span class="small">Confirmo ter 18 anos ou mais e apresentarei documento na retirada, se solicitado.</span></label><button type="submit" class="btn btn-primary btn-wide" id="placeOrder">Confirmar meu pedido <span aria-hidden="true">↗</span></button><p class="tiny" style="text-align:center;margin-top:12px">Sem cadastro. Sem telefone. Sem complicação.</p></form></div></div>
+  <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-label="Finalizar pedido"><div class="modal"><div class="modal-head"><div><div class="eyebrow">QUASE LÁ</div><h2>Finalizar pedido</h2></div><button class="close" id="closeCart" aria-label="Fechar">×</button></div><div id="checkoutSummary" class="order-items"></div>
+    <section id="checkoutExtras" class="checkout-extras" aria-label="Extras opcionais para o pedido">
+      <div class="checkout-extras-head">
+        <div><span class="eyebrow">APROVEITE E LEVE</span><h3>Quer adicionar pirulito, bala ou água?</h3></div>
+        <button type="button" id="checkoutExtrasDismiss" class="btn btn-secondary btn-sm">Não, obrigado</button>
+      </div>
+      <div id="checkoutExtrasList" class="checkout-extras-list" aria-live="polite"></div>
+      <p class="tiny sub">Opcional. Só será cobrado o que você adicionar. Os valores entram no total acima.</p>
+    </section>
+    <div class="muted-separator"></div><form id="checkoutForm"><div class="grid-2"><div class="form-field"><label for="first">Primeiro nome</label><input id="first" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Ex.: Bruna"></div><div class="form-field"><label for="last">Sobrenome</label><input id="last" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Ex.: Silva"></div></div><div class="form-field"><label>Como deseja pagar?</label><div class="pay-options" id="paymentOptions"></div></div><div class="form-field hidden" id="cashField"><label for="cash">💵 Vai pagar com quanto em dinheiro?</label><input id="cash" inputmode="decimal" autocomplete="off" required placeholder="Ex.: 50,00" aria-describedby="cashChangePreview"><small class="tiny">Informe a quantia que vai entregar. O troco será calculado automaticamente e enviado ao admin para preparar.</small><div id="cashChangePreview" class="notice" role="status" aria-live="polite" style="margin-top:10px"></div></div><div id="payWarning" class="notice hidden" style="margin:12px 0"></div><label class="age-ack"><input type="checkbox" id="ageAck" required><span class="small">Confirmo ter 18 anos ou mais e apresentarei documento na retirada, se solicitado.</span></label><button type="submit" class="btn btn-primary btn-wide" id="placeOrder">Confirmar meu pedido <span aria-hidden="true">↗</span></button><p class="tiny" style="text-align:center;margin-top:12px">Sem cadastro. Sem telefone. Sem complicação.</p></form></div></div>
   <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-label="Acompanhar pedido"><div class="modal"><div class="modal-head"><h2>Acompanhe seu pedido</h2><button class="close" id="closeTracking" aria-label="Fechar">×</button></div><div id="trackingContent"></div></div></div>
   <div id="ageGate" class="age-overlay" role="dialog" aria-modal="true" aria-label="Confirmação de idade e identificação">
     <div class="age-box">

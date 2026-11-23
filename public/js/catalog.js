@@ -126,6 +126,10 @@ async function loadCatalog(){
     setBrand(shop.name);
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
+    if($('cartModal').classList.contains('open')){
+      if(!count())close('cartModal');
+      else {renderCheckoutSummary();renderCheckoutExtras();}
+    }
   }catch(e){
     // Catálogo de consulta quando Supabase/Netlify ainda não estão configurados.
     // Nunca habilita pedidos fictícios, mesmo que alguns preços já sejam conhecidos.
@@ -146,6 +150,56 @@ async function loadCatalog(){
     }
   }
 }
+// Extras opcionais no checkout: não incluem Tabacaria nem produtos sem preço/estoque.
+// A mesma sugestão aparece sem obrigar o cliente a adicionar qualquer item.
+const checkoutExtras=[
+ {key:'pirulito',label:'Pirulito',icon:'🍭',matches:n=>n==='pirulito'||n.startsWith('pirulito-')},
+ {key:'bala',label:'Bala',icon:'🍬',matches:n=>n==='bala'||n==='balas'||n.startsWith('bala-')||n.startsWith('balas-')},
+ {key:'agua',label:'Água',icon:'💧',matches:n=>n==='agua'}
+];
+let extrasDismissed=false;
+const extraProduct=kind=>{
+ const match=checkoutExtras.find(x=>x.key===kind);
+ if(!match)return null;
+ const found=products.filter(p=>p.category!=='Tabacaria'&&!isDoseProduct(p)&&visibleInCatalog(p)&&match.matches(photoSlug(p.name)));
+ return found.find(available)||found[0]||null;
+};
+const renderCheckoutSummary=()=>{
+ $('checkoutSummary').innerHTML=[...cart.entries()].map(([key,item])=>{
+  const p=products.find(p=>p.id===item.id);
+  if(!p)return '';
+  return `<div class="order-line"><span>${item.quantity}x ${esc(p.name)}<small style="display:block">${esc(iceSummary(item))}</small>
+   <button type="button" class="btn btn-secondary btn-sm" data-remove-choice="${esc(key)}">Remover</button></span><strong>${fmt(item.quantity*p.price_cents)}</strong></div>`;
+ }).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
+ updateCashPreview();
+};
+const renderCheckoutExtras=()=>{
+ const panel=$('checkoutExtras');
+ if(!panel)return;
+ panel.classList.toggle('hidden',extrasDismissed);
+ if(extrasDismissed)return;
+ $('checkoutExtrasList').innerHTML=checkoutExtras.map(extra=>{
+  const p=extraProduct(extra.key);
+  const usable=Boolean(p&&available(p)&&(!p.unlimited?desiredQty(p)<p.stock:true));
+  const qty=p?desiredQty(p):0;
+  const description=usable?fmt(p.price_cents):'Indisponível no momento';
+  return `<div class="checkout-extra">
+   <span class="checkout-extra-emoji" aria-hidden="true">${extra.icon}</span>
+   <div class="checkout-extra-name"><strong>${esc(extra.label)}</strong><small>${esc(description)}${qty?' · '+qty+' no pedido':''}</small></div>
+   <button type="button" class="btn btn-secondary btn-sm" data-checkout-extra="${esc(extra.key)}" ${usable?'':'disabled'}>${usable?'+ Adicionar':'Indisponível'}</button>
+  </div>`;
+ }).join('');
+};
+const addCheckoutExtra=key=>{
+ const p=extraProduct(key);
+ if(!p||!available(p)||isDoseProduct(p)||p.category==='Tabacaria')return toast('Este extra não está disponível.',true);
+ const q=desiredQty(p);
+ if(!p.unlimited&&q>=p.stock)return toast('Este extra esgotou.',true);
+ if(q>=99)return toast('Limite de 99 unidades por produto.',true);
+ cart.set(p.id,{id:p.id,quantity:q+1});
+ renderCheckoutSummary();renderCheckoutExtras();renderProducts();
+ toast(p.name+' adicionado ao pedido.');
+};
 function showCheckout(){
   if(!count())return;
   try{
@@ -155,12 +209,9 @@ function showCheckout(){
       $('ageAck').checked=sessionStorage.getItem('adega_age_ok')==='1';
     }
   }catch{}
-  $('checkoutSummary').innerHTML=[...cart.entries()].map(([key,item])=>{
-   const p=products.find(p=>p.id===item.id);
-   if(!p)return '';
-   return `<div class="order-line"><span>${item.quantity}x ${esc(p.name)}<small style="display:block">${esc(iceSummary(item))}</small>
-    <button type="button" class="btn btn-secondary btn-sm" data-remove-choice="${esc(key)}">Remover</button></span><strong>${fmt(item.quantity*p.price_cents)}</strong></div>`;
-  }).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
+  extrasDismissed=false;
+  renderCheckoutSummary();
+  renderCheckoutExtras();
   $('paymentOptions').innerHTML=[
     ['cash','💵 Dinheiro','Pagamento no portão',true],
     ['card','💳 Cartão','Maquininha no portão',true],
@@ -171,11 +222,26 @@ function showCheckout(){
   $('payWarning').classList.remove('hidden');
   $('payWarning').textContent='Pix, Apple Pay e Google Pay serão habilitados quando a API do provedor estiver conectada. Não é gerado nenhum código de cobrança falso.';
   $('cashField').classList.remove('hidden');
+  refreshCash();
   open('cartModal');
 }
+function updateCashPreview(){
+ const info=$('cashChangePreview');
+ if(!info)return;
+ const mode=document.querySelector('input[name="payment"]:checked')?.value;
+ if(mode!=='cash'){info.textContent='';return;}
+ const value=$('cash').value.trim(),given=priceParse(value);
+ if(!value){info.textContent='Total: '+fmt(total())+'. Informe quanto vai entregar para calcular o troco.';info.className='notice';return;}
+ if(given===null){info.textContent='Valor inválido. Exemplo: 50,00';info.className='notice danger';return;}
+ if(given<total()){info.textContent='Faltam '+fmt(total()-given)+' para pagar o pedido. Informe um valor igual ou maior que o total.';info.className='notice danger';return;}
+ info.textContent='💵 Troco a preparar: '+fmt(given-total())+' • Você entrega '+fmt(given)+' • Pedido '+fmt(total());
+ info.className='notice ok';
+}
 function refreshCash(){
-  const method=document.querySelector('input[name="payment"]:checked')?.value;
-  $('cashField').classList.toggle('hidden',method!=='cash');
+ const method=document.querySelector('input[name="payment"]:checked')?.value;
+ $('cashField').classList.toggle('hidden',method!=='cash');
+ $('cash').required=method==='cash';
+ updateCashPreview();
 }
 async function submitOrder(event){
   event.preventDefault();
@@ -185,7 +251,7 @@ async function submitOrder(event){
   if(!$('ageAck').checked)return toast('Confirme ter pelo menos 18 anos.',true);
   if(!['cash','card'].includes(method))return toast('Pagamento online ainda não integrado.',true);
   const cash=$('cash').value.trim()?priceParse($('cash').value):null;
-  if(method==='cash' && $('cash').value.trim() && (cash===null||cash<total()))return toast('Informe o valor correto para calcular o troco.',true);
+  if(method==='cash' && (cash===null||cash<total()))return toast('Em dinheiro, informe com quanto vai pagar. O valor deve cobrir o total e o troco será enviado ao admin.',true);
   const items=[...cart.values()].map(i=>({...i}));
   const button=$('placeOrder');working=true;button.disabled=true;button.textContent='Registrando pedido...';
   try{
@@ -226,15 +292,21 @@ function start(){
    const btn=e.target.closest('[data-remove-choice]');if(!btn)return;
    cart.delete(btn.dataset.removeChoice);
    if(!count())close('cartModal');
-   else showCheckout();
+   else {renderCheckoutSummary();renderCheckoutExtras();}
    renderProducts();
   });
+  $('checkoutExtrasList').addEventListener('click',event=>{
+   const button=event.target.closest('button[data-checkout-extra]');
+   if(button)addCheckoutExtra(button.dataset.checkoutExtra);
+  });
+  $('checkoutExtrasDismiss').addEventListener('click',()=>{extrasDismissed=true;renderCheckoutExtras();});
   $('categoryTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-category]');if(!btn)return;category=btn.dataset.category;renderProducts();});
   $('openCart').addEventListener('click',showCheckout);
   $('closeCart').onclick=()=>close('cartModal');
   $('closeTracking').onclick=()=>close('trackingModal');
   $('checkoutForm').addEventListener('submit',submitOrder);
   $('paymentOptions').addEventListener('change',refreshCash);
+  $('cash').addEventListener('input',updateCashPreview);
   const profileKey='adega_customer_profile_v1';
   const readProfile=()=>{try{const p=JSON.parse(sessionStorage.getItem(profileKey)||'null');
     return p && typeof p.first==='string' && typeof p.last==='string' && p.first.trim().length>=2 && p.last.trim().length>=2?p:null;

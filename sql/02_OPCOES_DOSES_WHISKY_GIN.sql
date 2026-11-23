@@ -100,6 +100,16 @@ UPDATE public.products SET description='Caipirinha no copo de 700 ml. Somente li
 WHERE category='Caipirinhas' AND name IN ('Caipirinha de Limão','Caipirinha de Morango')
  AND description ILIKE 'Sabor visto no cartaz%';
 
+-- Sugestões opcionais da finalização: sem inventar valores nem quantidades.
+-- O admin libera cada produto somente depois de confirmar preço e estoque.
+INSERT INTO public.products(name,category,description,price_cents,stock,active,unlimited,icon,age_restricted,sort_order,image_url)
+SELECT v.name,'Doces e Balas',v.description,0,0,false,false,v.icon,false,v.ord,'/imagens/foto-pendente.webp'
+FROM (VALUES
+ ('Pirulito','Pirulito avulso; aguardar preço e estoque do proprietário.','🍭',766),
+ ('Bala (unidade)','Bala avulsa; aguardar preço e estoque do proprietário.','🍬',767)
+) AS v(name,description,icon,ord)
+WHERE NOT EXISTS(SELECT 1 FROM public.products p WHERE lower(trim(p.name))=lower(trim(v.name)));
+
 -- Conferência do cartaz: draft foi cadastrado como R$ 13,00 no JSON antigo, placa R$ 15,00.
 UPDATE public.products SET price_cents=1500 WHERE lower(trim(name))='draft' AND price_cents=1300;
 -- Somente limão e morango conforme dono; demais sabores antigos permanecem no histórico, pausados.
@@ -162,7 +172,7 @@ BEGIN
        OR (NOT v_option.unlimited AND v_option.stock < v_i.qty) THEN RAISE EXCEPTION 'OPCAO_INDISPONIVEL'; END IF;
  END LOOP;
  IF v_total NOT BETWEEN 1 AND 100000000 THEN RAISE EXCEPTION 'VALOR_INVALIDO'; END IF;
- IF p_payment_method='cash' AND p_cash_given_cents IS NOT NULL AND p_cash_given_cents<v_total
+ IF p_payment_method='cash' AND (p_cash_given_cents IS NULL OR p_cash_given_cents<v_total)
  THEN RAISE EXCEPTION 'VALOR_PARA_TROCO_INSUFICIENTE'; END IF;
  -- Validar todas as combinações ANTES de criar pedido.
  FOR v_i IN

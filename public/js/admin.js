@@ -26,13 +26,17 @@ function renderStats(){
 function renderOrders(){
   const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status));
   $('ordersList').innerHTML=visible.length?visible.map(o=>{
-    const cash=o.payment_method==='cash'&&o.cash_given_cents!==null?`<span>Troco: ${fmt(Math.max(0,o.cash_given_cents-o.total_cents))} (nota ${fmt(o.cash_given_cents)})</span>`:'';
+    const cash=o.payment_method==='cash'
+      ?o.cash_given_cents!==null
+        ?`<div class="notice ok" style="margin:12px 0"><strong>💵 PREPARAR TROCO: ${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong><div>Cliente entrega: ${fmt(o.cash_given_cents)} · Total do pedido: ${fmt(o.total_cents)}</div><small>Pagamento em dinheiro na retirada. Marque como pago somente após receber.</small></div>`
+        :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
+      :'';
     const voice=o.voice||'';
     const showPay=!paid(o)&&['cash','card'].includes(o.payment_method);
     const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):button('📦 Entregar','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked)||(o.age_required&&!o.age_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card"><div class="order-top"><div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)} <span class="tiny">${pad(o.order_no)}</span></div><div class="tiny">${minutesAgo(o.created_at)} · ${esc(stageLabels[o.status])}</div></div>${statusBadge(o)}</div>
-    <div class="order-details"><span>${allItems(o)}</span><span>${fmt(o.total_cents)}</span><span>Pagamento: ${esc(labels[o.payment_method]||o.payment_method)}</span>${cash}</div>
+    <div class="order-details"><span>${allItems(o)}</span><span>${fmt(o.total_cents)}</span><span>Pagamento: ${esc(labels[o.payment_method]||o.payment_method)}</span></div>${cash}
     ${proof}<div class="muted-separator"></div>
     <div class="small sub">Voz que a TV usará ao chamar:</div><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}♀ Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}♂ Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div>
     <div class="order-bottom">${showPay?button('💰 Confirmar pagamento recebido','paid',o.id,'','secondary'):''}

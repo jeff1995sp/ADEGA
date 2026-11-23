@@ -887,6 +887,34 @@
       "image_url": "/imagens/foto-pendente.webp",
       "age_restricted": false,
       "sort_order": 157
+    },
+    {
+      "id": "produto-069",
+      "name": "Pirulito",
+      "category": "Doces e Balas",
+      "description": "Pirulito avulso; preço e estoque a confirmar.",
+      "price_cents": 0,
+      "stock": 0,
+      "unlimited": false,
+      "active": false,
+      "icon": "🍭",
+      "image_url": "/imagens/foto-pendente.webp",
+      "age_restricted": false,
+      "sort_order": 869
+    },
+    {
+      "id": "produto-070",
+      "name": "Bala (unidade)",
+      "category": "Doces e Balas",
+      "description": "Bala avulsa; preço e estoque a confirmar.",
+      "price_cents": 0,
+      "stock": 0,
+      "unlimited": false,
+      "active": false,
+      "icon": "🍬",
+      "image_url": "/imagens/foto-pendente.webp",
+      "age_restricted": false,
+      "sort_order": 870
     }
   ],
   "preview": true

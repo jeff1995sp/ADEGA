@@ -109,7 +109,8 @@ export default async function handler(request) {
       if(items.length<1 || items.length>30 || !items.every(i=>validUuid(i.id) && Number.isInteger(i.quantity) && i.quantity>=1 && i.quantity<=99
         && (i.ice_id==null || validUuid(i.ice_id)) && (i.energy_id==null || validUuid(i.energy_id)))) return fail('Carrinho inválido.');
       const cash=body.cash_given_cents===null || body.cash_given_cents===undefined ? null:Number(body.cash_given_cents);
-      if(cash!==null && (!Number.isInteger(cash) || cash<0 || cash>100000000)) return fail('Valor de troco inválido.');
+      if(cash!==null && (!Number.isInteger(cash) || cash<0 || cash>100000000)) return fail('Valor em dinheiro inválido.');
+      if(body.payment_method==='cash' && cash===null) return fail('Informe com quanto vai pagar em dinheiro para calcular o troco.');
       if(!['cash','card'].includes(body.payment_method)) return fail('Pix, Apple Pay e Google Pay aguardam conexão com o gateway; escolha dinheiro ou cartão na retirada.',409);
       const {data,error}=await sb.rpc('place_order',{p_first_name:first,p_last_name:last,p_payment_method:body.payment_method,p_cash_given_cents:cash,p_items:items});
       if(error) return fail(friendly(error.message),409);

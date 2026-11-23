@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const products=JSON.parse(read('../public/catalogo-previa.json')).products;
 
 test('fotos provisórias do catálogo aparecem como pendentes',()=>{
- assert.equal(products.length,68);
+ assert.equal(products.length,70);
  assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=10);
  assert.ok(LICENSED_LOCAL_PATHS.size>=4);
  assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)||p.image_url===PHOTO_PENDING).length);
