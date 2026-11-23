@@ -35,16 +35,12 @@ npm run check
 - Os pedidos exigem nome e sobrenome; o administrador vê o nome completo, e a TV passa a receber o nome completo junto ao número do pedido. A validação é feita no servidor.
 - Fotos dos itens fumígenos continuam restritas ao estoque interno. Preços e quantidades não foram alterados nesta revisão.
 
-## Login com usuário admin — configuração privada no Netlify
+## Login com usuário admin — sem trocar e-mail nem senha do Supabase
 
-A tela `/admin` (ou `/admin.html`) aceita **usuário `admin`** ou **e-mail cadastrado no Supabase**. O login antigo por e-mail permanece funcionando. O login rápido utiliza a função `/api/admin-login`, que tem limitação de tentativas por IP e cria uma sessão Supabase real. Não são aceitas senhas configuradas em arquivos públicos.
+O endereço `/admin` permite entrar como `admin` ou com o e-mail e a senha **já existentes** do Supabase. As duas opções continuam independentes. O login com `admin` usa uma senha exclusiva que fica apenas no servidor Netlify.
 
-Para habilitar o nome de usuário `admin`, abra o Netlify da ADEGA em **Project configuration > Environment variables**, crie estas três variáveis com escopo **Functions**:
+Para ativar, abra o Netlify da ADEGA e configure somente a variável `ADEGA_ADMIN_PIN`, com o valor escolhido pelo proprietário, no escopo **Functions**. Não escreva o valor no código nem no GitHub. É recomendada uma senha longa e exclusiva para proteger pedidos, dados pessoais e estoque.
 
-- `ADEGA_ADMIN_PIN`: PIN privado escolhido pelo proprietário (por segurança, prefira uma senha longa; um PIN de apenas quatro dígitos é vulnerável a tentativas de adivinhação).
-- `ADEGA_ADMIN_EMAIL`: e-mail de login da conta administrativa **existente no Supabase**.
-- `ADEGA_ADMIN_PASSWORD`: senha real da mesma conta no Supabase (deve ser forte).
+A função usa a conta já autorizada em `admin_users`, emite uma sessão Supabase para ela e **não modifica o e-mail nem a senha dessa conta**. Se houver mais de um registro em `admin_users`, configure também `ADEGA_ADMIN_USER_ID` com o UUID da conta que deverá ser usada, para não escolher o proprietário errado. Nenhum login é liberado sem conta previamente autorizada.
 
-A conta precisa estar autorizada na tabela `admin_users`. Depois de configurar as variáveis, **faça um novo deploy** para elas valerem. Não compartilhe essas variáveis por mensagens nem as grave no GitHub. Se não configurar, o acesso `admin` retornará uma mensagem informativa; o acesso por e-mail continuará funcionando.
-
-Limitação: a restrição de três tentativas por 180 segundos por IP é uma proteção auxiliar do Netlify, não substitui senha forte ou MFA. Recomendamos usar uma senha longa, e não PIN curto, para um painel com dados de clientes e pedidos.
+Depois de salvar as variáveis, faça um novo deploy no Netlify. O acesso antigo por e-mail continuará disponível. O endpoint `/api/admin-login` tem limite de tentativas por IP, mas isso não substitui uma senha forte.

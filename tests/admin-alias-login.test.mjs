@@ -13,15 +13,21 @@ test('admin permite digitar usuário ou e-mail sem exigir formato de e-mail',()=
  assert.ok(code.includes("api('login',{email:username,password}"));
 });
 
-test('acesso por PIN somente se configurado no servidor, com validação de conta Supabase',()=>{
+test('login admin usa só PIN privado, sem alterar e-mail ou senha Supabase',()=>{
  const code=read('../netlify/functions/admin-login.mjs');
- for(const env of ['ADEGA_ADMIN_PIN','ADEGA_ADMIN_EMAIL','ADEGA_ADMIN_PASSWORD'])assert.ok(code.includes(env),env);
- assert.ok(code.includes('timingSafeEqual'));
- assert.ok(code.includes("signInWithPassword"));
+ assert.ok(code.includes('ADEGA_ADMIN_PIN'));
  assert.ok(code.includes("from('admin_users')"));
+ assert.ok(code.includes('timingSafeEqual'));
+ assert.ok(code.includes('getUserById'));
+ assert.ok(code.includes("generateLink({type:'magiclink',email})"));
+ assert.ok(code.includes("verifyOtp({token_hash:hash,type:'magiclink'})"));
+ assert.ok(code.includes("account.user.id!==adminId"));
+ assert.ok(code.includes("sessionData?.user?.id!==adminId"));
  assert.ok(code.includes("rateLimit:{windowLimit:3,windowSize:180"));
- assert.ok(!code.includes("'2027'"));
- assert.ok(!read('../public/admin.html').includes('2027'));
+ assert.ok(!code.includes('ADEGA_ADMIN_EMAIL'));
+ assert.ok(!code.includes('ADEGA_ADMIN_PASSWORD'));
+ assert.ok(!code.includes('signInWithPassword'));
+ assert.ok(!read('../public/admin.html').includes('fabio@2027'));
 });
 
 test('atalho /admin funciona sem alterar /api e login e-mail original',()=>{
