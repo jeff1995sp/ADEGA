@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Baixa imagens com licença de reutilização verificada para public/imagens/.
 Roda apenas no GitHub Actions, nunca no navegador do cliente.
-Imagens retiradas de https://commons.wikimedia.org/wiki/File:...
+Imagens obtidas de fotos gratuitas do Unsplash (https://unsplash.com/license).
 """
 import csv
 import io
@@ -17,23 +17,23 @@ SRC = [
     {
         "name": "Heineken",
         "path": "/imagens/heineken.webp",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/0/07/Heineken_Flasche_0.33.jpg",
-        "license": "CC0 1.0",
-        "page": "https://commons.wikimedia.org/wiki/File:Heineken_Flasche_0.33.jpg",
+        "url": "https://unsplash.com/photos/7jwSErtrzpk/download?force=true&w=1200",
+        "license": "Unsplash License",
+        "page": "https://unsplash.com/photos/heineken-beer-bottle-7jwSErtrzpk",
     },
     {
         "name": "Caipirinha de Limão",
         "path": "/imagens/caipirinha-de-limao.webp",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Caipirinha_with_lime.jpg",
-        "license": "CC0 1.0",
-        "page": "https://commons.wikimedia.org/wiki/File:Caipirinha_with_lime.jpg",
+        "url": "https://unsplash.com/photos/1-PGBJywxOk/download?force=true&w=1200",
+        "license": "Unsplash License",
+        "page": "https://unsplash.com/photos/clear-glass-mason-jar-filled-with-lemon-juice-1-PGBJywxOk",
     },
     {
         "name": "Caipirinha de Morango",
         "path": "/imagens/caipirinha-de-morango.webp",
-        "url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Strawberry_drink.jpg",
-        "license": "CC BY-SA 4.0",
-        "page": "https://commons.wikimedia.org/wiki/File:Strawberry_drink.jpg",
+        "url": "https://unsplash.com/photos/Z2b1d8y1oG8/download?force=true&w=1200",
+        "license": "Unsplash License",
+        "page": "https://unsplash.com/photos/strawberry-cocktail-Z2b1d8y1oG8",
     },
 ]
 
@@ -41,7 +41,7 @@ SRC = [
 def fetch_jpeg(item):
     request = urllib.request.Request(
         item["url"],
-        headers={"User-Agent": "AdegaDigitalPhotoImporter/1.0 (github.com/jeff1995sp/ADEGA; Wikimedia licensed photographs)"},
+        headers={"User-Agent": "AdegaDigitalPhotoImporter/1.0 (github.com/jeff1995sp/ADEGA; Unsplash licensed photographs)"},
     )
     last_error = None
     for attempt in range(4):
