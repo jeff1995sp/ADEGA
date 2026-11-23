@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 800" role="img" aria-label="Coquetel rubi com gelo e frutas sobre fundo escuro">
+<defs>
+  <radialGradient id="halo"><stop stop-color="#fa5f40" stop-opacity=".40"/><stop offset=".45" stop-color="#f05342" stop-opacity=".14"/><stop offset="1" stop-color="#df392e" stop-opacity="0"/></radialGradient>
+  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fcf7f3" stop-opacity=".88"/><stop offset=".18" stop-color="#e9dfd8" stop-opacity=".08"/><stop offset=".61" stop-color="#fff" stop-opacity=".19"/><stop offset="1" stop-color="#f8fcff" stop-opacity=".82"/></linearGradient>
+  <linearGradient id="drink" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#ff9582"/><stop offset=".18" stop-color="#fd4c52"/><stop offset=".59" stop-color="#b51742"/><stop offset="1" stop-color="#6c092c"/></linearGradient>
+  <linearGradient id="darkdrink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f24e5c"/><stop offset="1" stop-color="#710b3f"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe6ab"/><stop offset=".5" stop-color="#d6a667"/><stop offset="1" stop-color="#9c602e"/></linearGradient>
+  <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1"><stop stop-color="white" stop-opacity=".85"/><stop offset=".4" stop-color="#ffbdac" stop-opacity=".45"/><stop offset="1" stop-color="#efb6af" stop-opacity=".15"/></linearGradient>
+  <filter id="shadow" x="-.8" y="-.8" width="2.6" height="3"><feGaussianBlur stdDeviation="16"/></filter>
+  <filter id="blur" x="-.6" y="-.6" width="2.2" height="2.2"><feGaussianBlur stdDeviation="9"/></filter>
+  <filter id="shine" x="-.5" y="-.5" width="2" height="2"><feGaussianBlur stdDeviation="2"/></filter>
+</defs>
+<ellipse cx="380" cy="410" rx="320" ry="335" fill="url(#halo)"/>
+<circle cx="383" cy="366" r="247" fill="none" stroke="#d9a66b" stroke-opacity=".18" stroke-width="1.5"/>
+<circle cx="383" cy="366" r="296" fill="none" stroke="#d9a66b" stroke-opacity=".08" stroke-width="1.5"/>
+<ellipse cx="398" cy="731" rx="195" ry="26" fill="#000" opacity=".8" filter="url(#shadow)"/>
+<ellipse cx="392" cy="718" rx="151" ry="15" fill="#52252c" opacity=".56" filter="url(#blur)"/>
+<!-- tumbler base -->
+<path d="M240 251 C248 245 520 244 532 252 C528 356 512 523 497 601 C489 660 470 681 392 690 C312 683 288 662 281 601 C266 506 253 365 240 251Z" fill="url(#glass)" opacity=".65"/>
+<path d="M251 275 C270 269 501 269 521 275 C511 401 502 523 486 603 C478 646 456 662 392 671 C321 661 302 643 292 603 C276 504 267 395 251 275Z" fill="url(#drink)"/>
+<path d="M257 306 C292 315 490 319 518 306 L503 491 Q393 525 278 493Z" fill="url(#darkdrink)" opacity=".72"/>
+<!-- ice shards -->
+<g stroke="#ffe8e6" stroke-opacity=".48" stroke-width="2.2">
+ <path d="M294 365 l77 -14 29 58 -37 64 -72 -31Z" fill="url(#ice)" opacity=".8"/>
+ <path d="M404 348 l68 8 20 74 -53 37 -46 -57Z" fill="url(#ice)" opacity=".75"/>
+ <path d="M333 474 l63 -27 52 46 -19 78 -79 -9Z" fill="url(#ice)" opacity=".6"/>
+ <path d="M421 525 l60 -22 -12 90 -58 36 -17 -56Z" fill="url(#ice)" opacity=".5"/>
+</g>
+<path d="M269 294 Q395 317 510 293" fill="none" stroke="#ffb3a5" stroke-opacity=".9" stroke-width="6"/>
+<ellipse cx="385" cy="250" rx="150" ry="21" fill="#ffa798" opacity=".4"/>
+<ellipse cx="385" cy="248" rx="151" ry="20" fill="none" stroke="#fbe6d7" stroke-width="9" opacity=".73"/>
+<ellipse cx="385" cy="248" rx="138" ry="14" fill="none" stroke="#ffd9d4" stroke-opacity=".7" stroke-width="3"/>
+<!-- glass reflections -->
+<path d="M268 299 C281 450 290 555 308 613" fill="none" stroke="#fff3ee" stroke-width="11" stroke-opacity=".36" stroke-linecap="round"/>
+<path d="M507 301 C501 454 490 549 481 605" fill="none" stroke="#fff4ec" stroke-width="6" stroke-opacity=".43" stroke-linecap="round"/>
+<path d="M301 640 C355 683 428 681 476 642" fill="none" stroke="#f8d6c9" stroke-width="10" stroke-opacity=".35"/>
+<!-- straw -->
+<path d="M446 354 L532 101 L581 84" fill="none" stroke="#2b2329" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M446 354 L532 101 L581 84" fill="none" stroke="url(#gold)" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M444 354 L527 103" fill="none" stroke="#fff0bd" stroke-width="2" opacity=".55"/>
+<!-- orange slice -->
+<g transform="translate(294,201) rotate(-23)">
+ <circle r="77" fill="#ffb82f"/>
+ <circle r="71" fill="#fcdc82"/>
+ <circle r="63" fill="#e78020"/>
+ <g stroke="#ffda8b" stroke-width="4" opacity=".95"><path d="M0 0L63 0M0 0L31 55M0 0L-31 55M0 0L-63 0M0 0L-31 -55M0 0L31 -55"/></g>
+ <circle r="11" fill="#ffdb99"/><circle r="75" fill="none" stroke="#fff1bd" stroke-width="4"/>
+</g>
+<!-- garnish leaves -->
+<path d="M347 145 Q385 72 449 92 Q422 151 347 145Z" fill="#568e59" stroke="#9fc080" stroke-width="2"/>
+<path d="M352 150 Q391 103 431 104" stroke="#d9e3a8" stroke-width="3" fill="none"/>
+<path d="M334 147 Q318 80 267 68 Q270 133 334 147Z" fill="#487850" stroke="#9ac285" stroke-width="2"/>
+<circle cx="335" cy="166" r="15" fill="#8a1735"/><circle cx="330" cy="161" r="5" fill="#f78e8f" opacity=".85"/>
+<!-- highlights and bokeh -->
+<circle cx="583" cy="303" r="6" fill="#ffd096" opacity=".8"/><circle cx="189" cy="425" r="5" fill="#ffe6ba" opacity=".8"/><circle cx="537" cy="547" r="3" fill="#ffd9a4"/><circle cx="191" cy="201" r="2" fill="#ffd9a4"/><circle cx="572" cy="171" r="2" fill="#ffd9a4"/>
+<path d="M174 470h16M182 462v16M561 442h11M566 436v12" stroke="#f5c788" stroke-width="1.7" opacity=".55"/>
+</svg>

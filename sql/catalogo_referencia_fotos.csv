@@ -1,0 +1,46 @@
+﻿Produto;Categoria;Preço R$ da placa;Estoque inicial;Observação
+Água;Águas e Refrigerantes;2,50;0;"Na placa; produto já existente"
+Seda;Tabacaria;3,00;10;Preço aprovado anteriormente pelo usuário
+Corona;Cervejas;10,00;0;"Preço da placa; confira a apresentação antes de ativar o estoque."
+Heineken;Cervejas;10,00;0;"Preço da placa; confira a apresentação antes de ativar o estoque."
+Spaten;Cervejas;10,00;0;"Preço da placa; confira a apresentação antes de ativar o estoque."
+Budweiser;Cervejas;8,00;0;"Preço da placa; confira a apresentação antes de ativar o estoque."
+Jack com Red Bull;Doses;45,00;0;Dose com energético, conforme placa de preços.
+Cavalo com Red Bull;Doses;30,00;0;Dose com energético, conforme placa de preços.
+Cavalo com Vibe;Doses;20,00;0;Dose com energético, conforme placa de preços.
+Ballantine's com Red Bull;Doses;30,00;0;Dose com energético, conforme placa de preços.
+Ballantine's com Vibe;Doses;20,00;0;Dose com energético, conforme placa de preços.
+Red Label com Red Bull;Doses;35,00;0;Dose com energético, conforme placa de preços.
+Beefeater com Red Bull;Doses;30,00;0;Dose com energético, conforme placa de preços.
+Bell's com Red Bull;Doses;25,00;0;Dose com energético, conforme placa de preços.
+Absolut com Red Bull;Doses;25,00;0;Dose com energético, conforme placa de preços.
+Cîroc com Red Bull;Doses;60,00;0;Dose com energético, conforme placa de preços.
+Rocks com Red Bull;Doses;25,00;0;Dose com energético, conforme placa de preços.
+Açaí Batido;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Abacaxi com vinho;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Céu Azul;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Ferrero Rocher;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Kinder Ovo;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Maracujá;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Morango com Nutella;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Frutas Vermelhas;Batidas;15,00;0;Sabor apresentado no cardápio da adega.
+Ninho Trufado;Batidas;12,00;0;Sabor apresentado no cardápio da adega.
+Caipirinha;Caipirinhas;15,00;0;Consulte os sabores disponíveis com a adega.
+Caipirinha de cerveja;Caipirinhas;;0;Valor a confirmar com o proprietário.
+Smirnoff Ice;Bebidas prontas;10,00;0;Bebida pronta, conforme placa de preços.
+51 Ice;Bebidas prontas;8,00;0;Bebida pronta, conforme placa de preços.
+Draft;Bebidas prontas;13,00;0;"Produto da placa de preços; confirmar apresentação."
+Refrigerante em lata;Águas e Refrigerantes;6,00;0;Valor indicado na placa de preços.
+Doritos;Salgadinhos;;0;Salgadinho visto nas fotos. Tamanho e preço a cadastrar.
+Fofura;Salgadinhos;;0;Salgadinho visto nas fotos. Sabor e preço a cadastrar.
+Torcida;Salgadinhos;;0;Salgadinho visto nas fotos. Sabor e preço a cadastrar.
+Bubbaloo;Doces e Balas;;0;Goma de mascar vista nas fotos. Sabor e preço a cadastrar.
+Trident;Doces e Balas;;0;Goma de mascar vista nas fotos. Sabor e preço a cadastrar.
+Mentos;Doces e Balas;;0;Doce visto nas fotos. Sabor e preço a cadastrar.
+Isqueiro BIC;Tabacaria;;0;Acessório visto nas fotos. Preço a cadastrar.
+Piteira;Tabacaria;;0;Acessório visto nas fotos. Preço a cadastrar.
+Bala Felicidades;Doces e Balas;;0;"Etiqueta/variedade não confirmada nas fotos; disponível apenas após preço e estoque."
+Bala Te Adoro;Doces e Balas;;0;"Etiqueta/variedade não confirmada nas fotos; disponível apenas após preço e estoque."
+Balas sortidas;Doces e Balas;;0;"Etiqueta/variedade não confirmada nas fotos; disponível apenas após preço e estoque."
+Pilhas Panasonic;Diversos;;0;"Etiqueta/variedade não confirmada nas fotos; disponível apenas após preço e estoque."
+Gel Kids;Diversos;;0;"Etiqueta/variedade não confirmada nas fotos; disponível apenas após preço e estoque."

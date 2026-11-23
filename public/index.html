@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0a10">
+  <meta name="description" content="Escolha seus produtos pelo QR Code e retire no portão. Pedido rápido, sem cadastro.">
+  <title>Adega Digital • Peça e retire no portão</title>
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css"><link rel="stylesheet" href="/css/concept.css">
+</head>
+<body class="catalog-body">
+  <div id="modeBanner" class="mode-banner">Conectando ao catálogo...</div>
+  <header class="header">
+    <div class="shell header-inner">
+      <a class="brand" href="/" aria-label="Página inicial da adega">
+        <span class="brand-mark brand-crest"><img src="/img/crest.svg" alt="" /></span>
+        <span class="brand-copy"><strong class="brand-name">ADEGA DIGITAL</strong><small class="muted-line">ESCOLHA • PEÇA • RETIRE</small></span>
+      </a>
+      <div class="header-actions">
+        <span class="header-pickup"><span class="live-dot"></span> PEDIDOS AO VIVO</span>
+        <button type="button" id="trackBtn" class="btn btn-outline btn-sm hidden">Meu pedido</button>
+        <a href="#catalogo" class="btn btn-primary btn-sm header-buy">Fazer pedido <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+  <main>
+    <!-- A arte aprovada como capa responsiva; a navegação é feita por links HTML reais. -->
+    <section class="concept-landing" aria-label="Adega Digital: escolha, peça e retire">
+      <img src="/img/catalogo-conceito.webp" alt="Adega Digital. Escolha, peça e retire. Faça seu pedido pelo celular e aguarde no portão." class="concept-landing-image" fetchpriority="high" />
+      <a class="concept-link concept-link-top" href="#catalogo" aria-label="Fazer pedido e abrir o catálogo"></a>
+      <a class="concept-link concept-link-main" href="#catalogo" aria-label="Explorar o cardápio e escolher produtos"></a>
+      <a class="concept-link concept-cat concept-cat-one" href="#catalogo" aria-label="Ver cervejas"></a>
+      <a class="concept-link concept-cat concept-cat-two" href="#catalogo" aria-label="Ver drinks"></a>
+      <a class="concept-link concept-cat concept-cat-three" href="#catalogo" aria-label="Ver destilados"></a>
+      <a class="concept-link concept-cat concept-cat-four" href="#catalogo" aria-label="Ver vinhos"></a>
+    </section>
+    <section class="hero">
+      <div class="hero-orbit orbit-one" aria-hidden="true"></div>
+      <div class="hero-orbit orbit-two" aria-hidden="true"></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <div class="hero-kicker">✦ &nbsp; EXCLUSIVIDADE EM CADA PEDIDO</div>
+          <h1>Escolha.<br>Peça.<br><span class="hero-accent">Retire.</span></h1>
+          <p>Faça seu pedido pelo celular e aguarde no portão. Sem filas, sem complicação.</p>
+          <div class="hero-actions">
+            <a href="#catalogo" class="btn btn-primary btn-hero"><span aria-hidden="true">◈</span> Explorar o cardápio <span aria-hidden="true">→</span></a>
+            <span class="hero-action-note"><span>♙</span> Só nome e sobrenome</span>
+          </div>
+          <div class="hero-small-note"><span>▣</span> Acompanhe o preparo na TV ou no seu celular</div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="hero-visual-halo"></div>
+          <div class="hero-outline">SUA EXPERIÊNCIA COMEÇA AQUI</div>
+          <img class="hero-cocktail" src="/img/drink-premium.webp" alt="" fetchpriority="high">
+          <div class="hero-visual-sticker"><span class="spark">◷</span><span>SEU PEDIDO<br><strong>EM TEMPO REAL</strong></span></div>
+          <div class="hero-vertical">SABOR E PRATICIDADE</div>
+        </div>
+      </div>
+      <div class="shell category-showcase" aria-label="Explore nossas categorias">
+        <a href="#catalogo" class="showcase-tile"><span>♧</span><b>Cervejas</b></a>
+        <a href="#catalogo" class="showcase-tile"><span>♜</span><b>Doses</b></a>
+        <a href="#catalogo" class="showcase-tile"><span>♢</span><b>Batidas</b></a>
+      </div>
+      <div class="shell hero-benefits">
+        <span><b>01</b> Escolha os produtos</span><span class="benefit-sep"></span>
+        <span><b>02</b> Confirme em segundos</span><span class="benefit-sep"></span>
+        <span><b>03</b> Aguarde no portão</span>
+      </div>
+    </section>
+    <section id="catalogo" class="section catalog-section">
+      <div class="shell">
+        <div class="section-head">
+          <div><div class="eyebrow"><span class="tiny-star">✦</span> O CARDÁPIO</div>
+            <h2>Encontre o seu <em>favorito.</em></h2>
+            <p class="sub small">Escolha o que quiser. As quantidades são atualizadas automaticamente.</p>
+          </div>
+          <span class="catalog-head-tag">✧ SELECIONE E RETIRE</span>
+        </div>
+        <div id="categoryTabs" class="tabs" aria-label="Categorias do cardápio"></div>
+        <div id="productGrid" class="products"><div class="empty">Carregando produtos...</div></div>
+        <div id="endCategory"></div>
+      </div>
+    </section>
+    <section class="end-cta"><div class="shell end-cta-inner"><span class="end-cta-icon">✳</span><div><div class="eyebrow">PRATICIDADE DE VERDADE</div><h2>Escolheu? A gente prepara.</h2><p>Você pede. Nós avisamos quando estiver pronto. Simples assim.</p></div><a class="btn btn-outline" href="#catalogo">Voltar ao cardápio ↑</a></div></section>
+  </main>
+  <div class="cart-bar" id="cartBar"><div class="cart-inner"><div class="cart-meta"><small class="sub" id="cartCount">0 itens</small><strong id="cartTotal">R$ 0,00</strong></div><button type="button" class="btn btn-primary" id="openCart" disabled>Ver meu carrinho <span aria-hidden="true">↗</span></button></div></div>
+  <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-label="Finalizar pedido"><div class="modal"><div class="modal-head"><div><div class="eyebrow">QUASE LÁ</div><h2>Finalizar pedido</h2></div><button class="close" id="closeCart" aria-label="Fechar">×</button></div><div id="checkoutSummary" class="order-items"></div><div class="muted-separator"></div><form id="checkoutForm"><div class="grid-2"><div class="form-field"><label for="first">Primeiro nome</label><input id="first" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Ex.: Bruna"></div><div class="form-field"><label for="last">Sobrenome</label><input id="last" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Ex.: Silva"></div></div><div class="form-field"><label>Como deseja pagar?</label><div class="pay-options" id="paymentOptions"></div></div><div class="form-field hidden" id="cashField"><label for="cash">Vai pagar com quanto? (opcional)</label><input id="cash" inputmode="decimal" placeholder="Ex.: 10,00"><small class="tiny">Informe o valor para calcular o troco, se precisar.</small></div><div id="payWarning" class="notice hidden" style="margin:12px 0"></div><label class="age-ack"><input type="checkbox" id="ageAck" required><span class="small">Confirmo ter 18 anos ou mais e apresentarei documento na retirada, se solicitado.</span></label><button type="submit" class="btn btn-primary btn-wide" id="placeOrder">Confirmar meu pedido <span aria-hidden="true">↗</span></button><p class="tiny" style="text-align:center;margin-top:12px">Sem cadastro. Sem telefone. Sem complicação.</p></form></div></div>
+  <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-label="Acompanhar pedido"><div class="modal"><div class="modal-head"><h2>Acompanhe seu pedido</h2><button class="close" id="closeTracking" aria-label="Fechar">×</button></div><div id="trackingContent"></div></div></div>
+  <div id="ageGate" class="age-overlay hidden"><div class="age-box"><span class="age-mark">18+</span><div class="eyebrow">BEM-VINDO À ADEGA</div><h2>Aproveite com responsabilidade.</h2><p>Este catálogo contém bebidas alcoólicas e é destinado a maiores de 18 anos. A idade poderá ser conferida na retirada.</p><button id="ageYes" class="btn btn-primary btn-wide">Tenho 18 anos ou mais ↗</button><button id="ageNo" class="btn btn-outline btn-wide">Sou menor de 18 anos</button></div></div>
+  <footer class="shell footer"><span>RETIRADA NO PORTÃO · VENDA PROIBIDA A MENORES DE 18 ANOS</span><span>Desenvolvido por <strong>Jefferson Felix</strong></span></footer>
+  <script type="module" src="/js/catalog.js"></script>
+</body>
+</html>

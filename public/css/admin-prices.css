@@ -1,0 +1,7 @@
+/* Controle rápido de preço — Jefferson Felix */
+.inventory-row .price-inline{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 7px;border-radius:11px;border:1px solid #87632f66;background:#b68b3613}
+.inventory-row .price-inline label{font-size:12px;color:#f0d49f;white-space:nowrap}
+.inventory-row .price-set{width:82px;min-width:70px;padding:8px 9px;font-size:14px;border-color:#a47b4077}
+@media(max-width:650px){.inventory-row .price-inline{width:100%;justify-content:flex-start}}
+
+.inventory-product-info{display:flex;gap:12px;align-items:center;min-width:0}.inventory-product-info>div{min-width:0}.inventory-thumb{width:58px;height:58px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#f9f4ed;border:1px solid #685034} 
