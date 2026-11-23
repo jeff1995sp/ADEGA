@@ -5,7 +5,7 @@
   },
   "products": [
     {
-      "id": "preview-47",
+      "id": "produto-001",
       "name": "Corona",
       "category": "Cervejas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -13,12 +13,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/corona.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 0
     },
     {
-      "id": "preview-47",
+      "id": "produto-002",
       "name": "Heineken",
       "category": "Cervejas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -26,12 +26,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/heineken.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 1
     },
     {
-      "id": "preview-47",
+      "id": "produto-003",
       "name": "Spaten",
       "category": "Cervejas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -39,12 +39,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/spaten.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 2
     },
     {
-      "id": "preview-47",
+      "id": "produto-004",
       "name": "Budweiser",
       "category": "Cervejas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -52,12 +52,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/budweiser.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 3
     },
     {
-      "id": "preview-47",
+      "id": "produto-005",
       "name": "Jack com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -65,12 +65,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/jack-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 4
     },
     {
-      "id": "preview-47",
+      "id": "produto-006",
       "name": "Cavalo com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -78,12 +78,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/cavalo-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 5
     },
     {
-      "id": "preview-47",
+      "id": "produto-007",
       "name": "Cavalo com Vibe",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -91,12 +91,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/cavalo-com-vibe.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 6
     },
     {
-      "id": "preview-47",
+      "id": "produto-008",
       "name": "Ballantine's com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -104,12 +104,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ballantine-s-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 7
     },
     {
-      "id": "preview-47",
+      "id": "produto-009",
       "name": "Ballantine's com Vibe",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -117,12 +117,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ballantine-s-com-vibe.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 8
     },
     {
-      "id": "preview-47",
+      "id": "produto-010",
       "name": "Red Label com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -130,12 +130,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/red-label-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 9
     },
     {
-      "id": "preview-47",
+      "id": "produto-011",
       "name": "Beefeater com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -143,12 +143,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/beefeater-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 10
     },
     {
-      "id": "preview-47",
+      "id": "produto-012",
       "name": "Bell's com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -156,12 +156,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bell-s-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 11
     },
     {
-      "id": "preview-47",
+      "id": "produto-013",
       "name": "Absolut com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -169,12 +169,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/absolut-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 12
     },
     {
-      "id": "preview-47",
+      "id": "produto-014",
       "name": "Cîroc com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -182,12 +182,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ciroc-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 13
     },
     {
-      "id": "preview-47",
+      "id": "produto-015",
       "name": "Rocks com Red Bull",
       "category": "Doses",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -195,129 +195,129 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/rocks-com-red-bull.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 14
     },
     {
-      "id": "preview-47",
+      "id": "produto-016",
       "name": "Açaí Batido",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Açaí Batido • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/acai-batido.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 15
     },
     {
-      "id": "preview-47",
+      "id": "produto-017",
       "name": "Abacaxi com vinho",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Abacaxi com vinho • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/abacaxi-com-vinho.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 16
     },
     {
-      "id": "preview-47",
+      "id": "produto-018",
       "name": "Céu Azul",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Céu Azul • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ceu-azul.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 17
     },
     {
-      "id": "preview-47",
+      "id": "produto-019",
       "name": "Ferrero Rocher",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Ferrero Rocher • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ferrero-rocher.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 18
     },
     {
-      "id": "preview-47",
+      "id": "produto-020",
       "name": "Kinder Ovo",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Kinder Ovo • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/kinder-ovo.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 19
     },
     {
-      "id": "preview-47",
+      "id": "produto-021",
       "name": "Maracujá",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Maracujá • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/maracuja.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 20
     },
     {
-      "id": "preview-47",
+      "id": "produto-022",
       "name": "Morango com Nutella",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Morango com Nutella • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/morango-com-nutella.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 21
     },
     {
-      "id": "preview-47",
+      "id": "produto-023",
       "name": "Frutas Vermelhas",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Frutas Vermelhas • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1500,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/frutas-vermelhas.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 22
     },
     {
-      "id": "preview-47",
+      "id": "produto-024",
       "name": "Ninho Trufado",
       "category": "Batidas",
-      "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
+      "description": "Batida de Ninho Trufado • copo 700 ml. Imagem ilustrativa.",
       "price_cents": 1200,
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/ninho-trufado.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 23
     },
     {
-      "id": "preview-47",
+      "id": "produto-025",
       "name": "Caipirinha",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -325,12 +325,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 24
     },
     {
-      "id": "preview-47",
+      "id": "produto-026",
       "name": "Caipirinha de cerveja",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -338,12 +338,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-cerveja.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 25
     },
     {
-      "id": "preview-47",
+      "id": "produto-027",
       "name": "Smirnoff Ice",
       "category": "Bebidas prontas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -351,12 +351,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/smirnoff-ice.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 26
     },
     {
-      "id": "preview-47",
+      "id": "produto-028",
       "name": "51 Ice",
       "category": "Bebidas prontas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -364,12 +364,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/51-ice.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 27
     },
     {
-      "id": "preview-47",
+      "id": "produto-029",
       "name": "Draft",
       "category": "Bebidas prontas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -377,12 +377,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/draft.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 28
     },
     {
-      "id": "preview-47",
+      "id": "produto-030",
       "name": "Refrigerante em lata",
       "category": "Águas e Refrigerantes",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -390,12 +390,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/refrigerante-em-lata.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 29
     },
     {
-      "id": "preview-47",
+      "id": "produto-031",
       "name": "Doritos",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -403,12 +403,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/doritos.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 30
     },
     {
-      "id": "preview-47",
+      "id": "produto-032",
       "name": "Fofura",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -416,12 +416,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/fofura.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 31
     },
     {
-      "id": "preview-47",
+      "id": "produto-033",
       "name": "Torcida",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -429,12 +429,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/torcida.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 32
     },
     {
-      "id": "preview-47",
+      "id": "produto-034",
       "name": "Bubbaloo",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -442,12 +442,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bubbaloo.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 33
     },
     {
-      "id": "preview-47",
+      "id": "produto-035",
       "name": "Trident",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -455,12 +455,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/trident.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 34
     },
     {
-      "id": "preview-47",
+      "id": "produto-036",
       "name": "Mentos",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -468,12 +468,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/mentos.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 35
     },
     {
-      "id": "preview-47",
+      "id": "produto-037",
       "name": "Bala Felicidades",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -481,12 +481,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bala-felicidades.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 36
     },
     {
-      "id": "preview-47",
+      "id": "produto-038",
       "name": "Bala Te Adoro",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -494,12 +494,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bala-te-adoro.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 37
     },
     {
-      "id": "preview-47",
+      "id": "produto-039",
       "name": "Balas sortidas",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -507,12 +507,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/balas-sortidas.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 38
     },
     {
-      "id": "preview-47",
+      "id": "produto-040",
       "name": "Gel Kids",
       "category": "Diversos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -520,12 +520,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/gel-kids.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 39
     },
     {
-      "id": "preview-47",
+      "id": "produto-041",
       "name": "Pilhas Panasonic",
       "category": "Diversos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -533,12 +533,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/pilhas-panasonic.webp",
       "age_restricted": false,
-      "sort_order": 46
+      "sort_order": 40
     },
     {
-      "id": "preview-47",
+      "id": "produto-042",
       "name": "Caipirinha de Limão",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -546,12 +546,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-limao.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 41
     },
     {
-      "id": "preview-47",
+      "id": "produto-043",
       "name": "Caipirinha de Morango",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -559,12 +559,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-morango.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 42
     },
     {
-      "id": "preview-47",
+      "id": "produto-044",
       "name": "Caipirinha de Maracujá",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -572,12 +572,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-maracuja.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 43
     },
     {
-      "id": "preview-47",
+      "id": "produto-045",
       "name": "Caipirinha de Amora",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -585,12 +585,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-amora.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 44
     },
     {
-      "id": "preview-47",
+      "id": "produto-046",
       "name": "Caipirinha de Framboesa",
       "category": "Caipirinhas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -598,12 +598,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/caipirinha-de-framboesa.webp",
       "age_restricted": true,
-      "sort_order": 46
+      "sort_order": 45
     },
     {
-      "id": "preview-47",
+      "id": "produto-047",
       "name": "Fandangos",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -611,12 +611,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/fandangos.webp",
       "age_restricted": false,
       "sort_order": 46
     },
     {
-      "id": "preview-48",
+      "id": "produto-048",
       "name": "Lay's (embalagem preta)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -624,12 +624,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/lay-s-embalagem-preta.webp",
       "age_restricted": false,
       "sort_order": 47
     },
     {
-      "id": "preview-49",
+      "id": "produto-049",
       "name": "Fofura (embalagem azul)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -637,12 +637,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/fofura-embalagem-azul.webp",
       "age_restricted": false,
       "sort_order": 48
     },
     {
-      "id": "preview-50",
+      "id": "produto-050",
       "name": "Fofura (embalagem vermelha)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -650,12 +650,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/fofura-embalagem-vermelha.webp",
       "age_restricted": false,
       "sort_order": 49
     },
     {
-      "id": "preview-51",
+      "id": "produto-051",
       "name": "Fofura (embalagem roxa)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -663,12 +663,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/fofura-embalagem-roxa.webp",
       "age_restricted": false,
       "sort_order": 50
     },
     {
-      "id": "preview-52",
+      "id": "produto-052",
       "name": "Torcida Bacon",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -676,12 +676,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/torcida-bacon.webp",
       "age_restricted": false,
       "sort_order": 51
     },
     {
-      "id": "preview-53",
+      "id": "produto-053",
       "name": "Torcida (embalagem roxa)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -689,12 +689,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/torcida-embalagem-roxa.webp",
       "age_restricted": false,
       "sort_order": 52
     },
     {
-      "id": "preview-54",
+      "id": "produto-054",
       "name": "Torcida (embalagem verde)",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -702,12 +702,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/torcida-embalagem-verde.webp",
       "age_restricted": false,
       "sort_order": 53
     },
     {
-      "id": "preview-55",
+      "id": "produto-055",
       "name": "Bubbaloo (embalagem rosa)",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -715,12 +715,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bubbaloo-embalagem-rosa.webp",
       "age_restricted": false,
       "sort_order": 54
     },
     {
-      "id": "preview-56",
+      "id": "produto-056",
       "name": "Bubbaloo (embalagem azul)",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -728,12 +728,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/bubbaloo-embalagem-azul.webp",
       "age_restricted": false,
       "sort_order": 55
     },
     {
-      "id": "preview-57",
+      "id": "produto-057",
       "name": "Trident (embalagem verde)",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -741,12 +741,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/trident-embalagem-verde.webp",
       "age_restricted": false,
       "sort_order": 56
     },
     {
-      "id": "preview-58",
+      "id": "produto-058",
       "name": "Trident (embalagem rosa)",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -754,12 +754,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/trident-embalagem-rosa.webp",
       "age_restricted": false,
       "sort_order": 57
     },
     {
-      "id": "preview-59",
+      "id": "produto-059",
       "name": "Mentos Mint",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -767,12 +767,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/mentos-mint.webp",
       "age_restricted": false,
       "sort_order": 58
     },
     {
-      "id": "preview-60",
+      "id": "produto-060",
       "name": "Mentos Wild",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
@@ -780,12 +780,12 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/mentos-wild.webp",
       "age_restricted": false,
       "sort_order": 59
     },
     {
-      "id": "preview-61",
+      "id": "produto-061",
       "name": "Água",
       "category": "Águas e Refrigerantes",
       "description": "Foto para conferência. Quantidade e disponibilidade serão preenchidas no admin.",
@@ -793,7 +793,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "",
+      "image_url": "/imagens/agua.webp",
       "age_restricted": false,
       "sort_order": 60
     }
