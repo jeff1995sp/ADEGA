@@ -40,11 +40,11 @@ As referências externas foram encontradas para comparação. Uso comercial de f
 | Bubbaloo | Foto local / conferir embalagem | `/imagens/bubbaloo.webp` | — |
 | Trident | Foto local / conferir embalagem | `/imagens/trident.webp` | — |
 | Mentos | Foto local / conferir embalagem | `/imagens/mentos.webp` | — |
-| Bala Felicidades | Foto local / conferir embalagem | `/imagens/bala-felicidades.webp` | — |
-| Bala Te Adoro | Foto local / conferir embalagem | `/imagens/bala-te-adoro.webp` | — |
+| Caixa de bombons Lacta Felicidades | Referência real encontrada | `/imagens/bala-felicidades.webp` | [Ver foto pesquisada](https://www.havan.com.br/media/catalog/product/cache/74c1057f7991b4edb2bc7bdaa94de933/c/a/caixa-de-bombom-sortido-lacta-favoritos_1081881.jpg) |
+| Caixa de bombons Lacta Te Adoro | Referência real encontrada | `/imagens/bala-te-adoro.webp` | [Ver foto pesquisada](https://zaffari.vtexassets.com/arquivos/ids/311578/1095517-00.jpg.jpg?v=639106578386600000) |
 | Balas sortidas | Foto local / conferir embalagem | `/imagens/balas-sortidas.webp` | — |
 | Gel Kids | Foto local / conferir embalagem | `/imagens/gel-kids.webp` | — |
-| Pilhas Panasonic | Foto local / conferir embalagem | `/imagens/pilhas-panasonic.webp` | — |
+| Pilhas Panasonic | Referência real encontrada | `/imagens/pilhas-panasonic.webp` | [Ver foto pesquisada](https://carrefourbr.vtexassets.com/arquivos/ids/152582635/d6a961e722d74505b0e221faad21bfa0.jpg?v=638527213924130000) |
 | Caipirinha de Limão | Ilustrativa / bebida preparada | `/imagens/caipirinha-de-limao.webp` | — |
 | Caipirinha de Morango | Ilustrativa / bebida preparada | `/imagens/caipirinha-de-morango.webp` | — |
 | Caipirinha de Maracujá | Ilustrativa / bebida preparada | `/imagens/caipirinha-de-maracuja.webp` | — |
