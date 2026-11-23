@@ -6,11 +6,11 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const products=JSON.parse(read('../public/catalogo-previa.json')).products;
 
 test('fotos provisórias do catálogo aparecem como pendentes',()=>{
- assert.equal(products.length,61);
+ assert.equal(products.length,68);
  assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=10);
  assert.ok(LICENSED_LOCAL_PATHS.size>=4);
- assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)).length);
- assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,products.filter(p=>!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)&&!LICENSED_LOCAL_PATHS.has(p.image_url)).length);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)||p.image_url===PHOTO_PENDING).length);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,products.filter(p=>p.image_url!==PHOTO_PENDING&&!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)&&!LICENSED_LOCAL_PATHS.has(p.image_url)).length);
  assert.equal(products.filter(p=>photoStatusFor(p)==='licensed').length,products.filter(p=>LICENSED_LOCAL_PATHS.has(p.image_url)).length);
  for(const p of products)assert.ok(statSync(new URL('../public'+p.image_url,import.meta.url)).size>200,p.name);
  for(const name of ['Draft','Refrigerante em lata']){

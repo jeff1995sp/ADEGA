@@ -1,0 +1,28 @@
+name: Conferir catálogo ADEGA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'netlify/functions/**'
+      - 'sql/**'
+      - 'tests/**'
+      - 'package.json'
+      - '.github/workflows/verificar-catalogo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    name: Sintaxe e testes do catálogo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar o projeto e o fluxo de escolhas
+        run: npm run build

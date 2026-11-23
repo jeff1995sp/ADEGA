@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {CATEGORIES,priceParse} from '../public/js/shared.js';
 const from = path=>readFileSync(new URL(path,import.meta.url),'utf8');
 test('Categorias na ordem desejada e Tabacaria ao final',()=>{
-  assert.deepEqual(CATEGORIES.slice(1,5),['Cervejas','Doses','Batidas','Caipirinhas']);
+  assert.deepEqual(CATEGORIES.slice(1,7),['Cervejas','Whisky','Gin','Doses','Batidas','Caipirinhas']);
   assert.equal(CATEGORIES.at(-1),'Tabacaria');
 });
 test('Placas transcritas sem inventar preços indisponíveis',()=>{

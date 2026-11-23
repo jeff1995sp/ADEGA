@@ -10,6 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/premium.css"><link rel="stylesheet" href="/css/concept.css"><link rel="stylesheet" href="/css/product-gallery.css?v=20261123"><link rel="stylesheet" href="/css/customer-entry.css?v=20261123">
+<style>
+#doseModal .modal{max-width:510px}
+#doseModal select{width:100%;padding:13px 14px;border-radius:12px;background:#19181c;color:#fff;border:1px solid #807253;font:inherit}
+#doseModal select:focus{outline:2px solid #edc16c;outline-offset:2px}
+#doseModal select:disabled{opacity:.56}
+#doseModal .form-field{margin:18px 0}
+#doseModal .form-field label{display:block;margin-bottom:8px;font-weight:700}
+#doseModal .btn-wide{margin-top:15px}
+</style>
 </head>
 <body class="catalog-body">
   <div id="modeBanner" class="mode-banner">Conectando ao catálogo...</div>
@@ -87,6 +96,19 @@
     <section class="end-cta"><div class="shell end-cta-inner"><span class="end-cta-icon">✳</span><div><div class="eyebrow">PRATICIDADE DE VERDADE</div><h2>Escolheu? A gente prepara.</h2><p>Você pede. Nós avisamos quando estiver pronto. Simples assim.</p></div><a class="btn btn-outline" href="#catalogo">Voltar ao cardápio ↑</a></div></section>
   </main>
   <div class="cart-bar" id="cartBar"><div class="cart-inner"><div class="cart-meta"><small class="sub" id="cartCount">0 itens</small><strong id="cartTotal">R$ 0,00</strong></div><button type="button" class="btn btn-primary" id="openCart" disabled>Ver meu carrinho <span aria-hidden="true">↗</span></button></div></div>
+  <div class="modal-backdrop" id="doseModal" role="dialog" aria-modal="true" aria-label="Escolher gelo e energético da dose">
+    <div class="modal">
+      <div class="modal-head"><div><div class="eyebrow">PERSONALIZE SUA DOSE</div><h2 id="doseTitle">Escolher a dose</h2><p id="dosePrice" class="sub small"></p></div>
+        <button type="button" class="close" id="closeDose" aria-label="Fechar personalização">×</button></div>
+      <form id="doseForm">
+        <p class="notice" style="margin:12px 0">1. Você escolheu a dose. Agora selecione o gelo e, depois, o energético. Sabores esgotados ou pausados não podem ser pedidos.</p>
+        <div class="form-field"><label for="doseIce">2. Escolha o sabor do gelo</label><select id="doseIce" required><option value="">Escolha o gelo</option></select></div>
+        <div class="form-field"><label for="doseEnergy" id="doseEnergyLabel">3. Escolha o sabor do Red Bull</label><select id="doseEnergy" required disabled><option value="">Escolha o energético</option></select></div>
+        <p class="tiny">O valor exibido é o preço da dose escolhida. Opções só ficam disponíveis após a adega confirmar estoque e composição.</p>
+        <button type="submit" class="btn btn-primary btn-wide">Adicionar dose ao carrinho</button>
+      </form>
+    </div>
+  </div>
   <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-label="Finalizar pedido"><div class="modal"><div class="modal-head"><div><div class="eyebrow">QUASE LÁ</div><h2>Finalizar pedido</h2></div><button class="close" id="closeCart" aria-label="Fechar">×</button></div><div id="checkoutSummary" class="order-items"></div><div class="muted-separator"></div><form id="checkoutForm"><div class="grid-2"><div class="form-field"><label for="first">Primeiro nome</label><input id="first" maxlength="35" minlength="2" autocomplete="given-name" required placeholder="Ex.: Bruna"></div><div class="form-field"><label for="last">Sobrenome</label><input id="last" maxlength="45" minlength="2" autocomplete="family-name" required placeholder="Ex.: Silva"></div></div><div class="form-field"><label>Como deseja pagar?</label><div class="pay-options" id="paymentOptions"></div></div><div class="form-field hidden" id="cashField"><label for="cash">Vai pagar com quanto? (opcional)</label><input id="cash" inputmode="decimal" placeholder="Ex.: 10,00"><small class="tiny">Informe o valor para calcular o troco, se precisar.</small></div><div id="payWarning" class="notice hidden" style="margin:12px 0"></div><label class="age-ack"><input type="checkbox" id="ageAck" required><span class="small">Confirmo ter 18 anos ou mais e apresentarei documento na retirada, se solicitado.</span></label><button type="submit" class="btn btn-primary btn-wide" id="placeOrder">Confirmar meu pedido <span aria-hidden="true">↗</span></button><p class="tiny" style="text-align:center;margin-top:12px">Sem cadastro. Sem telefone. Sem complicação.</p></form></div></div>
   <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-label="Acompanhar pedido"><div class="modal"><div class="modal-head"><h2>Acompanhe seu pedido</h2><button class="close" id="closeTracking" aria-label="Fechar">×</button></div><div id="trackingContent"></div></div></div>
   <div id="ageGate" class="age-overlay" role="dialog" aria-modal="true" aria-label="Confirmação de idade e identificação">

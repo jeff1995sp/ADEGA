@@ -1,6 +1,6 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor} from './shared.js';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,isDoseProduct,energyMatchesDose,optionAvailable} from './shared.js';
 
-let products=[],shop={name:'ADEGA DIGITAL',accepting_orders:true},category='Todos',working=false,lastSnapshot='';
+let products=[],drinkOptions=[],shop={name:'ADEGA DIGITAL',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
 let currentOrder=null;
 const $=id=>document.getElementById(id);
@@ -8,13 +8,27 @@ const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase
 const open=id=>$(id)?.classList.add('open');
 const close=id=>$(id)?.classList.remove('open');
 const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && shop.accepting_orders;
-const total=()=>products.reduce((s,p)=>s+(cart.get(p.id)||0)*p.price_cents,0);
-const count=()=>[...cart.values()].reduce((a,b)=>a+b,0);
-const desiredQty=p=>cart.get(p.id)||0;
+const total=()=>[...cart.values()].reduce((sum,item)=>sum+(products.find(p=>p.id===item.id)?.price_cents||0)*item.quantity,0);
+const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
+// O dono confirmou que somente limão e morango seguem no catálogo de caipirinhas.
+const visibleInCatalog=p=>p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name);
+const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
+const optionById=id=>drinkOptions.find(o=>o.id===id);
+const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));
+const hasDrinkOptions=p=>drinkChoiceList('ice',p).some(optionAvailable)&&drinkChoiceList('energy',p).some(optionAvailable);
+const iceSummary=item=>{
+ if(!item.ice_id)return '';
+ return 'Gelo: '+(optionById(item.ice_id)?.name||'indisponível')+' · Energético: '+(optionById(item.energy_id)?.name||'indisponível');
+};
+const getAvailableOption=id=>{const o=optionById(id);return optionAvailable(o)?o:null;};
+const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce((s,i)=>s+i.quantity,0);
+
 const productCard=p=>{
   const left=p.unlimited?'Disponível':p.stock>0?`${p.stock} em estoque`:'Esgotado';
   const inactive=!p.active?'Indisponível':!p.price_cents?'Indisponível — preço a definir':!p.unlimited && !p.stock?'Indisponível — esgotado':!shop.accepting_orders?'Indisponível — pedidos pausados':null;
   const q=desiredQty(p);
+  const customizable=isDoseProduct(p);
+  const canConfigure=available(p)&&hasDrinkOptions(p);
   const packaged = ['Cervejas','Salgadinhos','Doces e Balas','Diversos','Bebidas prontas'].includes(p.category);
   const fallback = photoFallbackFor(p);
   const status=photoStatusFor(p);
@@ -25,17 +39,17 @@ const productCard=p=>{
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(p.description||'Escolha a quantidade e retire no portão.')}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
     <div class="product-footer"><span class="price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</span>
-    <div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div></div></div></article>`;
+    ${customizable?`<div class="qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>Escolher gelo e energético</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
 };
 function showCategories(){
-  const exist=new Set(products.map(p=>p.category));
+  const exist=new Set(products.filter(visibleInCatalog).map(p=>p.category));
   const cats=CATEGORIES.filter(c=>c==='Todos'||(c!=='Tabacaria'&&exist.has(c)));
   if(!cats.includes(category))category='Todos';
   $('categoryTabs').innerHTML=cats.map(c=>`<button class="tab ${c===category?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('');
 }
 function renderProducts(){
   showCategories();
-  const general=products.filter(p=>p.category!=='Tabacaria');
+  const general=products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p));
   const list=category==='Todos'?general:general.filter(p=>p.category===category);
   const message='<div class="empty">O cardápio será cadastrado em breve. Nenhuma cobrança ou pedido fictício será criado.</div>';
   $('productGrid').innerHTML=list.length?list.map(productCard).join(''):message;
@@ -46,16 +60,69 @@ function renderProducts(){
   $('openCart').disabled=count()===0||!shop.accepting_orders;
 }
 function cleanCart(){
-  let changed=false;
-  for(const [id,q] of cart){const p=products.find(x=>x.id===id);if(!p||!available(p)){cart.delete(id);changed=true;continue;}if(!p.unlimited&&q>p.stock){if(p.stock)cart.set(id,p.stock);else cart.delete(id);changed=true;}}
-  if(changed)toast('Carrinho atualizado conforme a disponibilidade do estoque.',true);
+ let changed=false;
+ const productsUsed=new Map(),optionsUsed=new Map();
+ for(const [key,item] of cart){
+  const p=products.find(x=>x.id===item.id);
+  if(!p||!available(p)){cart.delete(key);changed=true;continue;}
+  let max=p.unlimited?99:Math.max(0,p.stock-(productsUsed.get(item.id)||0));
+  if(isDoseProduct(p)){
+   if(!item.ice_id||!item.energy_id){cart.delete(key);changed=true;continue;}
+   for(const [field,group] of [['ice_id','ice'],['energy_id','energy']]){
+    const o=getAvailableOption(item[field]);
+    if(!o||o.option_group!==group||(group==='energy'&&!energyMatchesDose(p,o))){max=0;break;}
+    if(!o.unlimited)max=Math.min(max,Math.max(0,o.stock-(optionsUsed.get(o.id)||0)));
+   }
+  }else if(item.ice_id||item.energy_id){max=0;}
+  const quantity=Math.min(item.quantity,max);
+  if(quantity<=0){cart.delete(key);changed=true;continue;}
+  if(quantity!==item.quantity){item.quantity=quantity;changed=true;}
+  productsUsed.set(item.id,(productsUsed.get(item.id)||0)+quantity);
+  if(item.ice_id)optionsUsed.set(item.ice_id,(optionsUsed.get(item.ice_id)||0)+quantity);
+  if(item.energy_id)optionsUsed.set(item.energy_id,(optionsUsed.get(item.energy_id)||0)+quantity);
+ }
+ if(changed)toast('Carrinho atualizado conforme o estoque e os sabores disponíveis.',true);
 }
+function showDoseConfigurator(p){
+ if(!available(p)||!hasDrinkOptions(p))return toast('Dose ou sabores indisponíveis. O dono precisa liberar no admin.',true);
+ doseSelected=p;
+ $('doseTitle').textContent=p.name;
+ $('dosePrice').textContent=fmt(p.price_cents)+' • Copo de 700 ml • Gelo e energético inclusos';
+ const choices=drinkChoiceList('ice',p);
+ const energies=drinkChoiceList('energy',p);
+ $('doseIce').innerHTML='<option value="">Escolha o gelo</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
+ $('doseEnergy').innerHTML='<option value="">Escolha o energético</option>'+energies.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
+ $('doseEnergyLabel').textContent=p.name.toLowerCase().includes('com vibe')?'3. Escolha o Vibe incluído':'3. Escolha o sabor do Red Bull incluído';
+ $('doseEnergy').disabled=true;
+ open('doseModal');
+}
+function addConfiguredDose(event){
+ event.preventDefault();
+ if(!doseSelected)return;
+ const p=products.find(x=>x.id===doseSelected.id);
+ if(!p||!available(p))return toast('Esta dose está indisponível.',true);
+ const ice=getAvailableOption($('doseIce').value),energy=getAvailableOption($('doseEnergy').value);
+ if(!ice||!energy||ice.option_group!=='ice'||energy.option_group!=='energy'||!energyMatchesDose(p,energy)){
+  return toast('Selecione um gelo e um energético disponíveis.',true);
+ }
+ if(!p.unlimited&&desiredQty(p)>=p.stock)return toast('Dose esgotada.',true);
+ for(const o of [ice,energy])if(!o.unlimited&&amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')>=o.stock){
+  return toast(o.name+' esgotou. Escolha outro sabor.',true);
+ }
+ const key=p.id+'|'+ice.id+'|'+energy.id;
+ const item=cart.get(key)||{id:p.id,quantity:0,ice_id:ice.id,energy_id:energy.id};
+ item.quantity++;
+ cart.set(key,item);
+ close('doseModal');renderProducts();
+ toast('Dose adicionada com gelo '+ice.name+' e '+energy.name+'.');
+}
+
 async function loadCatalog(){
   try{
     const d=await api('catalog',null,{method:'GET'});
     const snapshot=JSON.stringify(d);
     if(snapshot===lastSnapshot)return;
-    lastSnapshot=snapshot;products=d.products||[];shop=d.store||shop;
+    lastSnapshot=snapshot;products=d.products||[];drinkOptions=d.drink_options||[];shop=d.store||shop;
     setBrand(shop.name);
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
@@ -67,7 +134,7 @@ async function loadCatalog(){
       if (!response.ok) throw Error('Catálogo indisponível');
       const d=await response.json();
       if (!Array.isArray(d.products)) throw Error('Catálogo inválido');
-      products=d.products.filter(p=>p.category!=='Tabacaria').map(p=>({...p,active:false,stock:0,unlimited:false}));
+      products=d.products.filter(p=>p.category!=='Tabacaria').map(p=>({...p,active:false,stock:0,unlimited:false}));drinkOptions=[];
       shop={...(d.store||{}),accepting_orders:false};
       setBrand(shop.name);
       $('modeBanner').className='mode-banner offline';
@@ -88,8 +155,12 @@ function showCheckout(){
       $('ageAck').checked=sessionStorage.getItem('adega_age_ok')==='1';
     }
   }catch{}
-  const chosen=products.filter(p=>cart.get(p.id));
-  $('checkoutSummary').innerHTML=chosen.map(p=>`<div class="order-line"><span>${cart.get(p.id)}x ${esc(p.name)}</span><strong>${fmt(cart.get(p.id)*p.price_cents)}</strong></div>`).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
+  $('checkoutSummary').innerHTML=[...cart.entries()].map(([key,item])=>{
+   const p=products.find(p=>p.id===item.id);
+   if(!p)return '';
+   return `<div class="order-line"><span>${item.quantity}x ${esc(p.name)}<small style="display:block">${esc(iceSummary(item))}</small>
+    <button type="button" class="btn btn-secondary btn-sm" data-remove-choice="${esc(key)}">Remover</button></span><strong>${fmt(item.quantity*p.price_cents)}</strong></div>`;
+  }).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
   $('paymentOptions').innerHTML=[
     ['cash','💵 Dinheiro','Pagamento no portão',true],
     ['card','💳 Cartão','Maquininha no portão',true],
@@ -115,7 +186,7 @@ async function submitOrder(event){
   if(!['cash','card'].includes(method))return toast('Pagamento online ainda não integrado.',true);
   const cash=$('cash').value.trim()?priceParse($('cash').value):null;
   if(method==='cash' && $('cash').value.trim() && (cash===null||cash<total()))return toast('Informe o valor correto para calcular o troco.',true);
-  const items=[...cart.entries()].map(([id,quantity])=>({id,quantity}));
+  const items=[...cart.values()].map(i=>({...i}));
   const button=$('placeOrder');working=true;button.disabled=true;button.textContent='Registrando pedido...';
   try{
     const d=await api('create-order',{first_name:first,last_name:last,payment_method:method,cash_given_cents:method==='cash'?cash:null,items,age_confirmed:true,honeypot:''});
@@ -136,7 +207,28 @@ async function loadTracking(){
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}
 }
 function start(){
-  $('catalogo').addEventListener('click',e=>{const btn=e.target.closest('button[data-qty]');if(!btn)return;const p=products.find(p=>p.id===btn.dataset.id);if(!p)return;const qty=Math.max(0,(cart.get(p.id)||0)+Number(btn.dataset.qty));if(qty && (!available(p)||(!p.unlimited&&qty>p.stock)))return;qty?cart.set(p.id,qty):cart.delete(p.id);renderProducts();});
+  $('catalogo').addEventListener('click',e=>{
+    const config=e.target.closest('button[data-configure]');
+    if(config){const p=products.find(x=>x.id===config.dataset.configure);if(p)showDoseConfigurator(p);return;}
+    const btn=e.target.closest('button[data-qty]');if(!btn)return;
+    const p=products.find(x=>x.id===btn.dataset.id);if(!p||isDoseProduct(p))return;
+    const qty=Math.max(0,(cart.get(p.id)?.quantity||0)+Number(btn.dataset.qty));
+    if(qty&&(!available(p)||(!p.unlimited&&qty>p.stock)))return;
+    qty?cart.set(p.id,{id:p.id,quantity:qty}):cart.delete(p.id);renderProducts();
+  });
+  $('doseIce').addEventListener('change',()=>{
+   $('doseEnergy').disabled=!$('doseIce').value;
+   $('doseEnergy').value='';
+  });
+  $('doseForm').addEventListener('submit',addConfiguredDose);
+  $('closeDose').addEventListener('click',()=>close('doseModal'));
+  $('checkoutSummary').addEventListener('click',e=>{
+   const btn=e.target.closest('[data-remove-choice]');if(!btn)return;
+   cart.delete(btn.dataset.removeChoice);
+   if(!count())close('cartModal');
+   else showCheckout();
+   renderProducts();
+  });
   $('categoryTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-category]');if(!btn)return;category=btn.dataset.category;renderProducts();});
   $('openCart').addEventListener('click',showCheckout);
   $('closeCart').onclick=()=>close('cartModal');

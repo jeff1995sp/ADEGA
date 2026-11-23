@@ -37,7 +37,7 @@ export const photoStatusFor=p=>{
  const stored=String(p?.image_url||'').trim();
  if(stored&&!stored.startsWith('/imagens/'))return 'custom';
  const local=stored||localPhotoFor(p);
- return ILLUSTRATIVE_LOCAL_PATHS.has(local)?'pending':LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
+ return local===PHOTO_PENDING||ILLUSTRATIVE_LOCAL_PATHS.has(local)?'pending':LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
 };
 export const photoFor=p=>{
  const stored=String(p?.image_url||'').trim();
@@ -50,7 +50,16 @@ export const photoFallbackFor=p=>{
  const local=stored.startsWith('/imagens/')?stored:localPhotoFor(p);
  return ILLUSTRATIVE_LOCAL_PATHS.has(local)?PHOTO_PENDING:local;
 };
-export const CATEGORIES=["Todos","Cervejas","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Complementos","Doces e Balas","Salgadinhos","Diversos","Doces e Snacks","Bebidas","Águas","Combos","Tabacaria"];
+export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Complementos","Doces e Balas","Salgadinhos","Diversos","Doces e Snacks","Bebidas","Águas","Combos","Tabacaria"];
+// As doses e as combinações têm gelo e energético identificados individualmente no pedido.
+export const isDoseProduct=p=>['Whisky','Gin','Doses'].includes(p?.category);
+export const energyMatchesDose=(product,energy)=>{
+ const name=String(product?.name||'').toLowerCase(),choice=String(energy?.name||'');
+ // O energético Red Bull e o gelo já vêm inclusos no preço de whisky e gin;
+ // a exceção é a dose cujo nome especifica Vibe.
+ return name.includes('com vibe')?choice==='Vibe Original':choice.startsWith('Red Bull');
+};
+export const optionAvailable=o=>Boolean(o&&o.active&&(o.unlimited||o.stock>0));
 export const fmt = cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100);
 export const esc = value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const pad = n=>'#'+String(n??0).padStart(4,'0');

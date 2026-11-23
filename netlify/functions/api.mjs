@@ -8,9 +8,9 @@ const fail = (message, status = 400) => send({ error: message }, status);
 const validUuid = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
 const validPhotoUrl = value => /^https:\/\//i.test(value) || /^\/imagens\/[a-z0-9-]+\.webp$/.test(value);
 const prohibited = /(?:\b(?:vape|vapes|pod|pods|e-?cig|puff\s*bar)\b|cigarro\s*eletr[oô]nico|dispositivo\s*eletr[oô]nico\s*para\s*fumar)/i;
-const allowedCats = new Set(["Cervejas","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Complementos","Doces e Snacks","Doces e Balas","Salgadinhos","Diversos","Bebidas","Águas","Combos","Tabacaria"]);
+const allowedCats = new Set(["Cervejas","Whisky","Gin","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Complementos","Doces e Snacks","Doces e Balas","Salgadinhos","Diversos","Bebidas","Águas","Combos","Tabacaria"]);
 const friendly = text => {
-  const dict = { ADEGA_FECHADA:'A adega está temporariamente fechada para pedidos.', PRODUTO_INDISPONIVEL:'Um produto foi pausado, esgotou ou está sem preço.', INFORME_NOME_SOBRENOME:'Informe nome e sobrenome.', PAGAMENTO_ONLINE_EM_CONFIGURACAO:'Pagamento online ainda não está integrado.', VALOR_PARA_TROCO_INSUFICIENTE:'Informe um valor para troco igual ou maior que o total.', ESTOQUE_INSUFICIENTE:'Estoque insuficiente.', ESCOLHA_VOZ_MASCULINA_OU_FEMININA:'Selecione a voz antes de marcar o pedido como pronto.', PAGAMENTO_NAO_CONFIRMADO:'Entrega bloqueada: confirme o recebimento do pagamento.', CONFIRA_COMPROVANTE_PIX:'Confira o comprovante do Pix na retirada.', CONFIRA_DOCUMENTO_MAIORIDADE:'Confirme o documento de maioridade antes de entregar.', CONFIRMACAO_ONLINE_SOMENTE_PELO_GATEWAY:'Pagamento online só pode ser confirmado pelo provedor.'};
+  const dict = { ADEGA_FECHADA:'A adega está temporariamente fechada para pedidos.', PRODUTO_INDISPONIVEL:'Um produto foi pausado, esgotou ou está sem preço.', INFORME_NOME_SOBRENOME:'Informe nome e sobrenome.', PAGAMENTO_ONLINE_EM_CONFIGURACAO:'Pagamento online ainda não está integrado.', VALOR_PARA_TROCO_INSUFICIENTE:'Informe um valor para troco igual ou maior que o total.', ESTOQUE_INSUFICIENTE:'Estoque insuficiente.', OPCAO_INDISPONIVEL:'O gelo ou energético escolhido foi pausado ou esgotou. Selecione outro.', SELECIONE_GELO_ENERGETICO:'Escolha o gelo e o energético para a dose.', ENERGETICO_DA_DOSE_INCORRETO:'Escolha o energético correspondente à dose.', ENERGETICO_NAO_INCLUSO:'Esta dose avulsa não inclui Red Bull. Selecione uma dose com Red Bull.', OPCAO_NAO_PERMITIDA:'Esta opção não pertence ao produto escolhido.', ESCOLHA_VOZ_MASCULINA_OU_FEMININA:'Selecione a voz antes de marcar o pedido como pronto.', PAGAMENTO_NAO_CONFIRMADO:'Entrega bloqueada: confirme o recebimento do pagamento.', CONFIRA_COMPROVANTE_PIX:'Confira o comprovante do Pix na retirada.', CONFIRA_DOCUMENTO_MAIORIDADE:'Confirme o documento de maioridade antes de entregar.', CONFIRMACAO_ONLINE_SOMENTE_PELO_GATEWAY:'Pagamento online só pode ser confirmado pelo provedor.'};
   const key = String(text || '').split(':')[0];
   return dict[key] || String(text || 'Não foi possível concluir a operação.').replaceAll('_',' ');
 };
@@ -49,20 +49,22 @@ export default async function handler(request) {
     }
     if (route === 'health' && method === 'GET') return send({ok:true,online_enabled:false, gateway_status:'Aguardando API de pagamentos'});
     if (route === 'catalog' && method === 'GET') {
-      const [settings,products] = await Promise.all([
+      const [settings,products,options] = await Promise.all([
         sb.from('store_settings').select('name,accepting_orders,low_stock_threshold').eq('id',1).single(),
-        sb.from('products').select('id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order').neq('category','Tabacaria').order('sort_order').order('name')
+        sb.from('products').select('id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order').neq('category','Tabacaria').order('sort_order').order('name'),
+        sb.from('drink_options').select('id,option_group,name,active,stock,unlimited,sort_order').order('sort_order').order('name')
       ]);
       if(settings.error || products.error) throw settings.error || products.error;
-      return send({store:settings.data,products:products.data,online_enabled:false});
+      return send({store:settings.data,products:products.data,drink_options:options.error?[]:options.data,drink_options_ready:!options.error,online_enabled:false});
     }
     if (route === 'admin-catalog' && method === 'GET') {
-      const [settings,products] = await Promise.all([
+      const [settings,products,options] = await Promise.all([
         sb.from('store_settings').select('name,accepting_orders,low_stock_threshold').eq('id',1).single(),
-        sb.from('products').select('id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order').order('sort_order').order('name')
+        sb.from('products').select('id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order').order('sort_order').order('name'),
+        sb.from('drink_options').select('id,option_group,name,active,stock,unlimited,sort_order').order('option_group').order('sort_order')
       ]);
       if(settings.error || products.error) throw settings.error || products.error;
-      return send({store:settings.data,products:products.data,online_enabled:false});
+      return send({store:settings.data,products:products.data,drink_options:options.error?[]:options.data,drink_options_ready:!options.error,online_enabled:false});
     }
     if (route === 'login' && method === 'POST') {
       const email=String(body.email||'').trim(),password=String(body.password||'');
@@ -104,7 +106,8 @@ export default async function handler(request) {
       const first=String(body.first_name||'').trim(),last=String(body.last_name||'').trim();
       if(first.length<2 || first.length>60 || last.length<2 || last.length>80) return fail('Informe nome e sobrenome.');
       const items=Array.isArray(body.items)?body.items:[];
-      if(items.length<1 || items.length>30 || !items.every(i=>validUuid(i.id) && Number.isInteger(i.quantity) && i.quantity>=1 && i.quantity<=99)) return fail('Carrinho inválido.');
+      if(items.length<1 || items.length>30 || !items.every(i=>validUuid(i.id) && Number.isInteger(i.quantity) && i.quantity>=1 && i.quantity<=99
+        && (i.ice_id==null || validUuid(i.ice_id)) && (i.energy_id==null || validUuid(i.energy_id)))) return fail('Carrinho inválido.');
       const cash=body.cash_given_cents===null || body.cash_given_cents===undefined ? null:Number(body.cash_given_cents);
       if(cash!==null && (!Number.isInteger(cash) || cash<0 || cash>100000000)) return fail('Valor de troco inválido.');
       if(!['cash','card'].includes(body.payment_method)) return fail('Pix, Apple Pay e Google Pay aguardam conexão com o gateway; escolha dinheiro ou cartão na retirada.',409);
@@ -206,6 +209,23 @@ export default async function handler(request) {
       const q=await sb.from('products').update(patch).eq('id',body.id).select().single();
       if(q.error) throw q.error;
       return send({product:q.data});
+    }
+    if (route === 'admin-drink-options' && method === 'PATCH') {
+      if(!validUuid(body.id))return fail('Sabor inválido.');
+      const patch={};
+      if(body.active!==undefined){
+        if(typeof body.active!=='boolean')return fail('Status inválido.');
+        patch.active=body.active;
+      }
+      if(body.stock!==undefined){
+        if(!Number.isInteger(body.stock)||body.stock<0||body.stock>1000000)return fail('Estoque de sabor inválido.');
+        patch.stock=body.stock;
+      }
+      if(!Object.keys(patch).length)return fail('Nenhuma alteração informada.');
+      const q=await sb.from('drink_options').update(patch).eq('id',body.id)
+        .select('id,option_group,name,active,stock,unlimited').single();
+      if(q.error)throw q.error;
+      return send({option:q.data});
     }
     if (route === 'admin-stock' && method === 'POST') {
       if(!validUuid(body.id)||!['set','add'].includes(body.mode)||!Number.isInteger(body.quantity)||body.quantity<0||body.quantity>1000000)return fail('Estoque inválido.');
