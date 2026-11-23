@@ -5,10 +5,7 @@ export const PHOTO_PENDING='/imagens/foto-pendente.webp';
 export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
   "/imagens/51-ice.webp",
   "/imagens/abacaxi-com-vinho.webp",
-  "/imagens/absolut-com-red-bull.webp",
   "/imagens/acai-batido.webp",
-  "/imagens/agua.webp",
-  "/imagens/balas-sortidas.webp",
   "/imagens/ballantine-s-com-red-bull.webp",
   "/imagens/ballantine-s-com-vibe.webp",
   "/imagens/beefeater-com-red-bull.webp",
@@ -16,22 +13,16 @@ export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
   "/imagens/caipirinha-de-amora.webp",
   "/imagens/caipirinha-de-cerveja.webp",
   "/imagens/caipirinha-de-framboesa.webp",
-  "/imagens/caipirinha-de-limao.webp",
   "/imagens/caipirinha-de-maracuja.webp",
   "/imagens/caipirinha.webp",
   "/imagens/cavalo-com-red-bull.webp",
   "/imagens/cavalo-com-vibe.webp",
-  "/imagens/ceu-azul.webp",
   "/imagens/ciroc-com-red-bull.webp",
   "/imagens/draft.webp",
   "/imagens/ferrero-rocher.webp",
-  "/imagens/frutas-vermelhas.webp",
-  "/imagens/jack-com-red-bull.webp",
   "/imagens/kinder-ovo.webp",
-  "/imagens/maracuja.webp",
   "/imagens/morango-com-nutella.webp",
   "/imagens/ninho-trufado.webp",
-  "/imagens/red-label-com-red-bull.webp",
   "/imagens/refrigerante-em-lata.webp",
   "/imagens/rocks-com-red-bull.webp",
   "/imagens/seda.webp",
@@ -39,7 +30,7 @@ export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
   "/imagens/spaten.webp",
   "/imagens/vinho.webp"
 ]);
-export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp","/imagens/corona.webp","/imagens/budweiser.webp","/imagens/caipirinha-de-morango.webp"]);
+export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp", "/imagens/corona.webp", "/imagens/budweiser.webp", "/imagens/caipirinha-de-morango.webp", "/imagens/caipirinha-de-limao.webp", "/imagens/agua.webp", "/imagens/ceu-azul.webp", "/imagens/maracuja.webp", "/imagens/frutas-vermelhas.webp", "/imagens/balas-sortidas.webp", "/imagens/jack-com-red-bull.webp", "/imagens/red-label-com-red-bull.webp", "/imagens/absolut-com-red-bull.webp"]);
 export const photoSlug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor=p=>'/imagens/'+photoSlug(p?.name||'foto-pendente')+'.webp';
 export const photoStatusFor=p=>{
