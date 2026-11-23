@@ -19,7 +19,12 @@ export const REAL_PRODUCT_PHOTOS = Object.freeze({
   "Bubbaloo (embalagem rosa)": "https://www.palaciodasfestas.com.br/pub/media/catalog/product/cache/6fb2a49fda90fa3bc27e8290a21c793e/6/6/66769_b.png",
   "Fofura (embalagem vermelha)": "https://paulistaoatacadista.vtexassets.com/arquivos/ids/379168/SalgadinhoFofura60gQueijoPalito2.jpg?v=638491289314600000",
   "Torcida (embalagem verde)": "https://drogariaspacheco.vteximg.com.br/arquivos/ids/1296891-1000-1000/image-ce7288aeba434799932d0aae22e1eea7.jpg?v=638524060895830000",
-  "Lay's (embalagem preta)": "https://carrefourbrfood.vtexassets.com/arquivos/ids/193861586/batata-frita-lisa-peito-de-peru-lay-s-sensacoes-premium-70g-1.jpg?v=638877432173170000"
+  "Lay's (embalagem preta)": "https://carrefourbrfood.vtexassets.com/arquivos/ids/193861586/batata-frita-lisa-peito-de-peru-lay-s-sensacoes-premium-70g-1.jpg?v=638877432173170000",
+  "Bala Felicidades": "https://www.havan.com.br/media/catalog/product/cache/74c1057f7991b4edb2bc7bdaa94de933/c/a/caixa-de-bombom-sortido-lacta-favoritos_1081881.jpg",
+  "Caixa de bombons Lacta Felicidades": "https://www.havan.com.br/media/catalog/product/cache/74c1057f7991b4edb2bc7bdaa94de933/c/a/caixa-de-bombom-sortido-lacta-favoritos_1081881.jpg",
+  "Bala Te Adoro": "https://zaffari.vtexassets.com/arquivos/ids/311578/1095517-00.jpg.jpg?v=639106578386600000",
+  "Caixa de bombons Lacta Te Adoro": "https://zaffari.vtexassets.com/arquivos/ids/311578/1095517-00.jpg.jpg?v=639106578386600000",
+  "Pilhas Panasonic": "https://carrefourbr.vtexassets.com/arquivos/ids/152582635/d6a961e722d74505b0e221faad21bfa0.jpg?v=638527213924130000"
 });
 export const photoSlug = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor = p => '/imagens/' + photoSlug(p?.name||'foto-pendente') + '.webp';
