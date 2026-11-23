@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Caipirinha de Limão",
+    "path": "/imagens/caipirinha-de-limao.webp",
+    "url": "https://images.unsplash.com/photo-1512144981474-0003a89c0165?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/clear-glass-mason-jar-filled-with-lemon-juice-1-PGBJywxOk",
+    "author": "Leiliane Fagundes",
+    "note": "Caipirinha de limão fotografada; copo e receita da adega não confirmados"
+  },
+  {
+    "name": "Água",
+    "path": "/imagens/agua.webp",
+    "url": "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/clear-drinking-bottle-filled-with-water-N-MqWXXZvNY",
+    "author": "Steve A Johnson",
+    "note": "Garrafa de água de referência; marca e volume da loja ainda não confirmados"
+  },
+  {
+    "name": "Céu Azul",
+    "path": "/imagens/ceu-azul.webp",
+    "url": "https://images.unsplash.com/photo-1578664182930-39d6469c49bf?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/a-blue-cocktail-sitting-on-top-of-a-wooden-table-PSj-v1o2s28",
+    "author": "Timur Romanov",
+    "note": "Drink azul real de referência; não comprova a receita da adega"
+  },
+  {
+    "name": "Maracujá",
+    "path": "/imagens/maracuja.webp",
+    "url": "https://images.unsplash.com/photo-1664993119473-013502f1e3f8?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/a-glass-of-yellow-liquid-with-red-berries-on-top-_lmFA_oMlgA",
+    "author": "Keesha's Kitchen",
+    "note": "Bebida real de maracujá ilustrativa; ingredientes e volume não confirmados"
+  },
+  {
+    "name": "Frutas Vermelhas",
+    "path": "/imagens/frutas-vermelhas.webp",
+    "url": "https://images.unsplash.com/photo-1671832757795-a58e21e6e0e3?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/a-smoothie-is-surrounded-by-strawberries-and-blueberries-s9LdsWwy9wY",
+    "author": "Thomas Thompson",
+    "note": "Vitamina real de frutas vermelhas de referência; receita pode variar"
+  },
+  {
+    "name": "Balas sortidas",
+    "path": "/imagens/balas-sortidas.webp",
+    "url": "https://images.unsplash.com/photo-1696524491699-6754027c14d9?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/a-pile-of-assorted-candy-on-a-table-n8Pj1gMaBmo",
+    "author": "Ambitious Studio | Rick Barrett",
+    "note": "Balas sortidas reais de referência; confirmar marcas da loja"
+  },
+  {
+    "name": "Jack com Red Bull",
+    "path": "/imagens/jack-com-red-bull.webp",
+    "url": "https://images.unsplash.com/photo-1502197996753-841c0e19d607?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/shallow-focus-photography-of-jack-daniels-tennessee-bottle-w77IgyKoLy0",
+    "author": "Marcel Strauß",
+    "note": "Garrafa real de Jack Daniel's; a dose preparada e o energético não aparecem"
+  },
+  {
+    "name": "Red Label com Red Bull",
+    "path": "/imagens/red-label-com-red-bull.webp",
+    "url": "https://images.unsplash.com/photo-1759042953418-2d39e3de54dd?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/johnnie-walker-red-label-whisky-bottle-with-amber-liquid-0hxdPojIK3c",
+    "author": "Pavel Avakumov",
+    "note": "Garrafa real Red Label; a dose e o energético não aparecem"
+  },
+  {
+    "name": "Absolut com Red Bull",
+    "path": "/imagens/absolut-com-red-bull.webp",
+    "url": "https://images.unsplash.com/photo-1595430712287-744ad635e266?auto=format&fit=max&w=1200&q=85",
+    "page": "https://unsplash.com/photos/clear-glass-bottle-on-white-textile-iFGGTZ8--Ms",
+    "author": "Tim Rüßmann",
+    "note": "Garrafa real Absolut; a dose e o energético não aparecem"
+  }
+]

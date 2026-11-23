@@ -39,12 +39,14 @@ export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
   "/imagens/spaten.webp",
   "/imagens/vinho.webp"
 ]);
+export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp","/imagens/corona.webp","/imagens/budweiser.webp","/imagens/caipirinha-de-morango.webp"]);
 export const photoSlug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor=p=>'/imagens/'+photoSlug(p?.name||'foto-pendente')+'.webp';
 export const photoStatusFor=p=>{
  const stored=String(p?.image_url||'').trim();
  if(stored&&!stored.startsWith('/imagens/'))return 'custom';
- return ILLUSTRATIVE_LOCAL_PATHS.has(stored||localPhotoFor(p))?'pending':'local';
+ const local=stored||localPhotoFor(p);
+ return ILLUSTRATIVE_LOCAL_PATHS.has(local)?'pending':LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
 };
 export const photoFor=p=>{
  const stored=String(p?.image_url||'').trim();

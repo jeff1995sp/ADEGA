@@ -47,3 +47,6 @@ Depois de salvar as variáveis, faça um novo deploy no Netlify. O acesso antigo
 
 ## Tela de acesso do proprietário (revisão 23/11/2026)
 A página `/admin` agora mostra **somente Usuário** (digite `admin`) e **Senha**. Não existe campo de e-mail no formulário. O acesso com PIN privado só funciona após cadastrar `ADEGA_ADMIN_PIN` em *Netlify > Environment variables* (escopo Functions) e publicar novamente. O e-mail e a senha do usuário Supabase existente não são modificados; a sessão é emitida pelo servidor para uma conta autorizada em `admin_users`. Se a página ainda mostrar “E-mail”, confira a versão implantada no Netlify, pois o GitHub já contém o código novo.
+
+## Segundo lote de fotografias locais (23/11/2026)
+O arquivo `scripts/fotos_lote2.json` documenta as fontes licenciadas. O importador `scripts/importar_fotos_lote2.py` valida e salva fotografias dentro de `public/imagens/` sem substituir fotos do proprietário. As fotografias de bebidas preparadas ou garrafas isoladas são referências ilustrativas: não representam necessariamente a receita ou tamanho exatos da loja. Se não conseguir uma foto correspondente, o item permanece como foto pendente.

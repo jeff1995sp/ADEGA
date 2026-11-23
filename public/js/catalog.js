@@ -17,7 +17,8 @@ const productCard=p=>{
   const q=desiredQty(p);
   const packaged = ['Cervejas','Salgadinhos','Doces e Balas','Diversos','Bebidas prontas'].includes(p.category);
   const fallback = photoFallbackFor(p);
-  const photoNote = photoStatusFor(p)==='pending'?'<span class="photo-note">Foto real pendente</span>':'';
+  const status=photoStatusFor(p);
+  const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':'';
   const media = `<img class="product-photo" src="${esc(photoFor(p))}" data-fallback="${esc(fallback)}" alt="Foto do produto ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}">`;
   return `<article class="product">
     <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(p.category)}</span>${photoNote}</div>
