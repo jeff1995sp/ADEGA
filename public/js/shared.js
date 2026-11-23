@@ -16,7 +16,10 @@ export const REAL_PRODUCT_PHOTOS = Object.freeze({
   "Trident (embalagem verde)": "https://farma22.vtexassets.com/arquivos/ids/194384-800-auto?aspect=true&height=auto&v=639059964082800000&width=800",
   "Mentos Mint": "https://drogariavenancio.vtexassets.com/arquivos/ids/1376485/51987_Z.jpg?v=639059193294300000",
   "Mentos Wild": "https://superadega.agilecdn.com.br/385307.jpg?v=512-2631630625",
-  "Bubbaloo (embalagem rosa)": "https://www.palaciodasfestas.com.br/pub/media/catalog/product/cache/6fb2a49fda90fa3bc27e8290a21c793e/6/6/66769_b.png"
+  "Bubbaloo (embalagem rosa)": "https://www.palaciodasfestas.com.br/pub/media/catalog/product/cache/6fb2a49fda90fa3bc27e8290a21c793e/6/6/66769_b.png",
+  "Fofura (embalagem vermelha)": "https://paulistaoatacadista.vtexassets.com/arquivos/ids/379168/SalgadinhoFofura60gQueijoPalito2.jpg?v=638491289314600000",
+  "Torcida (embalagem verde)": "https://drogariaspacheco.vteximg.com.br/arquivos/ids/1296891-1000-1000/image-ce7288aeba434799932d0aae22e1eea7.jpg?v=638524060895830000",
+  "Lay's (embalagem preta)": "https://carrefourbrfood.vtexassets.com/arquivos/ids/193861586/batata-frita-lisa-peito-de-peru-lay-s-sensacoes-premium-70g-1.jpg?v=638877432173170000"
 });
 export const photoSlug = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor = p => '/imagens/' + photoSlug(p?.name||'foto-pendente') + '.webp';
