@@ -13,7 +13,7 @@ const count=()=>[...cart.values()].reduce((a,b)=>a+b,0);
 const desiredQty=p=>cart.get(p.id)||0;
 const productCard=p=>{
   const left=p.unlimited?'Disponível':p.stock>0?`${p.stock} em estoque`:'Esgotado';
-  const inactive=!p.active?'Pausado':!p.price_cents?'Preço em cadastro':!p.unlimited && !p.stock?'Esgotado':!shop.accepting_orders?'Pedidos pausados':null;
+  const inactive=!p.active?'Indisponível':!p.price_cents?'Indisponível — preço a definir':!p.unlimited && !p.stock?'Indisponível — esgotado':!shop.accepting_orders?'Indisponível — pedidos pausados':null;
   const q=desiredQty(p);
   const packaged = ['Cervejas','Salgadinhos','Doces e Balas','Diversos','Bebidas prontas'].includes(p.category);
   const fallback = photoFallbackFor(p);
@@ -22,7 +22,7 @@ const productCard=p=>{
     <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(p.category)}</span></div>
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(p.description||'Escolha a quantidade e retire no portão.')}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
-    <div class="product-footer"><span class="price">${p.price_cents?fmt(p.price_cents):'Em breve'}</span>
+    <div class="product-footer"><span class="price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</span>
     <div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div></div></div></article>`;
 };
 function showCategories(){
@@ -58,18 +58,18 @@ async function loadCatalog(){
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
   }catch(e){
-    // Preview somente visual quando Supabase/Netlify ainda não estão configurados.
+    // Catálogo de consulta quando Supabase/Netlify ainda não estão configurados.
     // Nunca habilita pedidos fictícios, mesmo que alguns preços já sejam conhecidos.
     try {
       const response = await fetch('/catalogo-previa.json',{cache:'no-store'});
-      if (!response.ok) throw Error('Prévia indisponível');
+      if (!response.ok) throw Error('Catálogo indisponível');
       const d=await response.json();
-      if (!Array.isArray(d.products)) throw Error('Prévia inválida');
+      if (!Array.isArray(d.products)) throw Error('Catálogo inválido');
       products=d.products.filter(p=>p.category!=='Tabacaria').map(p=>({...p,active:false,stock:0,unlimited:false}));
       shop={...(d.store||{}),accepting_orders:false};
       setBrand(shop.name);
       $('modeBanner').className='mode-banner offline';
-      $('modeBanner').textContent='PRÉVIA DO CATÁLOGO — preços e estoque em configuração • pedidos indisponíveis';
+      $('modeBanner').textContent='Catálogo disponível para consulta • pedidos temporariamente indisponíveis';
       renderProducts();
     } catch {
       if(!lastSnapshot){$('productGrid').innerHTML='<div class="empty">Catálogo ainda não configurado. Confira o Netlify e Supabase.</div>';
