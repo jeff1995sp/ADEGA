@@ -51,13 +51,13 @@ As referências externas foram encontradas para comparação. Uso comercial de f
 | Caipirinha de Amora | Ilustrativa / bebida preparada | `/imagens/caipirinha-de-amora.webp` | — |
 | Caipirinha de Framboesa | Ilustrativa / bebida preparada | `/imagens/caipirinha-de-framboesa.webp` | — |
 | Fandangos | Referência real encontrada | `/imagens/fandangos.webp` | [Ver foto pesquisada](https://imgprd.martinsatacado.com.br/catalogoimg/482262/01_482262_01.jpg?ims=1000x&v=170520242304) |
-| Lay's (embalagem preta) | Foto local / conferir embalagem | `/imagens/lay-s-embalagem-preta.webp` | — |
+| Lay's (embalagem preta) | Referência real encontrada | `/imagens/lay-s-embalagem-preta.webp` | [Ver foto pesquisada](https://carrefourbrfood.vtexassets.com/arquivos/ids/193861586/batata-frita-lisa-peito-de-peru-lay-s-sensacoes-premium-70g-1.jpg?v=638877432173170000) |
 | Fofura (embalagem azul) | Referência real encontrada | `/imagens/fofura-embalagem-azul.webp` | [Ver foto pesquisada](https://down-br.img.susercontent.com/file/dfeee5a6a43c9aca81871623742e119b) |
-| Fofura (embalagem vermelha) | Foto local / conferir embalagem | `/imagens/fofura-embalagem-vermelha.webp` | — |
+| Fofura (embalagem vermelha) | Referência real encontrada | `/imagens/fofura-embalagem-vermelha.webp` | [Ver foto pesquisada](https://paulistaoatacadista.vtexassets.com/arquivos/ids/379168/SalgadinhoFofura60gQueijoPalito2.jpg?v=638491289314600000) |
 | Fofura (embalagem roxa) | Referência real encontrada | `/imagens/fofura-embalagem-roxa.webp` | [Ver foto pesquisada](https://destro.fbitsstatic.net/img/p/salgadinho-fofura-churrasco-90g-71022/257558.jpg?h=500&qs=ignore&v=202501231555&w=500) |
 | Torcida Bacon | Referência real encontrada | `/imagens/torcida-bacon.webp` | [Ver foto pesquisada](https://www.drogariaminasbrasil.com.br/media/catalog/product/cache/74c1057f7991b4edb2bc7bdaa94de933/image/117580f491/salgadinho-bacon-torcida-35g.jpg) |
 | Torcida (embalagem roxa) | Referência real encontrada | `/imagens/torcida-embalagem-roxa.webp` | [Ver foto pesquisada](https://promofarma.vtexassets.com/arquivos/ids/181217/salgadinho-torcida-churrasco-60g-1117443--1-.jpg?v=638839528761330000) |
-| Torcida (embalagem verde) | Foto local / conferir embalagem | `/imagens/torcida-embalagem-verde.webp` | — |
+| Torcida (embalagem verde) | Referência real encontrada | `/imagens/torcida-embalagem-verde.webp` | [Ver foto pesquisada](https://drogariaspacheco.vteximg.com.br/arquivos/ids/1296891-1000-1000/image-ce7288aeba434799932d0aae22e1eea7.jpg?v=638524060895830000) |
 | Bubbaloo (embalagem rosa) | Referência real encontrada | `/imagens/bubbaloo-embalagem-rosa.webp` | [Ver foto pesquisada](https://www.palaciodasfestas.com.br/pub/media/catalog/product/cache/6fb2a49fda90fa3bc27e8290a21c793e/6/6/66769_b.png) |
 | Bubbaloo (embalagem azul) | Foto local / conferir embalagem | `/imagens/bubbaloo-embalagem-azul.webp` | — |
 | Trident (embalagem verde) | Referência real encontrada | `/imagens/trident-embalagem-verde.webp` | [Ver foto pesquisada](https://farma22.vtexassets.com/arquivos/ids/194384-800-auto?aspect=true&height=auto&v=639059964082800000&width=800) |
