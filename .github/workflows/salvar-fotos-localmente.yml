@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/salvar-fotos-localmente.yml'
       - 'scripts/importar_fotos_licenciadas.py'
+      - 'tests/fotos-reais.test.mjs'
   workflow_dispatch:
 
 permissions:
