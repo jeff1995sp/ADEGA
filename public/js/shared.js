@@ -1,13 +1,22 @@
-// Fotografias de embalagens reais pesquisadas. Links de terceiros: podem sair do ar ou impedir incorporação.
+// Referências de imagens de embalagens encontradas em pesquisas individuais.\n// Não implicam licença comercial: confirmar direitos de utilização antes de manter em produção.
 // Quando falhar, o site mostra a foto original do estoque (arquivo local).
 // A imagem salva pelo proprietário no admin sempre tem prioridade sobre estas referências.
 export const REAL_PRODUCT_PHOTOS = Object.freeze({
-  "Heineken": "https://cdn.irmaospatrocinio.com.br/img/p/1/5/7/4/9/7/157497-thickbox_default.jpg",
-  "Corona": "https://down-br.img.susercontent.com/file/sg-11134201-824g0-mf4hq3db8irvc9",
+  "Heineken": "https://images.tcdn.com.br/img/img_prod/1099308/cerveja_heineken_long_neck_330ml_782_2_a5ef9669e349cf3c67b4090eafd5bbce.jpg",
+  "Corona": "https://covabra.vtexassets.com/arquivos/ids/561900/82896.jpg?v=638925544262730000",
   "Spaten": "https://zonasul.vtexassets.com/arquivos/ids/3665468/VF4qT-qqCUAAAAAAAAcCMw.jpg?v=638593739030970000",
-  "Budweiser": "https://bistek.vtexassets.com/arquivos/ids/209624/1868675%20Cerveja%20Budweiser%20American%20Lager%20Long%20Neck%20330ml..png?v=639016814605600000",
-  "Doritos": "https://precopopular.vtexassets.com/arquivos/ids/211833/747728.jpg?v=638503540612900000",
-  "Fandangos": "https://tfchgi.vteximg.com.br/arquivos/ids/179464-1000-1000/62918.jpg.jpg?v=638744594880470000"
+  "Budweiser": "https://www.extramercado.com.br/img/uploads/1/452/33197452.png",
+  "Smirnoff Ice": "https://www.chegouafeira.com.br/image/cache/catalog/PRODUTOS/Smirnoff%20ICE%20275ml-500x500.jpg",
+  "Doritos": "https://assets.instabuy.app.br/ib.item.image.large/l-8aea75a14a0848debe0d096a48173a48.jpeg",
+  "Fandangos": "https://imgprd.martinsatacado.com.br/catalogoimg/482262/01_482262_01.jpg?ims=1000x&v=170520242304",
+  "Torcida Bacon": "https://www.drogariaminasbrasil.com.br/media/catalog/product/cache/74c1057f7991b4edb2bc7bdaa94de933/image/117580f491/salgadinho-bacon-torcida-35g.jpg",
+  "Torcida (embalagem roxa)": "https://promofarma.vtexassets.com/arquivos/ids/181217/salgadinho-torcida-churrasco-60g-1117443--1-.jpg?v=638839528761330000",
+  "Fofura (embalagem roxa)": "https://destro.fbitsstatic.net/img/p/salgadinho-fofura-churrasco-90g-71022/257558.jpg?h=500&qs=ignore&v=202501231555&w=500",
+  "Fofura (embalagem azul)": "https://down-br.img.susercontent.com/file/dfeee5a6a43c9aca81871623742e119b",
+  "Trident (embalagem verde)": "https://farma22.vtexassets.com/arquivos/ids/194384-800-auto?aspect=true&height=auto&v=639059964082800000&width=800",
+  "Mentos Mint": "https://drogariavenancio.vtexassets.com/arquivos/ids/1376485/51987_Z.jpg?v=639059193294300000",
+  "Mentos Wild": "https://superadega.agilecdn.com.br/385307.jpg?v=512-2631630625",
+  "Bubbaloo (embalagem rosa)": "https://www.palaciodasfestas.com.br/pub/media/catalog/product/cache/6fb2a49fda90fa3bc27e8290a21c793e/6/6/66769_b.png"
 });
 export const photoSlug = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor = p => '/imagens/' + photoSlug(p?.name||'foto-pendente') + '.webp';
