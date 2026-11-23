@@ -17,21 +17,14 @@ SRC = [
     {
         "name": "Heineken",
         "path": "/imagens/heineken.webp",
-        "url": "https://unsplash.com/photos/7jwSErtrzpk/download?force=true&w=1200",
+        "url": "https://images.unsplash.com/photo-1633911435708-2f29afa4a7c2?auto=format&fit=max&w=1200&q=85",
         "license": "Unsplash License",
         "page": "https://unsplash.com/photos/heineken-beer-bottle-7jwSErtrzpk",
     },
     {
-        "name": "Caipirinha de Limão",
-        "path": "/imagens/caipirinha-de-limao.webp",
-        "url": "https://unsplash.com/photos/1-PGBJywxOk/download?force=true&w=1200",
-        "license": "Unsplash License",
-        "page": "https://unsplash.com/photos/clear-glass-mason-jar-filled-with-lemon-juice-1-PGBJywxOk",
-    },
-    {
         "name": "Caipirinha de Morango",
         "path": "/imagens/caipirinha-de-morango.webp",
-        "url": "https://unsplash.com/photos/Z2b1d8y1oG8/download?force=true&w=1200",
+        "url": "https://images.unsplash.com/photo-1560433901-019188a1a9f5?auto=format&fit=max&w=1200&q=85",
         "license": "Unsplash License",
         "page": "https://unsplash.com/photos/strawberry-cocktail-Z2b1d8y1oG8",
     },

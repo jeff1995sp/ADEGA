@@ -31,7 +31,6 @@ jobs:
         run: |
           npm run build
           test -s public/imagens/heineken.webp
-          test -s public/imagens/caipirinha-de-limao.webp
           test -s public/imagens/caipirinha-de-morango.webp
       - name: Gravar fotos dentro do GitHub
         run: |
