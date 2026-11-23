@@ -44,3 +44,6 @@ Para ativar, abra o Netlify da ADEGA e configure somente a variável `ADEGA_ADMI
 A função usa a conta já autorizada em `admin_users`, emite uma sessão Supabase para ela e **não modifica o e-mail nem a senha dessa conta**. Se houver mais de um registro em `admin_users`, configure também `ADEGA_ADMIN_USER_ID` com o UUID da conta que deverá ser usada, para não escolher o proprietário errado. Nenhum login é liberado sem conta previamente autorizada.
 
 Depois de salvar as variáveis, faça um novo deploy no Netlify. O acesso antigo por e-mail continuará disponível. O endpoint `/api/admin-login` tem limite de tentativas por IP, mas isso não substitui uma senha forte.
+
+## Tela de acesso do proprietário (revisão 23/11/2026)
+A página `/admin` agora mostra **somente Usuário** (digite `admin`) e **Senha**. Não existe campo de e-mail no formulário. O acesso com PIN privado só funciona após cadastrar `ADEGA_ADMIN_PIN` em *Netlify > Environment variables* (escopo Functions) e publicar novamente. O e-mail e a senha do usuário Supabase existente não são modificados; a sessão é emitida pelo servidor para uma conta autorizada em `admin_users`. Se a página ainda mostrar “E-mail”, confira a versão implantada no Netlify, pois o GitHub já contém o código novo.

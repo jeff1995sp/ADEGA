@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 
-test('admin permite digitar usuário ou e-mail sem exigir formato de e-mail',()=>{
+test('admin exibe somente usuário e senha, sem exigir e-mail',()=>{
  const html=read('../public/admin.html');
- assert.ok(html.includes('Usuário ou e-mail'));
- assert.ok(html.includes('id="email" type="text"'));
+ assert.ok(html.includes('<label for="username">Usuário</label>'));
+ assert.ok(html.includes('id="username" name="username" type="text"'));
  const code=read('../public/js/admin.js');
- assert.ok(code.includes("username.toLowerCase()==='admin'"));
+ assert.ok(code.includes("username!=='admin'"));
  assert.ok(code.includes("fetch('/api/admin-login'"));
- assert.ok(code.includes("api('login',{email:username,password}"));
+ assert.ok(!code.includes("api('login',{email:username,password}"));
+ assert.ok(!html.includes('for="email"'));
+ assert.ok(!html.includes('type="email"'));
 });
 
 test('login admin usa só PIN privado, sem alterar e-mail ou senha Supabase',()=>{
@@ -30,7 +32,7 @@ test('login admin usa só PIN privado, sem alterar e-mail ou senha Supabase',()=
  assert.ok(!read('../public/admin.html').includes('fabio@2027'));
 });
 
-test('atalho /admin funciona sem alterar /api e login e-mail original',()=>{
+test('atalho /admin permanece ativo; autenticacao Supabase segue no servidor',()=>{
  const config=read('../netlify.toml');
  assert.ok(config.includes('from = "/admin"'));
  assert.ok(config.includes('to = "/admin.html"'));
