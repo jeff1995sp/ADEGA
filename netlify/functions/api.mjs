@@ -96,7 +96,7 @@ export default async function handler(request) {
       const q=await sb.from('orders').select('id,order_no,first_name,last_name,status,voice,ready_at,created_at')
         .in('status',['received','preparing','ready']).order('created_at',{ascending:false}).limit(60);
       if(q.error) throw q.error;
-      return send({orders:q.data.map(o=>({id:o.id,number:o.order_no,first_name:o.first_name,public_name:`${o.first_name} ${o.last_name.charAt(0).toUpperCase()}.`,status:o.status,voice:o.voice,ready_at:o.ready_at,created_at:o.created_at}))});
+      return send({orders:q.data.map(o=>({id:o.id,number:o.order_no,first_name:o.first_name,last_name:o.last_name,public_name:`${o.first_name} ${o.last_name}`,status:o.status,voice:o.voice,ready_at:o.ready_at,created_at:o.created_at}))});
     }
     if (route === 'create-order' && method === 'POST') {
       if(body.honeypot) return fail('Pedido não aceito.',429);

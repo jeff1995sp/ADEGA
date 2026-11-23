@@ -25,3 +25,12 @@ npm run check
 ```
 
 **Desenvolvido por Jefferson Felix.**
+
+## Conferência de imagens e atalho administrativo — 23/11/2026
+
+- A vitrine não carrega mais automaticamente fotos de sites externos. Imagens classificadas como arte de IA no inventário aparecem como **Foto real pendente**, preservando as fotos enviadas pelo proprietário.
+- A página `/conferir-fotos.html` tenta carregar o catálogo real pela API e, se necessário, usa a prévia local. Permite filtrar pendências e consultar fotos cadastradas.
+- Três cliques rápidos no link **Fazer pedido** do cabeçalho levam para `/admin.html`. Um clique normal continua levando ao catálogo.
+- O login administrativo continua exigindo e-mail e senha validados no Supabase. **Não armazene senhas simples como 2027 no código público** e não confunda o atalho visual com uma autenticação.
+- Os pedidos exigem nome e sobrenome; o administrador vê o nome completo, e a TV passa a receber o nome completo junto ao número do pedido. A validação é feita no servidor.
+- Fotos dos itens fumígenos continuam restritas ao estoque interno. Preços e quantidades não foram alterados nesta revisão.

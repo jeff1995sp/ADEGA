@@ -1,4 +1,4 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor} from './shared.js';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor} from './shared.js';
 
 let products=[],shop={name:'ADEGA DIGITAL',accepting_orders:true},category='Todos',working=false,lastSnapshot='';
 const cart=new Map();
@@ -17,9 +17,10 @@ const productCard=p=>{
   const q=desiredQty(p);
   const packaged = ['Cervejas','Salgadinhos','Doces e Balas','Diversos','Bebidas prontas'].includes(p.category);
   const fallback = photoFallbackFor(p);
+  const photoNote = photoStatusFor(p)==='pending'?'<span class="photo-note">Foto real pendente</span>':'';
   const media = `<img class="product-photo" src="${esc(photoFor(p))}" data-fallback="${esc(fallback)}" alt="Foto do produto ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}">`;
   return `<article class="product">
-    <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(p.category)}</span></div>
+    <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(p.category)}</span>${photoNote}</div>
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(p.description||'Escolha a quantidade e retire no portão.')}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
     <div class="product-footer"><span class="price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</span>

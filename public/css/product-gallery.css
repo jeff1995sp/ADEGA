@@ -1,5 +1,5 @@
 /* Vitrine com fotos completas, nome e preço sempre visíveis. */
-/* Fotos de terceiros são apenas referências visuais e exigem autorização para reutilização comercial. */
+/* Vitrine com fotos próprias e pendências identificadas. */
 .catalog-body .products{align-items:stretch;grid-auto-rows:auto}
 .catalog-body .product{
   display:flex;flex-direction:column;min-width:0;
@@ -59,4 +59,9 @@
 }
 @media (max-width:380px){
   .catalog-body .product-visual{height:148px !important;min-height:148px !important;max-height:148px !important}
+}
+.catalog-body .product-visual .photo-note {
+  position:absolute;right:9px;bottom:9px;max-width:calc(100% - 18px);
+  padding:6px 10px;border-radius:8px;background:#241b20ed;border:1px solid #c59a60;
+  color:#fff4df;font:700 .68rem/1.25 system-ui,sans-serif;text-align:center;
 }

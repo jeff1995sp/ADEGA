@@ -1,20 +1,60 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,statSync} from 'node:fs';
-import {REAL_PRODUCT_PHOTOS,photoFor,photoFallbackFor} from '../public/js/shared.js';
-const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-test('imagens reais pesquisadas para produtos identificados',()=>{
- for(const name of ['Heineken','Corona','Spaten','Budweiser','Doritos','Fandangos'])assert.ok(REAL_PRODUCT_PHOTOS[name]?.startsWith('https://'),name);
+import {PHOTO_PENDING,ILLUSTRATIVE_LOCAL_PATHS,photoFor,photoFallbackFor,photoStatusFor} from '../public/js/shared.js';
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+const products=JSON.parse(read('../public/catalogo-previa.json')).products;
+
+test('fotos provisórias do catálogo aparecem como pendentes',()=>{
+ assert.equal(products.length,61);
+ assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=37);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,37);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,24);
+ for(const p of products)assert.ok(statSync(new URL('../public'+p.image_url,import.meta.url)).size>200,p.name);
+ for(const name of ['Corona','Heineken','Caipirinha de Morango','Draft','Refrigerante em lata']){
+  const p=products.find(p=>p.name===name);
+  assert.equal(photoFor(p),PHOTO_PENDING);
+  assert.equal(photoFallbackFor(p),PHOTO_PENDING);
+ }
+ assert.equal(photoFor(products.find(p=>p.name==='Fandangos')),'/imagens/fandangos.webp');
 });
-test('foto enviada no admin prevalece e imagens locais permanecem como fallback',()=>{
- const item={name:'Heineken',image_url:'/imagens/heineken.webp'};
- assert.equal(photoFor(item),REAL_PRODUCT_PHOTOS.Heineken);
- assert.equal(photoFallbackFor(item),'/imagens/heineken.webp');
- assert.equal(photoFor({...item,image_url:'https://meu-site.com/foto.webp'}),'https://meu-site.com/foto.webp');
- assert.equal(photoFor({name:'Produto desconhecido',image_url:'/imagens/real.webp'}),'/imagens/real.webp');
+
+test('foto personalizada salva no admin tem prioridade',()=>{
+ const p={name:'Heineken',image_url:'https://example.test/foto-propria.webp'};
+ assert.equal(photoFor(p),p.image_url);
+ assert.equal(photoStatusFor(p),'custom');
+ assert.equal(photoFallbackFor(p),PHOTO_PENDING);
+ assert.ok(!read('../public/js/shared.js').includes('REAL_PRODUCT_PHOTOS'));
 });
-test('Bubbaloo usa imagem fornecida pelo proprietário; conferência documentada',()=>{
- assert.ok(statSync(new URL('../public/imagens/bubbaloo.webp',import.meta.url)).size>20000);
- assert.match(read('../FOTOS_REAIS_PESQUISA_E_CONFERENCIA.md'),/licença de uso comercial/);
- assert.match(read('../public/conferir-fotos.html'),/Conferir fonte da imagem/);
+
+test('galeria usa API e mostra fotos pendentes',()=>{
+ const page=read('../public/conferir-fotos.html');
+ assert.ok(page.includes('/api?route=catalog'));
+ assert.ok(page.includes('/catalogo-previa.json'));
+ assert.ok(page.includes('Foto real pendente'));
+});
+
+test('três cliques abrem login do admin, sem senha exposta no código público',()=>{
+ const index=read('../public/index.html');
+ const shortcut=read('../public/js/admin-shortcut.js');
+ assert.ok(index.includes('/js/admin-shortcut.js'));
+ assert.ok(shortcut.includes('count!==3'));
+ assert.ok(shortcut.includes('/admin.html'));
+ assert.ok(!shortcut.includes('2027'));
+ assert.ok(read('../public/js/admin.js').includes("api('login'"));
+});
+
+test('pedido exige nome e sobrenome e identifica cliente em admin e TV',()=>{
+ const api=read('../netlify/functions/api.mjs');
+ const admin=read('../public/js/admin.js');
+ const catalog=read('../public/js/catalog.js');
+ const tv=read('../public/js/tv.js');
+ assert.ok(api.includes('p_first_name:first,p_last_name:last'));
+ assert.ok(api.includes('last.length<2'));
+ assert.ok(api.includes('public_name:'));
+ assert.ok(api.includes('last_name:o.last_name'));
+ assert.ok(admin.includes('esc(o.first_name)'));
+ assert.ok(admin.includes('esc(o.last_name)'));
+ assert.ok(catalog.includes('first_name:first,last_name:last'));
+ assert.ok(tv.includes('o.public_name'));
 });

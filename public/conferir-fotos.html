@@ -24,37 +24,78 @@ input{flex:1;min-width:220px;padding:13px 15px;border:1px solid #705b3d;border-r
 .status{color:#bfb7af;font-size:.76rem;line-height:1.42}
 .bottom{border-top:1px solid #47382b;padding-top:11px;margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.83rem}
 .price{color:#f4c779;font-weight:850}.ref{color:#c7d9f3;font-size:.75rem;text-decoration:underline}
+.quality-filters{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 16px}
+.quality-filters button{border:1px solid #725432;border-radius:22px;background:#241c20;color:#ffe2b7;padding:9px 13px;font-weight:750;cursor:pointer}
+.quality-filters button.active{background:#f0c57c;color:#291a0f}
+.review-note{font-size:.8rem;color:#cabfb3;margin:6px 0 16px}
 .empty{text-align:center;color:#bdafa3;padding:30px}
 @media(max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.photo{height:162px;padding:7px}.details{padding:10px}.details h2{font-size:.87rem}.status{font-size:.7rem}}
 </style></head>
 <body><header><a href="/">← Voltar para o catálogo</a><h1>Conferência de fotos</h1>
-<p>Confira marca, sabor e embalagem produto por produto. As fotos de bebidas preparadas são ilustrativas. As referências da internet podem exigir licença comercial e, se falharem, serão substituídas pela foto local. Esta página é apenas para conferir as imagens, não para fazer pedidos.</p></header>
+<p>Confira as fotografias próprias e os produtos que ainda precisam de uma foto verdadeira. Imagens geradas por IA ou hospedadas em outras lojas não são tratadas como fotos reais. Esta página não recebe pedidos.</p></header>
 <main><div class="controls"><input id="search" type="search" placeholder="Pesquisar produto ou marca…" aria-label="Pesquisar produto"><strong id="counter">Carregando produtos…</strong></div>
-<div class="filters" id="filters" aria-label="Filtrar categoria"></div><div class="grid" id="grid"></div></main>
+<p class="review-note" id="dataMode">Conferindo imagens...</p><div class="quality-filters" id="qualityFilters" aria-label="Filtrar fotos"></div><div class="filters" id="filters" aria-label="Filtrar categoria"></div><div class="grid" id="grid"></div></main>
 <script type="module">
-import {photoFor,photoFallbackFor,REAL_PRODUCT_PHOTOS,esc,fmt} from '/js/shared.js';
-let all=[],category='Todos',term='';
+import {photoFor,photoFallbackFor,photoStatusFor,PHOTO_PENDING,esc,fmt} from '/js/shared.js';
+let all=[],category='Todos',quality='todos',term='';
 const $=id=>document.getElementById(id);
-const isCustom=p=>['Batidas','Doses','Caipirinhas'].includes(p.category);
+const labels={
+ pending:'Foto verdadeira pendente — envie uma foto do produto no admin',
+ local:'Foto enviada pelo proprietário — confira marca, sabor e embalagem',
+ custom:'Foto cadastrada no admin — confira marca, sabor e embalagem'
+};
 function render(){
- const filtered=all.filter(p=>(category==='Todos'||p.category===category)&&p.name.toLocaleLowerCase('pt-BR').includes(term));
- $('counter').textContent=filtered.length+' de '+all.length+' produtos';
+ const pendingCount=all.filter(p=>photoStatusFor(p)==='pending').length;
+ const filtered=all.filter(p=>(category==='Todos'||p.category===category)
+   &&(quality==='todos'||(quality==='confirmada'?photoStatusFor(p)!=='pending':photoStatusFor(p)==='pending'))
+   &&p.name.toLocaleLowerCase('pt-BR').includes(term));
+ $('counter').textContent=filtered.length+' de '+all.length+' produtos • '+pendingCount+' fotos pendentes';
  $('grid').innerHTML=filtered.length?filtered.map(p=>{
-  const remote=Boolean(REAL_PRODUCT_PHOTOS[p.name]);
-  const status=remote?'Referência real pesquisada · confirmar tamanho e licença':isCustom(p)?'Imagem ilustrativa da bebida preparada':'Imagem local da prateleira · conferir marca e variedade';
-  const link=remote?'<a class="ref" href="'+esc(REAL_PRODUCT_PHOTOS[p.name])+'" target="_blank" rel="noopener noreferrer">Ver referência</a>':'';
-  return '<article class="card"><div class="photo"><img loading="lazy" src="'+esc(photoFor(p))+'" data-fallback="'+esc(photoFallbackFor(p))+'" alt="'+esc(p.name)+'"></div><div class="details"><span class="tag">'+esc(p.category)+'</span><h2>'+esc(p.name)+'</h2><span class="status">'+status+'</span><div class="bottom"><span class="price">'+(p.price_cents>0?fmt(p.price_cents):'Preço pendente')+'</span>'+link+'</div></div></article>';
- }).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
+  const kind=photoStatusFor(p);
+  const action=kind==='pending'?'<a class="ref" href="/admin.html" title="Adicionar foto no painel">Atualizar no admin</a>':'';
+  return '<article class="card"><div class="photo"><img loading="lazy" src="'+esc(photoFor(p))+'" data-fallback="'+esc(photoFallbackFor(p))+'" alt="Imagem de '+esc(p.name)+'"></div><div class="details"><span class="tag">'+esc(p.category)+'</span><h2>'+esc(p.name)+'</h2><span class="status">'+esc(labels[kind])+'</span><div class="bottom"><span class="price">'+(p.price_cents>0?fmt(p.price_cents):'Preço pendente')+'</span>'+action+'</div></div></article>';
+ }).join(''):'<div class="empty">Nenhum produto encontrado nesse filtro.</div>';
  const cats=['Todos',...new Set(all.map(p=>p.category))];
  $('filters').innerHTML=cats.map(c=>'<button type="button" class="'+(category===c?'active':'')+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>').join('');
+ const opts=[['todos','Todas as fotos'],['pending','Foto real pendente'],['confirmada','Fotos do proprietário / admin']];
+ $('qualityFilters').innerHTML=opts.map(([key,label])=>'<button type="button" class="'+(quality===key?'active':'')+'" data-quality="'+key+'">'+label+'</button>').join('');
 }
 $('grid').addEventListener('error',e=>{
  const img=e.target;if(img.tagName!=='IMG')return;
- const next=img.dataset.fallback;
- if(next && img.src!==new URL(next,location.href).href){delete img.dataset.fallback;img.src=next;}
- else {img.onerror=null;img.src='/imagens/foto-pendente.webp';}
+ const local=img.dataset.fallback||PHOTO_PENDING;
+ delete img.dataset.fallback;
+ const next=new URL(local,location.href).href;
+ const pending=new URL(PHOTO_PENDING,location.href).href;
+ if(img.src===pending)return;
+ img.src=img.src===next?pending:next;
+ const status=img.closest('.card')?.querySelector('.status');
+ if(status)status.textContent='Imagem indisponível — atualize a foto no admin';
 },true);
 $('search').addEventListener('input',e=>{term=e.target.value.trim().toLocaleLowerCase('pt-BR');render()});
 $('filters').addEventListener('click',e=>{const b=e.target.closest('button[data-cat]');if(!b)return;category=b.dataset.cat;render()});
-fetch('/catalogo-previa.json',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Erro ao carregar'))).then(d=>{all=(d.products||[]).filter(p=>p.category!=='Tabacaria');render()}).catch(()=>{$('counter').textContent='Erro ao carregar catálogo';});
+$('qualityFilters').addEventListener('click',e=>{const b=e.target.closest('button[data-quality]');if(!b)return;quality=b.dataset.quality;render()});
+async function loadPhotos(){
+ let data,source='Catálogo atualizado pelo sistema';
+ try{
+  const r=await fetch('/api?route=catalog',{cache:'no-store'});
+  if(!r.ok)throw Error('API indisponível');
+  data=await r.json();
+  if(!Array.isArray(data.products))throw Error('Catálogo inválido');
+ }catch{
+  try{
+   const r=await fetch('/catalogo-previa.json',{cache:'no-store'});
+   if(!r.ok)throw Error('Prévia indisponível');
+   data=await r.json();source='Prévia local (sem conexão com o banco)';
+  }catch{
+   $('counter').textContent='Erro ao carregar catálogo';
+   $('dataMode').textContent='Falha de conexão com catálogo e prévia.';
+   return;
+  }
+ }
+ all=(data.products||[]).filter(p=>p.category!=='Tabacaria');
+ $('dataMode').textContent=source+' • '+(source.startsWith('Prévia')?'Preços podem diferir do admin. ':'')+'Conferir embalagens antes de marcar como definitivas.';
+ render();
+}
+loadPhotos();
+setInterval(loadPhotos,60000);
 </script></body></html>
