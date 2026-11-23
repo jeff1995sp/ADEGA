@@ -1,0 +1,44 @@
+name: Salvar fotos locais licenciadas na ADEGA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/salvar-fotos-localmente.yml'
+      - 'scripts/importar_fotos_licenciadas.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  salvar-fotos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o projeto
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pillow
+        run: python -m pip install Pillow==11.3.0
+      - name: Baixar fotos de licenca verificada e salvar WebP
+        run: python scripts/importar_fotos_licenciadas.py
+      - name: Verificar arquivos e testes
+        run: |
+          npm run build
+          test -s public/imagens/heineken.webp
+          test -s public/imagens/caipirinha-de-limao.webp
+          test -s public/imagens/caipirinha-de-morango.webp
+      - name: Gravar fotos dentro do GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/imagens/ FOTOS-POR-PRODUTO.csv public/js/shared.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Adicionar fotografias reais licenciadas à pasta imagens [skip ci]"
+            git push
+          fi

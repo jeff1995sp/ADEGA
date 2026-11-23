@@ -7,11 +7,11 @@ const products=JSON.parse(read('../public/catalogo-previa.json')).products;
 
 test('fotos provisórias do catálogo aparecem como pendentes',()=>{
  assert.equal(products.length,61);
- assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=37);
- assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,37);
- assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,24);
+ assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=30);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)).length);
+ assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,products.filter(p=>!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)).length);
  for(const p of products)assert.ok(statSync(new URL('../public'+p.image_url,import.meta.url)).size>200,p.name);
- for(const name of ['Corona','Heineken','Caipirinha de Morango','Draft','Refrigerante em lata']){
+ for(const name of ['Corona','Draft','Refrigerante em lata']){
   const p=products.find(p=>p.name===name);
   assert.equal(photoFor(p),PHOTO_PENDING);
   assert.equal(photoFallbackFor(p),PHOTO_PENDING);
@@ -23,7 +23,7 @@ test('foto personalizada salva no admin tem prioridade',()=>{
  const p={name:'Heineken',image_url:'https://example.test/foto-propria.webp'};
  assert.equal(photoFor(p),p.image_url);
  assert.equal(photoStatusFor(p),'custom');
- assert.equal(photoFallbackFor(p),PHOTO_PENDING);
+ assert.equal(photoFallbackFor(p),ILLUSTRATIVE_LOCAL_PATHS.has('/imagens/heineken.webp')?PHOTO_PENDING:'/imagens/heineken.webp');
  assert.ok(!read('../public/js/shared.js').includes('REAL_PRODUCT_PHOTOS'));
 });
 
@@ -41,7 +41,7 @@ test('três cliques abrem login do admin, sem senha exposta no código público'
  assert.ok(shortcut.includes('count!==3'));
  assert.ok(shortcut.includes('/admin.html'));
  assert.ok(!shortcut.includes('2027'));
- assert.ok(read('../public/js/admin.js').includes("api('login'"));
+ assert.ok(read('../public/js/admin.js').includes("fetch('/api/admin-login'"));
 });
 
 test('pedido exige nome e sobrenome e identifica cliente em admin e TV',()=>{
