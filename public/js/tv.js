@@ -3,10 +3,10 @@ const $=id=>document.getElementById(id);
 const STORAGE='adega_tv_code_v1', VOICES='adega_tv_voices_v1';
 let tvCode=localStorage.getItem(STORAGE)||'',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false;
 let voicePrefs={female:'',male:''};
-let tvPage=0, lastOrders=[];
+let tvPage=0, lastOrders=[],demoSeen='',currentDemo=null;
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><span class="tv-ticket-symbol" aria-hidden="true">${o.status==='ready'?'✓':'◷'}</span><div class="tv-ticket-body"><strong>${esc(o.public_name)}</strong><small>PEDIDO <b>${pad(o.number)}</b></small></div><span class="tv-ticket-check" aria-hidden="true">${o.status==='ready'?'✧':'◷'}</span></article>`;
-function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
+function showAuth(){renderTvDemo(null); $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -52,12 +52,23 @@ function renderTv(orders){
   else for(const [key,o] of readyNow){if(!seen.has(key)){seen.add(key);if(soundEnabled)speakOrder(o);}}
   if(seen.size>1500)seen=new Set([...seen].slice(-300));
 }
+function renderTvDemo(demo){
+ currentDemo=demo&&demo.expires_at>Date.now()/1000?demo:null;
+ const banner=$('tvDemoBanner');
+ if(!currentDemo){banner.classList.add('hidden');return;}
+ const messages=['Bruna, recebemos seu pedido!','Bruna, seu pedido está sendo preparado.','Bruna, seu pedido está pronto! Aguarde a entrega no portão.'];
+ const message=messages[currentDemo.step];
+ if(!message){banner.classList.add('hidden');return;}
+ $('tvDemoMessage').textContent=message;banner.classList.remove('hidden');
+ const key=currentDemo.run_id+':'+currentDemo.step;
+ if(soundEnabled&&demoSeen!==key){demoSeen=key;queue.push({text:'Teste de atendimento. '+message,voice:'female'});nextSpeech();}
+}
 async function poll(){
   if(checking || !tvCode)return;
   checking=true;
   try{
     const d=await api('tv',null,{method:'GET',tvCode});
-    showBoard();renderTv(d.orders||[]);
+    showBoard();renderTv(d.orders||[]);renderTvDemo(d.demo||null);
     $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 8 segundos';
   }catch(e){if(/c[oó]digo.*incorreto|passcode|TV_PASSCODE/i.test(e.message)){tvCode='';localStorage.removeItem(STORAGE);showAuth();}else $('modeBanner').textContent='Conexão indisponível • reconectando automaticamente';}
   finally{checking=false;}
@@ -71,7 +82,7 @@ function start(){
   $('activateSound').onclick=()=>{
     if(!('speechSynthesis' in window))return toast('Este navegador não suporta fala. Use um navegador Android TV compatível ou APK.',true);
     soundEnabled=!soundEnabled;$('activateSound').setAttribute('aria-label',soundEnabled?'Desativar chamadas por voz':'Ativar chamadas por voz');$('activateSound').classList.toggle('sound-on',soundEnabled);$('soundStatus').textContent=soundEnabled?'🔊 Chamadas por voz ativadas':'🔇 Chamadas por voz desativadas';
-    if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');nextSpeech();}
+    if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');renderTvDemo(currentDemo);nextSpeech();}
     else {speechSynthesis.cancel();queue=[];speaking=false;}
   };
   $('testPreparing').onclick=()=>{if(!('speechSynthesis' in window))return toast('Sem suporte a voz.',true);say('Bruna, seu pedido está sendo preparado.','female');};
@@ -83,6 +94,7 @@ function start(){
   if('speechSynthesis' in window){updateVoices();speechSynthesis.onvoiceschanged=updateVoices;}
   if(tvCode)poll();else showAuth();
   setInterval(poll,8000);
+  setInterval(()=>{if(currentDemo&&currentDemo.expires_at<=Date.now()/1000)renderTvDemo(null);},1000);
   setInterval(()=>{tvPage++; if(lastOrders.length)renderTv(lastOrders);},8500);
 }
 start();

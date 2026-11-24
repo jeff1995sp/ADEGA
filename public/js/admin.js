@@ -12,7 +12,7 @@ function adminAnnounce(message){
  tone();
  if('speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(message);u.lang='pt-BR';u.rate=.95;window.speechSynthesis.speak(u);}catch{}}
 }
-let demoStep=0;
+let demoStep=0,demoRunId='',demoBusy=false;
 const demoMessages=['Novo pedido recebido de Bruna.','Bruna, seu pedido está sendo preparado.','Bruna, seu pedido está pronto! Aguarde a entrega no portão.'];
 function renderOrderDemo(){const status=['Novo pedido · Bruna','Em preparação · Bruna','Pronto para retirada · Bruna'][demoStep];$('orderDemoStatus').textContent=status;$('orderDemoMessage').textContent=demoMessages[demoStep];$('orderDemoNext').disabled=demoStep===2;adminAnnounce(demoMessages[demoStep]);}
 
@@ -137,6 +137,7 @@ function exportCash(){
 }
 
 function renderSettings(){
+ $('orderShopPaused').classList.toggle('hidden',Boolean(shop.accepting_orders));
   $('shopToggle').textContent=shop.accepting_orders?'● Aceitando pedidos — Pausar loja':'⏸ Pedidos pausados — Reabrir loja';
   $('shopToggle').className='btn '+(shop.accepting_orders?'btn-danger':'btn-primary');
   if($('storeName'))$('storeName').value=shop.name;
@@ -315,10 +316,22 @@ async function performAction(btn){
 }
 function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();$('orderDemo').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
+async function syncOrderDemo(action){
+ if(demoBusy)return;
+ demoBusy=true;
+ for(const id of ['testNewOrder','orderDemoNext','orderDemoClose'])$(id).disabled=true;
+ try{
+  const {demo}=await api('admin-tv-demo',{action,run_id:demoRunId,step:demoStep},{admin:true});
+  if(demo){demoRunId=demo.run_id;demoStep=demo.step;$('orderDemo').classList.remove('hidden');renderOrderDemo();toast('Teste enviado à TV.');}
+  else{demoRunId='';$('orderDemo').classList.add('hidden');toast('Teste encerrado.');}
+ }catch(e){toast(e.message,true);}
+ finally{demoBusy=false;$('testNewOrder').disabled=false;$('orderDemoClose').disabled=false;$('orderDemoNext').disabled=demoStep===2;}
+}
 async function start(){
- $('testNewOrder').onclick=()=>{if(!sounds){sounds=true;$('soundToggle').textContent='🔔 Alertas ligados';}demoStep=0;$('orderDemo').classList.remove('hidden');renderOrderDemo();};
- $('orderDemoNext').onclick=()=>{if(demoStep<2){demoStep++;renderOrderDemo();}};
- $('orderDemoClose').onclick=()=>{$('orderDemo').classList.add('hidden');};
+ $('orderShopReopen').onclick=()=>{if(!shop.accepting_orders)$('shopToggle').click();};
+ $('testNewOrder').onclick=()=>{if(!sounds){sounds=true;$('soundToggle').textContent='🔔 Alertas ligados';tone();}syncOrderDemo('start');};
+ $('orderDemoNext').onclick=()=>{if(demoStep<2)syncOrderDemo('next');};
+ $('orderDemoClose').onclick=()=>syncOrderDemo('close');
 
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
