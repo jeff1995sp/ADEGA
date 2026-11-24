@@ -48,8 +48,13 @@ def main():
     code=re.sub(ill_pattern,lambda m:'export const ILLUSTRATIVE_LOCAL_PATHS=new Set('+json.dumps(ill,ensure_ascii=False)+');',code,count=1)
     shared.write_text(code,encoding='utf-8')
     preview.write_text(json.dumps(catalog,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    with (ROOT/'FOTOS-REFERENCIAS-WEB.csv').open('w',encoding='utf-8-sig',newline='') as f:
-        w=csv.writer(f,delimiter=';');w.writerow(['id','arquivo','fonte','observacao']);w.writerows(applied)
+    inventory=ROOT/'FOTOS-REFERENCIAS-WEB.csv'
+    previous=[]
+    if inventory.exists():
+        with inventory.open('r',encoding='utf-8-sig',newline='') as f: previous=list(csv.reader(f,delimiter=';'))[1:]
+    ids={r[0] for r in applied}
+    with inventory.open('w',encoding='utf-8-sig',newline='') as f:
+        w=csv.writer(f,delimiter=';');w.writerow(['id','arquivo','fonte','observacao']);w.writerows([r for r in previous if r and r[0] not in ids]+applied)
     pending=[p['name'] for p in catalog['products'] if p.get('image_url')=='/imagens/foto-pendente.webp' and p['id'] not in aliases]
     print('Fotos obtidas:',len(applied),'de',len(DATA),'Pendentes no catalogo:',pending,flush=True)
 if __name__=='__main__':main()

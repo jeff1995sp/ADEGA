@@ -67,8 +67,8 @@ async function createOrder(db,body){
  if(method==='cash'&&!int(cash,1,MAX_MONEY))reject('Informe quanto vai pagar em dinheiro.');
  if(!uuid(body.request_id)||!int(body.expected_total_cents,1,MAX_MONEY))reject('Atualize o cardápio antes de confirmar.');
  const raw=body.items;
- if(!Array.isArray(raw)||raw.length<1||raw.length>30||!raw.every(i=>i&&idOk(i.id)&&int(i.quantity,1,99)&&(i.ice_id==null||idOk(i.ice_id))&&(i.energy_id==null||idOk(i.energy_id))))reject('Carrinho inválido.');
- const items=raw.map(i=>({id:i.id,quantity:i.quantity,ice_id:i.ice_id??null,energy_id:i.energy_id??null}));
+ if(!Array.isArray(raw)||raw.length<1||raw.length>30||!raw.every(i=>i&&idOk(i.id)&&int(i.quantity,1,99)&&(i.ice_id==null||idOk(i.ice_id))&&(i.energy_id==null||idOk(i.energy_id))&&(i.shake_alcohol==null||['com','sem'].includes(i.shake_alcohol))))reject('Carrinho inválido.');
+ const items=raw.map(i=>({id:i.id,quantity:i.quantity,ice_id:i.ice_id??null,energy_id:i.energy_id??null,...(i.shake_alcohol!=null?{shake_alcohol:i.shake_alcohol}:{})}));
  const fingerprint=await hash(JSON.stringify([first,last,method,cash,body.expected_total_cents,items]));
  const prior=async()=>{const o=await one(db,'SELECT o.*,r.fingerprint FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(o&&o.fingerprint!==fingerprint)reject('Pedido já utilizado. Confira o acompanhamento.',409);return o;};
  const existing=await prior();if(existing)return orderResult(existing);
@@ -87,7 +87,8 @@ async function createOrder(db,body){
  const p=products.get(i.id),a=options.get(i.ice_id),b=options.get(i.energy_id);
  if(isDoseProduct(p)){if(a?.option_group!=='ice'||b?.option_group!=='energy'||!energyMatchesDose(p,b))reject('Escolha gelo e energético compatíveis.',409);}
  else if(i.ice_id||i.energy_id)reject('Sabores não pertencem ao produto.',409);
- return {...i,name:p.name+(a?' | Gelo: '+a.name+' | Energético: '+b.name:''),base_name:p.name,category:p.category,base_price:p.price_cents,price:doseUnitPrice(p,b),age:Number(p.age_restricted),product_unlimited:Number(p.unlimited),ice_name:a?.name??null,energy_name:b?.name??null,ice_unlimited:a?Number(a.unlimited):null,energy_unlimited:b?Number(b.unlimited):null};
+ if(p.category==='Batidas'){if(!['com','sem'].includes(i.shake_alcohol))reject('Escolha com ou sem álcool para a batida.',409);}else if(i.shake_alcohol!=null)reject('Preparo inválido para este produto.',409);
+ return {...i,name:p.name+(i.shake_alcohol?' | '+(i.shake_alcohol==='com'?'Com álcool':'Sem álcool'):'')+(a?' | Gelo: '+a.name+' | Energético: '+b.name:''),base_name:p.name,category:p.category,base_price:p.price_cents,price:doseUnitPrice(p,b),age:Number(p.age_restricted),product_unlimited:Number(p.unlimited),ice_name:a?.name??null,energy_name:b?.name??null,ice_unlimited:a?Number(a.unlimited):null,energy_unlimited:b?Number(b.unlimited):null};
  });
  total=lines.reduce((sum,line)=>sum+line.price*line.quantity,0);
  if(!int(total,1,MAX_MONEY)||total!==body.expected_total_cents)reject('O preço mudou. Atualize o carrinho e confira o total.',409);
