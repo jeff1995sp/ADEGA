@@ -62,7 +62,7 @@ function syncViewedCategory(){
  let next=category;
  if(category==='Todos'&&!searchText){
   const header=document.querySelector('.hora-nav'),grid=$('productGrid');
-  const line=Math.max(0,header.getBoundingClientRect().bottom)+18;
+  const line=Math.max(0,header.getBoundingClientRect().bottom)+Math.min(64,window.innerHeight*.1);
   if(grid.getBoundingClientRect().bottom>line){
    for(const heading of grid.querySelectorAll('[data-scroll-section]')){
     if(heading.getBoundingClientRect().top<=line)next=heading.dataset.scrollSection;
@@ -79,11 +79,12 @@ function syncViewedCategory(){
   if(active){button.setAttribute('aria-current','true');activeButton=button;}
   else button.removeAttribute('aria-current');
  }
- if(changed&&activeButton){
+ if(activeButton&&(changed||!activeButton.dataset.scrollAligned)){
   const outer=tabs.getBoundingClientRect(),inner=activeButton.getBoundingClientRect();
   if(inner.left<outer.left+6||inner.right>outer.right-6){
    tabs.scrollLeft+=inner.left-outer.left-(outer.width-inner.width)/2;
   }
+  activeButton.dataset.scrollAligned='true';
  }
 }
 function queueViewedCategory(){if(!categoryFrame)categoryFrame=requestAnimationFrame(syncViewedCategory);}
