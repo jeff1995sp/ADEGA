@@ -102,3 +102,6 @@ body.catalog-body{background:#090909;color:#fff}
 @media(hover:hover){.catalog-body .hora-category-cards .tab:hover img{transform:scale(1.035)}}
 @media(max-width:800px){.catalog-body .hora-category-cards{gap:7px}.catalog-body .hora-category-cards .tab{flex-basis:112px;height:124px;padding:5px}.catalog-body .hora-category-cards .tab img{max-height:75px}.hora-category-label{gap:4px;min-height:28px}.hora-category-label strong{font-size:.72rem}.hora-category-label .hora-icon{width:13px;height:13px}}
 @media(prefers-reduced-motion:reduce){.catalog-body .hora-category-cards .tab,.catalog-body .hora-category-cards .tab img{transition:none}}
+
+/* Menu lateral compacto para mostrar mais categorias sem cortar o final. */
+@media(min-width:801px){.hora-sidebar{scrollbar-width:thin;scrollbar-color:#75343f #191518}.hora-sidebar .hora-side-link{padding:8px 10px;gap:10px;margin:1px 0;min-height:46px}.hora-sidebar .hora-side-link span{width:30px;height:30px}.hora-sidebar-title{padding:9px 10px}}

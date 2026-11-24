@@ -15,3 +15,5 @@ test('Corrigir nomes não altera IDs nem os nomes personalizados pelo proprietá
  assert.equal(normalizeProduct({...p,name:'Fofura personalizada'}).name,'Fofura personalizada');
 });
 test('Batidas e Caipirinhas juntas; atalho de estoque interno',()=>{const c=read('js/catalog.js');assert.ok(c.includes("['Todos','Batidas','Caipirinhas','Whisky'"));assert.match(read('admin.html'),/data-tab="tabacaria"/);});
+
+test('Headshop sempre consta no menu público, antes de Diversos',()=>{const c=read('js/catalog.js');assert.match(c,/publicCategoryOrder=.*'Headshop','Vinhos','Diversos'/);assert.ok(c.includes("exist.has(c)||c==='Headshop'"));});
