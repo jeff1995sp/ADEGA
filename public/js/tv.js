@@ -6,7 +6,7 @@ try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
 const DEMAND_INTERVAL=5*60*1000;
-const DEMAND_MESSAGE='Atenção, família! Hoje a casa está cheia. Seu pedido pode demorar um pouco mais que o normal. Valeu pela paciência!';
+const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o normal. Obrigado pela compreensão.';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }

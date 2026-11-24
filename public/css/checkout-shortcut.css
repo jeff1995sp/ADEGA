@@ -22,3 +22,7 @@ body.catalog-body #avaliacoes{scroll-margin-top:calc(var(--hora-header-height,13
 @media(min-width:801px){body.catalog-body .hora-sidebar{top:calc(var(--hora-header-height,132px) + 10px);max-height:calc(100vh - var(--hora-header-height,132px) - 24px)}}
 @media(max-width:800px){body.catalog-body .hora-nav #cartBar{padding:5px max(10px,env(safe-area-inset-right,0px)) 6px max(10px,env(safe-area-inset-left,0px))}body.catalog-body .hora-nav #cartBar .cart-actions .btn{min-height:44px}body.catalog-body .hora-catalog{scroll-margin-top:calc(var(--hora-header-height,165px) + 8px)}}
 @media(max-width:800px) and (orientation:landscape) and (max-height:450px){body.catalog-body .hora-catalog,body.catalog-body #avaliacoes{scroll-margin-top:8px}}
+
+body.catalog-body header.hora-nav{display:block!important;visibility:visible;overflow:visible}
+body.catalog-body .hora-nav #cartBar,body.catalog-body .hora-nav #cartBar .cart-inner,body.catalog-body .hora-nav #cartBar .cart-actions{visibility:visible}
+body.catalog-body .hora-nav #cartBar .cart-actions .btn{display:inline-flex!important;align-items:center;justify-content:center;visibility:visible}
