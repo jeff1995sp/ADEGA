@@ -1,0 +1,136 @@
+/* HORA EXTRA DRINKS — identidade urbana; somente apresentação. */
+:root{--bg:#101011;--panel:#19191b;--surface:#242426;--line:#39393c;--text:#fff;--sub:#c6c6ca;--muted:#a6a6ab;--gold:#ff6665;--gold2:#ce222b;--goldbright:#ff8885;--good:#63e7a1;--bad:#ff9696;--warn:#ffd37a;--radius:16px;color-scheme:dark}
+body,body.catalog-body,body.admin-body,body.tv-body{background:#101011;color:var(--text);font-family:'Manrope','DM Sans',sans-serif}
+body::selection{background:#d31723;color:#fff}
+body :is(a,button,input,select,textarea):focus-visible{outline:2px solid #ff8181;outline-offset:3px}
+body .btn-primary,body.catalog-body .product-footer .dose-qty button{background:linear-gradient(120deg,#ed2533,#a50916)!important;color:white!important;border-color:#ff5962;box-shadow:0 7px 22px #bd14252b,inset 0 1px #ffffff25}
+body .btn-outline{background:#1a1a1d;color:#fff;border-color:#6e343a}
+body .btn-secondary{background:#272729;color:#fff;border-color:#4a4a4d}
+body .brand-crest{background:none!important;box-shadow:none!important;border:0!important;width:66px;height:66px;flex:none}
+body .brand-crest img{filter:none!important;object-fit:contain;border-radius:9px}
+body .brand-name,body.admin-body .sidebar .brand-name{font-family:'Outfit','Manrope',sans-serif;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#fff;text-shadow:none}
+body .muted-line{color:#c7c7c7;letter-spacing:.15em}
+body .eyebrow,body.catalog-body .eyebrow{color:#ff6b70}
+.catalog-body .header{background:#111113f5;border-bottom:2px solid #cb1727;box-shadow:0 8px 32px #0006}
+.catalog-body .header-inner{min-height:88px}
+.catalog-body .header-buy{border-radius:10px}
+.catalog-body .concept-landing{display:none!important}
+.catalog-body .hero{display:block!important;position:relative;padding:54px 0 28px;background:linear-gradient(90deg,#101011f7 0%,#101011e0 30%,#170e11a0 70%,#100d0fe0),url('/img/comunidade-urbana.svg') center/cover;border-bottom:3px solid #bd1724}
+.catalog-body .hero:before{background:linear-gradient(138deg,transparent 0 12%,#e52b3330 12% 13%,transparent 13% 16%,#e52b3326 16% 18%,transparent 18%);opacity:1;mask-image:none}
+.catalog-body .hero:after{border-color:#e32c3b80;box-shadow:none}
+.catalog-body .hero-grid{min-height:500px;gap:30px}
+.catalog-body .hero-kicker{border-radius:6px;background:#240d11;color:#ffb0b3;border-color:#e62b3d;padding:9px 14px;letter-spacing:.14em}
+.catalog-body .hero-copy h1{font-family:'Outfit','Manrope',sans-serif;letter-spacing:-.055em;text-transform:uppercase;font-weight:800;font-size:clamp(3.1rem,6.3vw,7rem);line-height:.98}
+.catalog-body .hero-copy h1 .hero-accent{background:none;color:#ff404b;-webkit-text-fill-color:#ff404b}
+.catalog-body .hero-copy h1 .hero-accent:after{height:5px;left:0;background:linear-gradient(90deg,#ff3546,transparent);box-shadow:none;transform:rotate(-3deg)}
+.catalog-body .hero-copy p{color:#f1f1f1;border-left:3px solid #ed2635;margin:30px 0 24px}
+.catalog-body .hero-action-note,.catalog-body .hero-small-note,.hero-tracking-note{color:#e2e2e3}
+.catalog-body .hero-action-note span,.catalog-body .hero-small-note span{color:#ff656c}
+.catalog-body .hero-small-note{font-weight:800;margin-top:21px}
+.hero-tracking-note{font-size:.78rem;margin-top:8px}
+.catalog-body .hero-visual{min-height:480px}
+.catalog-body .hero-visual:before,.catalog-body .hero-visual-halo{border-color:#ec293a88;box-shadow:0 0 70px #df142438}
+.catalog-body .hero-cocktail{border-radius:30px;filter:saturate(1.05) contrast(1.02)}
+.catalog-body .hero-outline{color:#ffd3d4}
+.catalog-body .hero-visual-sticker{background:#141416ee;border-color:#f03b46;color:#fff;box-shadow:0 12px 30px #0008}
+.catalog-body .hero-visual-sticker strong{color:#ff7179}
+.catalog-body .hero-benefits{border-color:#95313a;color:#e0e0e0}
+.catalog-body .hero-benefits b{color:#ff646d}
+.catalog-body .showcase-tile{border:1px solid #5b3035;background:#19191bef;color:white}
+.catalog-body .showcase-tile span{color:#ff646d}
+.catalog-body .catalog-section{background:linear-gradient(#101011f9,#101011),url('/img/comunidade-urbana.svg') center top/cover;padding-top:55px}
+.catalog-body .section-head h2{font-family:'Outfit','Manrope',sans-serif;font-weight:800;text-transform:uppercase;color:#fff;letter-spacing:-.025em}
+.catalog-body .section-head h2 em{color:#ff4d59}
+.catalog-body .tabs{flex-wrap:wrap;overflow:visible;gap:8px}
+.catalog-body .tab,body.admin-body .tab{background:#222224;color:#e6e6e8;border:1px solid #434347;border-radius:9px}
+.catalog-body .tab.active,body.admin-body .tab.active{color:#fff;background:#be1626;border-color:#ff4d59;box-shadow:0 5px 15px #b30c202d}
+.catalog-body .product{background:#1b1b1d;border:1px solid #3c3c40;box-shadow:0 10px 24px #0005;border-radius:15px}
+.catalog-body .product:hover{border-color:#ff4857;box-shadow:0 10px 28px #d01a2725}
+.catalog-body .product-visual{background:#f5f5f5!important;border-color:#333}
+.catalog-body .product-content{background:#1b1b1d}
+.catalog-body .product-content p,.catalog-body .product-content .tiny{color:#c7c7ca}
+.catalog-body .product-visual .flag,.catalog-body .photo-note{color:#fff;background:#171719eb;border-color:#d83541}
+.catalog-body .product-footer{border-color:#414145}
+.catalog-body .price,.catalog-body .product-footer .price{color:#ff737b}
+.catalog-body .qty button{background:#2b2225;color:#fff;border-color:#84333c}
+.catalog-body .end-cta{background:linear-gradient(110deg,#4a111a,#181719);border-top:2px solid #bf1929}
+.catalog-body .cart-bar{background:#101011f5;border-top:2px solid #ad1c2a}
+body .modal,body .login-wrap,body .age-box{background:#19191d;border-color:#8a303a!important;color:#fff}
+body .age-box .age-mark{background:#b81d2b;color:#fff}
+body .age-box p,body .customer-entry-form small{color:#d5d5d5}
+body .customer-entry-form label,body .form-field label{color:#e8e8e8}
+body .customer-entry-form input,body input,body select,body textarea,body #doseModal select{background:#222225;border-color:#555;color:#fff}
+body .customer-entry-form input:focus,body #doseModal select:focus{outline-color:#ff626b}
+body .checkout-extras{border-color:#75323a;background:#28191c}
+body .pay-option,body .pay-card{border-color:#6c343b}
+body .pay-option.active,body .pay-card.active{border-color:#ff525d;background:#36191f}
+body.admin-body .sidebar{background:#161618;border-color:#a01b28}
+body.admin-body .side-link.active{background:#a91524;color:#fff;border-color:#df3243}
+body.admin-body .panel,body.admin-body .stat{background:#1b1b1d;border-color:#424246;border-radius:15px}
+body.admin-body .stat b,body.admin-body .panel h2,body.admin-body #pageTitle{color:#fff}
+body.admin-body .inventory-group{background:#1a1a1c;border-color:#444}
+body.admin-body .inventory-group-heading{background:#2b1b20;border-color:#8b303b}
+body.admin-body .inventory-group-heading h3{color:#ff858d}
+body.admin-body .inventory-group-heading span{color:#ddd}
+body.admin-body .price-inline{background:#261e21;border-color:#60343c}
+body.admin-body .price-inline label{color:#eee}
+body.admin-body .inventory-thumb{border-color:#555;background:#f5f5f5}
+body.admin-body .login-wrap{box-shadow:0 20px 90px #000a}
+body.tv-body:before,body.tv-body:after{display:none}
+body.tv-body .tv-concept-canvas{min-width:0;aspect-ratio:16/9;min-height:420px;background:linear-gradient(180deg,#101011f2,#101011b8 35%,#101011f2 90%),url('/img/comunidade-urbana.svg') center/cover}
+.hora-tv-head{position:absolute;top:3%;left:4%;right:36%;z-index:5}
+.hora-tv-head .brand-name{font-size:clamp(17px,2.8vw,45px)}
+.hora-tv-head .brand-crest{width:clamp(40px,6vw,90px);height:clamp(40px,6vw,90px)}
+.hora-tv-head .muted-line{font-size:clamp(8px,1vw,15px)}
+.hora-tv-intro{position:absolute;top:20%;left:5%;right:5%}
+.hora-tv-intro h1{font-family:'Outfit',sans-serif;font-size:clamp(24px,4.4vw,80px);font-weight:800;text-transform:uppercase;letter-spacing:-.035em}
+.hora-tv-intro p{color:#ddd;font-size:clamp(10px,1.3vw,21px);margin-top:6px}
+.hora-tv-label{position:absolute;top:40%;font-weight:800;letter-spacing:.02em;font-size:clamp(15px,2vw,32px);color:white}
+.hora-tv-label-preparing{left:5%}
+.hora-tv-label-ready{left:51.5%;color:#83f0b2}
+.hora-tv-label span{margin-right:7px;color:#ff6f76}
+.hora-tv-label-ready span{color:#83f0b2}
+.tv-concept-list{top:48%;height:38%;gap:3%}
+.tv-concept-preparing{left:5%;width:43%}
+.tv-concept-ready{left:51.5%;width:43.5%}
+.tv-concept-list .tv-ticket{background:#202023;border-color:#ae3c48;border-radius:13px;box-shadow:none}
+.tv-concept-list .tv-ticket-symbol{background:#53252d;border-color:#d65662;color:white;box-shadow:none}
+.tv-concept-list .tv-ticket small,.tv-concept-list .tv-ticket small b,.tv-concept-list .tv-ticket-check{color:#ffb7bb;border-color:#a5404a}
+.tv-concept-ready .tv-ticket{background:#15482f;border-color:#77db9f;box-shadow:none}
+.tv-concept-ready .tv-ticket-symbol{background:#198451;color:white;border-color:#85dca7;box-shadow:none}
+.tv-concept-ready .tv-ticket small,.tv-concept-ready .tv-ticket small b,.tv-concept-ready .tv-ticket-check{color:#c5f5d6;border-color:#68a780}
+.tv-concept-list .tv-empty{background:#202023e8;border-color:#5d3a41;border-radius:12px}
+.tv-concept-ready .tv-empty{background:#142b20;border-color:#4e8b65}
+.tv-concept-list .tv-empty strong{color:#eee}
+.tv-concept-sound{top:5%;left:68%;width:17%;height:7%;border-radius:10px;background:#252528;border:1px solid #c33d4a;color:white;font-size:clamp(9px,1.2vw,18px);font-weight:800}
+.tv-concept-sound.sound-on{background:#18372a;border-color:#64c691;color:#fff}
+.tv-concept-sound.sound-on .hora-tv-sound-label{display:none}
+.tv-concept-clock{top:5%;background:#19191d;border-radius:8px;border:1px solid #65333d;color:#fff}
+.hora-tv-bottom{position:absolute;bottom:5%;left:5%;right:5%;text-align:center;border-top:2px solid #ac2330;padding-top:12px;color:#ddd;letter-spacing:.13em;font-size:clamp(8px,1.1vw,16px);font-weight:800}
+.tv-concept-tools{background:#121214;color:#ddd}
+@media(max-width:780px){
+ .catalog-body .header{display:block!important;position:sticky;top:0}
+ .catalog-body .header-inner{min-height:72px}
+ .catalog-body .header .brand-crest{width:48px;height:48px}
+ .catalog-body .header .brand-name{font-size:clamp(.68rem,3vw,1rem);letter-spacing:0}
+ .catalog-body .header .muted-line{font-size:.49rem;letter-spacing:.06em}
+ .catalog-body .header-buy{font-size:.7rem;padding:10px}
+ .catalog-body .header .brand{gap:8px}
+ .catalog-body .hero{padding:30px 0 18px;background:linear-gradient(180deg,#101011c9,#101011eb),url('/img/comunidade-urbana.svg') center/cover}
+ .catalog-body .hero-grid{display:flex;flex-direction:column;min-height:0;gap:10px}
+ .catalog-body .hero-copy{width:100%;max-width:none;padding:0}
+ .catalog-body .hero-kicker{font-size:.64rem;margin-bottom:15px}
+ .catalog-body .hero-copy h1{max-width:none;font-size:clamp(2.9rem,11vw,5.4rem)}
+ .catalog-body .hero-copy p{margin:19px 0 16px;max-width:none;background:none;font-size:.92rem;line-height:1.5}
+ .catalog-body .hero-actions{flex-wrap:wrap}
+ .catalog-body .hero-small-note{background:none;padding:0;margin-top:13px}
+ .catalog-body .hero-visual{position:relative;inset:auto;width:100%;height:270px;min-height:270px;opacity:1}
+ .catalog-body .hero-cocktail{inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 47%;mask-image:linear-gradient(180deg,transparent,#000 12%,#000 88%,transparent)}
+ .catalog-body .hero-visual:before{inset:3% 9%;border-color:#f13a4c66}
+ .catalog-body .catalog-section{padding-top:35px!important}
+ .catalog-body .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-color:#95323f #202022}
+ .catalog-body .section-head h2{font-size:1.8rem}
+ .tv-concept-list .tv-ticket strong{font-size:clamp(12px,2.5vw,25px)}
+ .tv-concept-list .tv-ticket small{font-size:clamp(8px,1.2vw,12px)}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
