@@ -29,7 +29,7 @@ const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce(
 
 const productCard=(p,featured=false)=>{
   const left=p.unlimited?'Disponível':p.stock>0?`${p.stock} em estoque`:'Esgotado';
-  const inactive=!p.active?'Indisponível':!p.price_cents?'Indisponível — preço a definir':!p.unlimited && !p.stock?'Indisponível — esgotado':!shop.accepting_orders?'Indisponível — pedidos pausados':null;
+  const inactive=!p.active?'Indisponível — produto pausado':!p.price_cents?'Indisponível — preço a definir':!p.unlimited && !p.stock?'Indisponível — esgotado':!shop.accepting_orders?'Indisponível — pedidos pausados':null;
   const q=desiredQty(p);
   const customizable=isDoseProduct(p);
   const canConfigure=available(p)&&hasDrinkOptions(p);
@@ -444,8 +444,9 @@ function start(){
   $('trackBtn')?.addEventListener('click',()=>{if(!currentOrder)return toast('Você ainda não possui pedido neste dispositivo.');loadTracking();open('trackingModal');});
   (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
   loadCatalog();
-  setInterval(()=>{if(!document.hidden)loadCatalog();},30000);
+  setInterval(()=>{if(!document.hidden)loadCatalog();},8000);
   setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden&&$('trackingModal').classList.contains('open'))loadTracking();},8000);
+  window.addEventListener('focus',()=>loadCatalog());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadCatalog();});
 }
 start();

@@ -152,12 +152,24 @@ let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
 }
+function inventoryAvailability(p){
+ const reasons=[];
+ if(!p.active)reasons.push('produto pausado');
+ if(!(p.price_cents>0))reasons.push('preço não definido');
+ if(!p.unlimited&&!(p.stock>0))reasons.push('sem estoque');
+ if(!shop.accepting_orders)reasons.push('loja com pedidos pausados');
+ return reasons.length?'Indisponível: '+reasons.join(' · '):'Preço, estoque e ativação OK';
+}
+function updateEditAvailability(){
+ const p={active:$('editActive').checked,price_cents:priceParse($('editPrice').value)||0,stock:Number($('editStock').value),unlimited:$('editUnlimited').checked};
+ $('editAvailability').textContent=inventoryAvailability(p);
+}
 function productModal(p){
   if(selectedPhotoPreviewUrl){URL.revokeObjectURL(selectedPhotoPreviewUrl);selectedPhotoPreviewUrl=null;}
   $('editTitle').textContent=p?'Editar produto':'Cadastrar produto';$('editId').value=p?.id||'';
   $('editName').value=p?.name||'';$('editCategory').value=p?catalogCategory(p):(['Todos','Sabores'].includes(inventoryFilter)?'Doces e Salgadinhos':inventoryFilter);$('editDescription').value=p?productDescription(p):'';
   $('editPrice').value=p?.price_cents?String((p.price_cents/100).toFixed(2)).replace('.',','):'';
-  $('editStock').value=p?.stock??0;$('editUnlimited').checked=Boolean(p?.unlimited);
+  $('editStock').value=p?.stock??0;$('editUnlimited').checked=Boolean(p?.unlimited);$('editActive').checked=Boolean(p?.active);updateEditAvailability();
   $('editIcon').value=p?.icon||'🥤';$('editImage').value=p?.image_url||'';$('editAge').checked=p?.age_restricted??true;
   $('editPhotoFile').value='';
   setProductPhotoPreview(p?photoFor(p):'/imagens/foto-pendente.webp');
@@ -224,7 +236,7 @@ async function saveProduct(e){
   const stock=Number($('editStock').value);
   if(price===null||price>100000000||!Number.isInteger(stock)||stock<0)return toast('Informe um preço válido ou deixe vazio; confira também o estoque.',true);
   const photo=$('editPhotoFile').files?.[0];
-  const entry={name:$('editName').value.trim(),category:$('editCategory').value,description:$('editDescription').value.trim(),price_cents:price,stock,unlimited:$('editUnlimited').checked,icon:$('editIcon').value.trim()||'🥤',image_url:$('editImage').value.trim(),age_restricted:$('editAge').checked};
+  const entry={name:$('editName').value.trim(),category:$('editCategory').value,description:$('editDescription').value.trim(),price_cents:price,stock,unlimited:$('editUnlimited').checked,icon:$('editIcon').value.trim()||'🥤',image_url:$('editImage').value.trim(),age_restricted:$('editAge').checked,active:$('editActive').checked};
   busy=true;
   try{
     // Pré-processa antes de salvar, para evitar cadastros sem a foto pretendida.
@@ -232,17 +244,18 @@ async function saveProduct(e){
     if(id){
       const {stock:_,...patch}=entry;
       await api('admin-products',{id,...patch},{admin:true,method:'PATCH'});
-      if(!$('editUnlimited').checked){const p=products.find(x=>x.id===id);if(p && (p.stock!==stock||p.unlimited))await api('admin-stock',{id,mode:'set',quantity:stock},{admin:true});}
+      if(!entry.unlimited){await api('admin-stock',{id,mode:'set',quantity:stock},{admin:true});}
     }else{
       const saved=await api('admin-products',entry,{admin:true});
       id=saved.product.id;$('editId').value=id;
+      if(entry.active)await api('admin-products',{id,active:true},{admin:true,method:'PATCH'});
     }
     if(photoData){
       const uploaded=await api('admin-photo',{id,...photoData},{admin:true});
       $('editImage').value=uploaded.image_url;
     }
     inventoryFilter=catalogCategory(entry);inventoryStatus='all';inventorySearch='';$('inventorySearch').value='';$('inventoryStatus').value='all';
-    $('editModal').classList.remove('open');toast('Produto e foto salvos. O catálogo será atualizado automaticamente.');
+    $('editModal').classList.remove('open');toast('Produto salvo. '+inventoryAvailability(entry)+'.');
   }catch(err){toast(err.message,true);}finally{busy=false;await refreshData(true);}
 }
 function closeProductPreview(){
@@ -254,7 +267,7 @@ function showProductPreview(p){
   const modal=$('productPreviewModal'),body=$('productPreviewBody');
   if(!modal||!body)return;
   const stock=p.unlimited?'Estoque ilimitado':p.stock>0?p.stock+' em estoque':'Esgotado';
-  const status=p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)?'Disponível na vitrine':'Indisponível até ativar preço e estoque';
+  const status=inventoryAvailability(p);
   body.innerHTML=`<article class="admin-preview-card"><div class="admin-preview-image"><img src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="${esc(p.name)}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"></div><div class="admin-preview-content"><div class="admin-preview-state"><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span><span>${esc(catalogCategory(p))} · ${esc(stock)}</span></div><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p><strong class="admin-preview-price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</strong><p class="admin-preview-notice">${esc(status)}</p></div></article>`;
   if(typeof modal.showModal==='function'){if(!modal.open)modal.showModal();}else modal.setAttribute('open','');
 }
@@ -325,6 +338,7 @@ async function start(){
   $('closeEdit').onclick=()=>$('editModal').classList.remove('open');
   $('closeProductPreview')?.addEventListener('click',closeProductPreview);
   $('editForm').addEventListener('submit',saveProduct);
+  for(const id of ['editPrice','editStock','editUnlimited','editActive'])$(id).addEventListener('input',updateEditAvailability);
   $('editPhotoFile').addEventListener('change',()=>{
     if(selectedPhotoPreviewUrl){URL.revokeObjectURL(selectedPhotoPreviewUrl);selectedPhotoPreviewUrl=null;}
     const f=$('editPhotoFile').files?.[0];
