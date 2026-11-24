@@ -9,7 +9,27 @@ function setup(){
  const sql=new DatabaseSync(':memory:');sql.exec('PRAGMA foreign_keys=ON;'+schema);
  sql.exec("INSERT INTO products(id,name,category,price_cents,stock,active,age_restricted) VALUES ('produto-005','Jack com Red Bull','Whisky',4500,5,1,1),('produto-061','Água','Águas e Refrigerantes',250,10,1,0),('interno-800','Seda','Tabacaria',300,10,1,1); INSERT INTO drink_options(id,option_group,name,active,stock) VALUES ('ice-1','ice','Gelo de água',1,5),('energy-1','energy','Red Bull Original',1,5),('energy-99','energy','Vibe Original',1,5);");
  let beforeBatch=null;
- const DB={prepare(query){const statement=sql.prepare(query);const wrap=(args=[])=>({bind(...a){return wrap(a);},async first(){return statement.get(...args.map(v=>v instanceof ArrayBuffer?new Uint8Array(v):v))??null;},async all(){return {results:statement.all(...args)};},async run(){return {meta:{changes:Number(statement.run(...args.map(v=>v instanceof ArrayBuffer?new Uint8Array(v):v))).changes}}};},_query:query});return wrap();},async batch(statements){if(beforeBatch){const f=beforeBatch;beforeBatch=null;f();}sql.exec('BEGIN');try{const r=[];for(const s of statements)r.push(await s.run());sql.exec('COMMIT');return r;}catch(e){sql.exec('ROLLBACK');throw e;}}};
+ const DB={
+  prepare(query){
+   const statement=sql.prepare(query);
+   const wrap=(args=[])=>{
+    const vals=args.map(v=>v instanceof ArrayBuffer?new Uint8Array(v):v);
+    return {
+     bind(...a){return wrap(a);},
+     async first(){return statement.get(...vals)??null;},
+     async all(){return {results:statement.all(...vals)};},
+     async run(){return {meta:{changes:Number(statement.run(...vals).changes)}};}
+    };
+   };
+   return wrap();
+  },
+  async batch(statements){
+   if(beforeBatch){const f=beforeBatch;beforeBatch=null;f();}
+   sql.exec('BEGIN');
+   try{const r=[];for(const s of statements)r.push(await s.run());sql.exec('COMMIT');return r;}
+   catch(e){sql.exec('ROLLBACK');throw e;}
+  }
+ };
  const env={DB,ADEGA_ADMIN_PIN:'local-test-admin-very-long',TV_PASSCODE:'local-test-tv-very-long'};
  const call=async(route,body,auth,method=body===undefined?'GET':'POST',extra={})=>{
   const response=await worker.fetch(new Request('https://test.local/api?route='+route,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+auth}:{}),...extra},body:body===undefined?undefined:JSON.stringify(body)}),env);
