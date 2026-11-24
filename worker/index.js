@@ -147,13 +147,14 @@ async function requireNearby(db,position){
  if(distance+position.accuracy>location.radius)reject('Não foi possível confirmar sua proximidade com precisão. Aproxime-se do portão e tente novamente.',409);
 }
 async function catalog(db,admin){
+ await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
  const [store,products,drink_options,paidSales]=await Promise.all([
  one(db,'SELECT name,accepting_orders,low_stock_threshold FROM store_settings WHERE id=1'),
  many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products ORDER BY sort_order,name'),
  many(db,'SELECT id,option_group,name,active,stock,unlimited,sort_order FROM drink_options ORDER BY option_group,sort_order,name'),
- admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
+ admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a JOIN cash_batches b ON b.id=a.batch_id WHERE a.order_id=o.id AND b.kind='test') GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
  ]);
  if(!store)reject('Configuração da loja ausente.',503);
  const publicProducts=dedupePublicProducts(products.filter(visible));
@@ -257,23 +258,68 @@ async function orderAction(db,body){
 }
 async function orders(db){
  const list=await many(db,"SELECT * FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 250");
- if(!list.length)return json({orders:[]});
+ const high_demand=await readDemand(db);
+ if(!list.length)return json({orders:[],high_demand});
  const ids=JSON.stringify(list.map(o=>o.id));
  const lines=await many(db,'SELECT order_id,product_name,quantity,unit_price_cents FROM order_items WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
- return json({orders:list.map(({public_token,...o})=>({...o,order_items:groups.get(o.id)||[]}))});
+ return json({orders:list.map(({public_token,...o})=>({...o,order_items:groups.get(o.id)||[]})),high_demand});
+}
+async function ensureCashArchive(db){
+ await run(db,"CREATE TABLE IF NOT EXISTS cash_batches (id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('closed','test')),created_at TEXT NOT NULL)");
+ await run(db,"CREATE TABLE IF NOT EXISTS cash_archived_orders (order_id TEXT PRIMARY KEY REFERENCES orders(id),batch_id TEXT NOT NULL REFERENCES cash_batches(id))");
+ await run(db,'CREATE INDEX IF NOT EXISTS idx_cash_archive_batch ON cash_archived_orders(batch_id)');
+}
+const cashDay=()=>{const day=new Date(Date.now()-3*3600000).toISOString().slice(0,10),start=day+'T03:00:00.000Z';return {day,start,end:new Date(Date.parse(start)+86400000).toISOString()};};
+const activeCashFilter="payment_status='paid' AND paid_at>=? AND paid_at<? AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a WHERE a.order_id=orders.id)";
+async function archiveCash(db,body){
+ await ensureCashArchive(db);
+ const kind=body.kind;
+ if(!['closed','test'].includes(kind)||body.confirmation!==(kind==='test'?'TESTE':'FECHAR'))reject('Confirme a operação.');
+ if(!Array.isArray(body.ids)||!body.ids.length||body.ids.length>500||!body.ids.every(uuid)||new Set(body.ids).size!==body.ids.length)reject('Selecione pedidos válidos do movimento atual.');
+ const {start,end}=cashDay(),ids=JSON.stringify(body.ids);
+ const filter=activeCashFilter+" AND id IN (SELECT value FROM json_each(?))"+(kind==='test'?" AND status='delivered' AND payment_method='cash'":"");
+ const eligible=await one(db,'SELECT COUNT(*) AS n FROM orders WHERE '+filter,start,end,ids);
+ if(eligible.n!==body.ids.length)reject('O movimento mudou ou há pedidos não elegíveis. Atualize o caixa.',409);
+ const id=crypto.randomUUID(),date=now(),guard=kind==='closed'?' AND (SELECT COUNT(*) FROM orders WHERE '+activeCashFilter+')=?':'';
+ try{
+ await db.batch([
+ stmt(db,'INSERT INTO cash_batches(id,kind,created_at) VALUES(?,?,?)',id,kind,date),
+ stmt(db,'INSERT INTO cash_archived_orders(order_id,batch_id) SELECT value,CASE WHEN (SELECT COUNT(*) FROM orders WHERE '+filter+')=?'+guard+' THEN ? ELSE NULL END FROM json_each(?)',start,end,ids,body.ids.length,...(kind==='closed'?[start,end,body.ids.length]:[]),id,ids)
+ ]);
+ }catch(e){reject('O movimento mudou. Atualize o caixa e tente novamente.',409);}
+ return json({ok:true,batch_id:id,count:body.ids.length});
+}
+async function cashArchive(db,body){
+ if(!uuid(body.id))reject('Relatório inválido.');
+ await ensureCashArchive(db);
+ const batch=await one(db,'SELECT * FROM cash_batches WHERE id=?',body.id);if(!batch)missing();
+ const transactions=await many(db,'SELECT o.id,o.order_no,o.first_name,o.last_name,o.payment_method,o.total_cents,o.paid_at FROM orders o JOIN cash_archived_orders a ON a.order_id=o.id WHERE a.batch_id=? ORDER BY o.paid_at DESC',batch.id);
+ return json({batch,transactions,day:batch.created_at.slice(0,10),paid_count:transactions.length});
+}
+async function readDemand(db){
+ await run(db,'CREATE TABLE IF NOT EXISTS tv_demand (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN (0,1)))');
+ return Boolean((await one(db,'SELECT enabled FROM tv_demand WHERE id=1'))?.enabled);
+}
+async function saveDemand(db,body){
+ if(typeof body.enabled!=='boolean')reject('Informe o estado do aviso.');
+ await readDemand(db);
+ await run(db,'INSERT INTO tv_demand(id,enabled) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled',body.enabled);
+ return json({high_demand:body.enabled});
 }
 async function cashReport(db){
- const day=new Date(Date.now()-3*3600000).toISOString().slice(0,10),start=day+'T03:00:00.000Z',end=new Date(Date.parse(start)+86400000).toISOString();
- const filter="payment_status='paid' AND paid_at>=? AND paid_at<?";
+ await ensureCashArchive(db);
+ const {day,start,end}=cashDay();
+ const filter=activeCashFilter;
  const [methods,items,transactions,pending]=await Promise.all([
  many(db,'SELECT payment_method,COUNT(*) AS qty,SUM(total_cents) AS total FROM orders WHERE '+filter+' GROUP BY payment_method',start,end),
- many(db,'SELECT i.product_name AS name,SUM(i.quantity) AS quantity,SUM(i.quantity*i.unit_price_cents) AS total_cents FROM orders o JOIN order_items i ON i.order_id=o.id WHERE o.payment_status=\'paid\' AND o.paid_at>=? AND o.paid_at<? GROUP BY i.product_name ORDER BY quantity DESC',start,end),
- many(db,'SELECT id,order_no,first_name,last_name,payment_method,total_cents,paid_at FROM orders WHERE '+filter+' ORDER BY paid_at DESC LIMIT 500',start,end),
+ many(db,'SELECT i.product_name AS name,SUM(i.quantity) AS quantity,SUM(i.quantity*i.unit_price_cents) AS total_cents FROM orders o JOIN order_items i ON i.order_id=o.id WHERE o.payment_status=\'paid\' AND o.paid_at>=? AND o.paid_at<? AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a WHERE a.order_id=o.id) GROUP BY i.product_name ORDER BY quantity DESC',start,end),
+ many(db,'SELECT id,order_no,first_name,last_name,payment_method,total_cents,paid_at,status FROM orders WHERE '+filter+' ORDER BY paid_at DESC LIMIT 500',start,end),
  one(db,"SELECT COUNT(*) AS qty FROM orders WHERE payment_status='pending' AND status<>'cancelled' AND created_at>=? AND created_at<?",start,end)
  ]);
  const totals={cash:0,card:0,pix:0,apple:0,google:0};let paid_count=0,total_cents=0;for(const m of methods){totals[m.payment_method]=m.total;paid_count+=m.qty;total_cents+=m.total;}
- return json({day,paid_count,pending_count:pending.qty,total_cents,item_count:items.reduce((n,i)=>n+i.quantity,0),by_method:totals,products:items,transactions,truncated:paid_count>500});
+ const archives=await many(db,'SELECT b.id,b.kind,b.created_at,COUNT(*) AS qty,SUM(o.total_cents) AS total_cents FROM cash_batches b JOIN cash_archived_orders a ON a.batch_id=b.id JOIN orders o ON o.id=a.order_id GROUP BY b.id,b.kind,b.created_at ORDER BY b.created_at DESC,b.id DESC LIMIT 100');
+ return json({day,paid_count,pending_count:pending.qty,total_cents,item_count:items.reduce((n,i)=>n+i.quantity,0),by_method:totals,products:items,transactions,archives,truncated:paid_count>500});
 }
 async function patchRow(db,table,id,patch){
  const fields=Object.keys(patch);if(!fields.length)reject('Nenhuma alteração informada.');
@@ -386,12 +432,15 @@ async function handler(request,env){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
  if(!await equal(request.headers.get('X-TV-Code'),env.TV_PASSCODE)){await rate(db,request,'tv',10,300);reject('Código da TV incorreto.',403);}
  const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 60");
- return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name}))});
+ return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),high_demand:await readDemand(db)});
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(order);}
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);return createOrder(db,body);}
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
+ if(route==='admin-cash-archive'&&method==='POST')return archiveCash(db,body);
+ if(route==='admin-cash-report'&&method==='POST')return cashArchive(db,body);
+ if(route==='admin-demand'&&method==='PATCH')return saveDemand(db,body);
  if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);await ensureInternalInventory(db);return productsAdmin(db,body,method);}
  if(route==='admin-photo'&&method==='POST')return photo(db,body);
  if(route==='admin-drink-options'&&method==='PATCH'){

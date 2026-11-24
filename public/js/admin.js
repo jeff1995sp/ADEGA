@@ -21,7 +21,8 @@ async function refreshOrders(quiet=true){
  if(ordersRequest){orderRefreshPending=true;return ordersRequest;}
  const request=async()=>{
   try{
-   const {orders:incoming=[]}=await api('admin-orders',null,{method:'GET',admin:true});
+   const {orders:incoming=[],high_demand=false}=await api('admin-orders',null,{method:'GET',admin:true});
+   if(!demandBusy){demandActive=Boolean(high_demand);renderDemand();}
    if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
    const snapshot=JSON.stringify(incoming);
    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('Novo pedido: '+order.first_name);}}}
@@ -127,6 +128,8 @@ function renderDrinkOptions(){
   }).join('')}</section>`;
  }).join('');
 }
+let demandActive=false,demandBusy=false,cashActionKind='',cashActionBusy=false,cashActionIds=[];
+function renderDemand(){const b=$('demandToggle');b.textContent=demandActive?'Aviso ativo — desativar':'Ativar aviso';b.classList.toggle('btn-primary',demandActive);b.classList.toggle('btn-secondary',!demandActive);b.setAttribute('aria-pressed',String(demandActive));}
 function renderCash(){
   if(!cashReport){
     $('cashStats').innerHTML='<div class="stat"><span>Caixa do dia</span><b>—</b></div>';
@@ -134,7 +137,10 @@ function renderCash(){
     $('itemReport').innerHTML='';return;
   }
   const r=cashReport;
-  const stats=[['Faturamento do dia',fmt(r.total_cents)],['Vendas pagas',r.paid_count],['Em aberto',r.pending_count],['Itens vendidos',r.item_count]];
+  $('closeCash').disabled=!r.paid_count||r.truncated===true;
+  $('clearTestCash').disabled=!(r.transactions||[]).some(o=>o.status==='delivered'&&o.payment_method==='cash');
+  $('cashArchives').innerHTML=(r.archives||[]).map(b=>`<div class="cash-archive-row"><div><strong>${b.kind==='test'?'Vendas de teste':'Caixa fechado'}</strong><p class="small sub">${esc(new Date(b.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))} · ${b.qty} vendas · ${fmt(b.total_cents)}</p></div><button type="button" class="btn btn-outline btn-sm" data-cash-archive="${esc(b.id)}">CSV</button></div>`).join('')||'<p class="small sub">Nenhum relatório arquivado.</p>';
+  const stats=[['Faturamento atual',fmt(r.total_cents)],['Vendas pagas',r.paid_count],['Em aberto',r.pending_count],['Itens vendidos',r.item_count]];
   $('cashStats').innerHTML=stats.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
   const methods=Object.entries(r.by_method||{}).map(([key,value])=>`<span>${esc(labels[key]||key)}: ${fmt(value)}</span>`).join('');
   $('cashList').innerHTML=`<div class="cash-summary-header"><span>Movimento de ${esc(r.day.split('-').reverse().join('/'))}</span><small>Registros detalhados disponíveis no CSV.</small></div><div class="order-details cash-methods">${methods}</div>`;
@@ -146,12 +152,13 @@ async function loadReport(){
   try{cashReport=await api('admin-cash',null,{admin:true,method:'GET'});reportAt=Date.now();renderCash();}
   catch(e){toast('Caixa: '+e.message,true);}finally{reportLoading=false;}
 }
-function exportCash(){
+function exportCash(){return downloadCash(cashReport);}
+function downloadCash(cashReport){
   if(!cashReport)return toast('Abra a aba Caixa para carregar as vendas.',true);
   const csvVal=v=>{let x=String(v??'');if(/^[=+@-]/.test(x))x="'"+x;return '"'+x.replaceAll('"','""')+'"';};
   const cols=[['Pedido','Cliente','Forma','Valor (R$)','Recebido em'],...(cashReport.transactions||[]).map(o=>[pad(o.order_no),o.first_name+' '+o.last_name,labels[o.payment_method],(o.total_cents/100).toFixed(2).replace('.',','),new Date(o.paid_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})])];
   const blob=new Blob(['\uFEFF'+cols.map(row=>row.map(csvVal).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='caixa-adega-'+cashReport.day+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='caixa-adega-'+cashReport.day+(cashReport.batch?'-'+cashReport.batch.kind+'-'+cashReport.batch.id.slice(0,8):'')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   if(cashReport.paid_count>cashReport.transactions.length)toast('CSV com as 500 vendas mais recentes. O total e o resumo incluem todas as vendas.');
 }
 
@@ -375,7 +382,31 @@ async function loadAdminReviews(){
  try{const {reviews}=await api('admin-reviews',null,{method:'GET',admin:true});$('adminReviews').innerHTML=reviews.length?reviews.map(r=>`<article class="review-card"><div class="review-stars" aria-label="${Number(r.rating)} de 5 estrelas">${'★'.repeat(Number(r.rating))+'☆'.repeat(5-Number(r.rating))}</div><strong>${esc(r.display_name)} · Pedido ${pad(r.order_no)}</strong><p class="review-copy">${esc(r.comment||'Sem comentário')}</p><small class="sub">${r.comment_hidden?'Comentário oculto; nota pública':'Avaliação pública'} · ${esc(new Date(r.created_at).toLocaleDateString('pt-BR'))}</small>${r.comment? `<button type="button" class="btn btn-secondary btn-sm" data-review-id="${esc(r.id)}" data-hide="${r.comment_hidden?'false':'true'}">${r.comment_hidden?'Restaurar comentário':'Ocultar comentário'}</button>`:''}</article>`).join(''):'<p class="sub">Nenhuma avaliação recebida.</p>';}
  catch(e){$('adminReviews').textContent=e.message;}finally{reviewsBusy=false;}
 }
+function openCashAction(kind){
+ if(!cashReport||cashActionBusy)return;
+ cashActionKind=kind;
+ const rows=(cashReport.transactions||[]).filter(o=>kind==='closed'||(o.status==='delivered'&&o.payment_method==='cash'));
+ cashActionIds=rows.map(o=>o.id);
+ if(!rows.length)return toast('Nenhuma venda elegível.',true);
+ $('cashActionTitle').textContent=kind==='test'?'Limpar vendas de teste':'Fechar caixa';
+ $('cashActionInfo').textContent=kind==='test'?'Marque somente pedidos que foram simulações. Eles serão arquivados e retirados do movimento atual, sem apagar dados ou devolver estoque.':'O movimento atual será arquivado. Novas vendas entrarão em um novo movimento. O estoque não será alterado.';
+ $('cashActionList').innerHTML=kind==='test'?rows.map(o=>`<label class="cash-test-row"><input type="checkbox" name="cashTestId" value="${esc(o.id)}"><span>${esc(pad(o.order_no))} · ${esc(o.first_name)} ${esc(o.last_name)}</span><strong>${fmt(o.total_cents)}</strong></label>`).join(''):`<p>${rows.length} vendas · ${fmt(cashReport.total_cents)}</p>`;
+ $('cashActionConfirm').value='';$('cashActionLabel').textContent='Digite '+(kind==='test'?'TESTE':'FECHAR')+' para confirmar';
+ $('cashActionModal').classList.add('open');
+}
 async function start(){
+ $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandActive},{admin:true,method:'PATCH'});demandActive=r.high_demand;renderDemand();toast(demandActive?'Aviso enviado à TV.':'Aviso da TV desativado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
+ $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
+ $('cashActionClose').onclick=()=>{if(!cashActionBusy)$('cashActionModal').classList.remove('open');};
+ $('cashActionForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(cashActionBusy)return;const kind=cashActionKind,confirmation=$('cashActionConfirm').value.trim().toUpperCase(),ids=kind==='test'?[...document.querySelectorAll('[name="cashTestId"]:checked')].map(x=>x.value):cashActionIds;
+ if(!ids.length||confirmation!==(kind==='test'?'TESTE':'FECHAR'))return toast('Selecione as vendas e digite a confirmação indicada.',true);
+ cashActionBusy=true;const b=e.target.querySelector('[type="submit"]');b.disabled=true;
+ try{await api('admin-cash-archive',{kind,confirmation,ids},{admin:true});$('cashActionModal').classList.remove('open');cashReport=null;reportAt=0;renderCash();toast(kind==='test'?'Vendas de teste arquivadas.':'Caixa fechado e relatório preservado.');}
+ catch(err){toast(err.message,true);}finally{cashActionBusy=false;b.disabled=false;reportAt=0;if(reportLoading){setTimeout(()=>{reportAt=0;loadReport();},1500);}else await loadReport();}
+ });
+ $('cashArchives').addEventListener('click',async e=>{const b=e.target.closest('[data-cash-archive]');if(!b)return;b.disabled=true;try{downloadCash(await api('admin-cash-report',{id:b.dataset.cashArchive},{admin:true}));}catch(err){toast(err.message,true);}finally{b.disabled=false;}});
+
  $('pickupLocationForm').addEventListener('input',()=>{pickupDirty=true;renderPickupPreview();});
  $('pickupRadiusSlider').addEventListener('input',()=>{$('pickupRadius').value=$('pickupRadiusSlider').value;pickupDirty=true;renderPickupPreview();});
  document.querySelectorAll('[data-pickup-radius]').forEach(b=>b.onclick=()=>{$('pickupRadius').value=b.dataset.pickupRadius;pickupDirty=true;renderPickupPreview();});

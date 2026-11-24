@@ -65,6 +65,7 @@ async function poll(){
     const d=await api('tv',null,{method:'GET',tvCode:code,timeout:12000});
     if(tvCode!==code)return;
     if(!Array.isArray(d.orders))throw Error('Resposta inválida do painel da TV.');
+    $('tvDemandNotice').classList.toggle('hidden',d.high_demand!==true);
     const rows=d.orders,snapshot=JSON.stringify(rows);
     if(snapshot!==tvSnapshot||!started){renderTv(rows);tvSnapshot=snapshot;}
     connected=true;retryAt=0;
