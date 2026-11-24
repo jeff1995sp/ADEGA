@@ -1,4 +1,5 @@
 import {api,esc,pad,toast,setBrand} from './shared.js?v=20261124-auth';
+import {wavToMp3} from './tv-audio-codec.js?v=1';
 const $=id=>document.getElementById(id);
 const STORAGE='adega_tv_code_v1', VOICES='adega_tv_voices_v1';
 let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false,connected=false,retryAt=0;
@@ -9,14 +10,16 @@ let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!==
 function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
 let voiceMode='auto',localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
 try{voiceMode=localStorage.getItem('adega_tv_voice_mode_v1')||'auto';}catch{}
-if(!['auto','audio','native'].includes(voiceMode))voiceMode='auto';
+if(!['auto','audio','wav','native'].includes(voiceMode))voiceMode='auto';
 const nativeSpeech=()=>('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
-const useLocalAudio=()=>voiceMode==='audio'||(voiceMode==='auto'&&(!nativeSpeech()||!voiceList.some(v=>/^pt(?:-|_)/i.test(v.lang))));
+const useLocalAudio=()=>(voiceMode==='audio'||voiceMode==='wav')||(voiceMode==='auto'&&(!nativeSpeech()||!voiceList.some(v=>/^pt(?:-|_)/i.test(v.lang))));
 function loadLocalVoice(){
  if(localVoicePromise)return localVoicePromise;
  localVoicePromise=(async()=>{
   if(!window.meSpeak)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/vendor/mespeak/mespeak.js';script.onload=resolve;script.onerror=()=>reject(Error('Motor de voz indisponível.'));document.head.appendChild(script);});
   const engine=window.meSpeak;if(!engine)throw Error('Motor de voz não iniciou.');
+  if(!window.lamejs)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/vendor/lamejs/lame.min.js';script.onload=resolve;script.onerror=()=>reject(Error('Codificador MP3 indisponível.'));document.head.appendChild(script);});
+  if(!window.lamejs||!window.lamejs.Mp3Encoder)throw Error('Codificador MP3 não iniciou.');
   if(!engine.isConfigLoaded())engine.loadConfig('/vendor/mespeak/mespeak_config.json');
   if(!engine.isVoiceLoaded('pt'))engine.loadVoice('/vendor/mespeak/voices/pt.json');
   await new Promise((resolve,reject)=>{const deadline=Date.now()+20000;function check(){if(engine.isConfigLoaded()&&engine.isVoiceLoaded('pt'))return resolve();if(Date.now()>=deadline)return reject(Error('Voz em português indisponível.'));setTimeout(check,100);}check();});
@@ -25,13 +28,19 @@ function loadLocalVoice(){
  return localVoicePromise;
 }
 function clearAudio(){
- const a=$('tvVoiceAudio');a.onended=null;a.onerror=null;a.pause();a.removeAttribute('src');if(localAudioUrl){URL.revokeObjectURL(localAudioUrl);localAudioUrl='';}
+ const a=$('tvVoiceAudio');a.onended=null;a.onerror=null;a.onplaying=null;a.pause();a.removeAttribute('src');if(localAudioUrl){URL.revokeObjectURL(localAudioUrl);localAudioUrl='';}
 }
 function stopSpeech(){speechGeneration++;clearTimeout(finishTimer);if(nativeSpeech())speechSynthesis.cancel();clearAudio();queue=[];speaking=false;}
+let soundNoticeTimer;
+function audioNotice(message,persistent=false){
+ const notice=$('tvAudioNotice');notice.textContent=message;notice.classList.remove('hidden');clearTimeout(soundNoticeTimer);if(!persistent)soundNoticeTimer=setTimeout(()=>notice.classList.add('hidden'),8000);
+}
 function updateSoundUI(message){
  $('activateSound').setAttribute('aria-label',soundEnabled?'Desativar chamadas por voz':'Ativar chamadas por voz');
  $('activateSound').classList.toggle('sound-on',soundEnabled);
  const label=$('activateSound').querySelector('.hora-tv-sound-label');if(label)label.textContent=soundEnabled?'🔊 Voz ativada':'🔊 Ativar voz';
+ $('tvAudioToggle').textContent=soundEnabled?'Desativar voz':'Ativar voz';
+ if(message)audioNotice(message);
  $('soundStatus').textContent=message||(soundEnabled?(useLocalAudio()?'🔊 Chamadas por áudio ativadas':'🔊 Chamadas por voz ativadas'):'🔇 Chamadas por voz desativadas');
 }
 function preloadLocalVoice(){if(useLocalAudio())loadLocalVoice().catch(()=>{if(!soundEnabled)updateSoundUI('⚠ Áudio local indisponível. Toque em Ativar voz para tentar novamente.');});}
@@ -62,15 +71,19 @@ function chooseVoice(type){
 function say(text,type){
  const generation=++speechGeneration;speaking=true;
  const finish=(error)=>{if(generation!==speechGeneration)return;speechGeneration++;clearTimeout(finishTimer);clearAudio();speaking=false;
+  if(!error)audioNotice('Áudio finalizado. Você ouviu a chamada?');
   if(error){soundEnabled=false;queue=[];if(nativeSpeech())speechSynthesis.cancel();updateSoundUI('⚠ '+error);toast(error,true);return;}nextSpeech();};
  finishTimer=setTimeout(()=>finish('A reprodução de voz não respondeu. Ative a voz novamente.'),30000);
+ audioNotice('Preparando chamada de voz…',true);
  if(useLocalAudio()){
   try{
    if(!localVoiceReady)throw Error('Áudio local ainda não carregado.');
    const wav=window.meSpeak.speak(String(text).slice(0,350),{voice:'pt',variant:type==='male'?'m3':'f3',speed:150,pitch:type==='male'?44:56,amplitude:100,rawdata:true});
    if(!wav||!wav.byteLength)throw Error('Não foi possível gerar o áudio.');
-   clearAudio();const a=$('tvVoiceAudio');localAudioUrl=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));a.src=localAudioUrl;a.volume=1;
-   a.onended=()=>finish();a.onerror=()=>finish('A TV não conseguiu reproduzir áudio WAV.');
+   clearAudio();const a=$('tvVoiceAudio');const blob=voiceMode==='wav'?new Blob([wav],{type:'audio/wav'}):wavToMp3(wav);
+   localAudioUrl=URL.createObjectURL(blob);a.src=localAudioUrl;a.volume=1;a.muted=false;
+   a.onplaying=()=>{if(generation===speechGeneration)audioNotice('Reproduzindo '+(voiceMode==='wav'?'WAV':'MP3')+' • confira o volume da TV',true);};
+   a.onended=()=>finish();a.onerror=()=>finish('Falha ao reproduzir '+(voiceMode==='wav'?'WAV':'MP3')+'. Código '+(a.error?.code||'?')+'. Teste outro formato nas configurações.');
    const playback=a.play();if(playback&&playback.catch)playback.catch(()=>finish('A TV bloqueou o áudio. Toque novamente em Ativar voz.'));
   }catch(e){finish(e.message||'Falha no áudio local.');}
   return;
@@ -156,11 +169,11 @@ function start(){
     if(!connected)return toast('Conecte o painel da TV primeiro.',true);
     if(useLocalAudio()&&!localVoiceReady){updateSoundUI('Carregando áudio em português…');loadLocalVoice().then(()=>{if(!soundEnabled)updateSoundUI('Áudio preparado. Toque em Ativar voz.');}).catch(()=>updateSoundUI('⚠ Não foi possível carregar o áudio. Tente novamente.'));return;}
     if(!useLocalAudio()&&!nativeSpeech())return toast('Selecione Áudio compatível com TV nas configurações.',true);
-    soundEnabled=true;updateSoundUI();say('Chamadas por voz ativadas. Hora Extra Drinks.','female');announceDemand();
+    soundEnabled=true;updateSoundUI();audioNotice('Testando a voz da TV…',true);say('Chamadas por voz ativadas. Hora Extra Drinks.','female');announceDemand();
   }
-  $('activateSound').onclick=()=>{if(soundEnabled){soundEnabled=false;stopSpeech();updateSoundUI();}else activateVoice();};
+  $('activateSound').onclick=$('tvAudioToggle').onclick=()=>{if(soundEnabled){soundEnabled=false;stopSpeech();updateSoundUI('Chamadas por voz desativadas.');}else activateVoice();};
   $('tvVoiceMode').value=voiceMode;$('tvVoiceMode').onchange=()=>{soundEnabled=false;stopSpeech();voiceMode=$('tvVoiceMode').value;try{localStorage.setItem('adega_tv_voice_mode_v1',voiceMode);}catch{}updateSoundUI();preloadLocalVoice();};
-  $('tvTestVoice').onclick=()=>{if(!soundEnabled){activateVoice();return;}queue.push({text:'Atenção! Pedido de teste. Seu pedido está pronto. Pode retirar no portão.',voice:'female'});nextSpeech();};
+  $('tvTestVoice').onclick=()=>{if(!soundEnabled){activateVoice();return;}audioNotice('Teste de voz na fila…',true);queue.push({text:'Atenção! Pedido de teste. Seu pedido está pronto. Pode retirar no portão.',voice:'female'});nextSpeech();};
 
   for(const type of ['female','male']){
     const select=$(type==='female'?'femaleVoice':'maleVoice');

@@ -1,0 +1,1 @@
+Unmodified lamejs (LGPL), source: https://github.com/zhuker/lamejs/tree/582bbba6a12f981b984d8fb9e1874499fed85675 ; LAME: https://lame.sourceforge.io/ . License: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html . Used as a separate, replaceable JavaScript file.

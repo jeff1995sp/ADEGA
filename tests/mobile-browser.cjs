@@ -51,6 +51,8 @@ const server=http.createServer((req,res)=>{
    await page.waitForFunction(()=>window.meSpeak&&meSpeak.isConfigLoaded()&&meSpeak.isVoiceLoaded('pt'),null,{timeout:45000});
    const generated=await page.evaluate(()=>{const samples=['Carlos, seu pedido está pronto.','Maria, seu pedido está pronto.'].map((name,i)=>new Uint8Array(meSpeak.speak(name,{voice:'pt',variant:i?'f3':'m3',rawdata:true})));return {headers:samples.map(b=>String.fromCharCode(...b.slice(0,4))),lengths:samples.map(b=>b.length),different:samples[0].length!==samples[1].length||samples[0].some((v,i)=>v!==samples[1][i])};});
    assert.deepEqual(generated.headers,['RIFF','RIFF']);assert.ok(generated.lengths.every(n=>n>1000));assert.ok(generated.different);
+   const mp3=await page.evaluate(async()=>{const {wavToMp3}=await import('/js/tv-audio-codec.js?v=1');const wav=meSpeak.speak('Carlos, seu pedido está pronto.',{voice:'pt',rawdata:true});const blob=wavToMp3(wav);return {type:blob.type,size:blob.size};});assert.equal(mp3.type,'audio/mpeg');assert.ok(mp3.size>1000);
+   await page.locator('#tvTestVoice').click();await page.locator('#tvAudioNotice:not(.hidden)').waitFor();
    console.log(device+' : síntese local em português gera WAV para dois nomes distintos');
    console.log(device+' '+width+'x'+height+': catálogo, carrinho, dinheiro, troco e autenticação admin/TV OK');
   }finally{await browser.close();}
