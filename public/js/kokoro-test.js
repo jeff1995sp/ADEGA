@@ -6,7 +6,7 @@ function finish(){clearTimeout(timer);$('generate').disabled=false;$('progress')
 function failed(message){finish();$('play').disabled=true;status('Não foi possível gerar a voz: '+message);if(worker){worker.terminate();worker=null;}}
 function getWorker(){
  if(worker)return worker;
- worker=new Worker('/js/kokoro-test-worker.js?v=1',{type:'module'});
+ worker=new Worker('/js/kokoro-test-worker.js?v=2',{type:'module'});
  worker.onerror=e=>failed(e.message||'Motor neural incompatível com este navegador.');
  worker.onmessage=({data:d})=>{
   if(d.type==='status'){status(d.message);if(Number.isFinite(d.progress)){$('progress').hidden=false;$('progress').value=d.progress;}else $('progress').hidden=true;return;}
