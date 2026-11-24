@@ -1,6 +1,6 @@
 import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable} from './shared.js';
 
-let products=[],drinkOptions=[],shop={name:'ADEGA DIGITAL',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
+let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
 let currentOrder=null;
 const $=id=>document.getElementById(id);

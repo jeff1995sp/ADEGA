@@ -33,3 +33,5 @@ VALUES
 SELECT category,COUNT(*) AS quantidade FROM products GROUP BY category ORDER BY category;
 
 UPDATE products SET category='Vodka' WHERE category='Doses';
+
+UPDATE store_settings SET name='Hora Extra Drinks' WHERE id=1 AND lower(trim(name))='adega digital';

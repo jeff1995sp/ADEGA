@@ -111,7 +111,7 @@ export async function api(route,body={},opts={}){
   if(!response.ok)throw Error(data?.error||'Falha de conexão.');
   return data;
 }
-export const setBrand=(name)=>document.querySelectorAll('.brand-name').forEach(e=>e.textContent=name||'ADEGA DIGITAL');
+export const setBrand=(name)=>document.querySelectorAll('.brand-name').forEach(e=>e.textContent=(!name||/^adega digital$/i.test(name.trim()))?'Hora Extra Drinks':name);
 export const minutesAgo=iso=>{
   const d=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));
   return d<1?'Agora':d+' min atrás';
