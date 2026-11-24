@@ -117,7 +117,10 @@ function addConfiguredDose(event){
  toast('Dose adicionada com gelo '+ice.name+' e '+energy.name+'.');
 }
 
+let loadingCatalog=false;
 async function loadCatalog(){
+  if(loadingCatalog||working)return;
+  loadingCatalog=true;
   try{
     const d=await api('catalog',null,{method:'GET'});
     const snapshot=JSON.stringify(d);
@@ -131,7 +134,8 @@ async function loadCatalog(){
       else {renderCheckoutSummary();renderCheckoutExtras();}
     }
   }catch(e){
-    // Catálogo de consulta quando Supabase/Netlify ainda não estão configurados.
+    lastSnapshot='';
+    // Catálogo de consulta quando o D1 ainda não está configurado.
     // Nunca habilita pedidos fictícios, mesmo que alguns preços já sejam conhecidos.
     try {
       const response = await fetch('/catalogo-previa.json',{cache:'no-store'});
@@ -145,10 +149,10 @@ async function loadCatalog(){
       $('modeBanner').textContent='Catálogo disponível para consulta • pedidos temporariamente indisponíveis';
       renderProducts();
     } catch {
-      if(!lastSnapshot){$('productGrid').innerHTML='<div class="empty">Catálogo ainda não configurado. Confira o Netlify e Supabase.</div>';
+      if(!lastSnapshot){$('productGrid').innerHTML='<div class="empty">Catálogo ainda não configurado. Confira a conexão do Cloudflare.</div>';
         $('modeBanner').className='mode-banner offline';$('modeBanner').textContent='Conexão pendente — configurar banco de dados';}
     }
-  }
+  }finally{loadingCatalog=false;}
 }
 // Extras opcionais no checkout: não incluem Tabacaria nem produtos sem preço/estoque.
 // A mesma sugestão aparece sem obrigar o cliente a adicionar qualquer item.
@@ -255,7 +259,20 @@ async function submitOrder(event){
   const items=[...cart.values()].map(i=>({...i}));
   const button=$('placeOrder');working=true;button.disabled=true;button.textContent='Registrando pedido...';
   try{
-    const d=await api('create-order',{first_name:first,last_name:last,payment_method:method,cash_given_cents:method==='cash'?cash:null,items,age_confirmed:true,honeypot:''});
+    const payload={first_name:first,last_name:last,payment_method:method,cash_given_cents:method==='cash'?cash:null,items,age_confirmed:true,honeypot:'',expected_total_cents:total()};
+    const key='adega_pending_request_v2';
+    const fingerprint=JSON.stringify(payload);
+    let pending;try{pending=JSON.parse(sessionStorage.getItem(key)||'null');}catch{}
+    if(pending&&pending.fingerprint!==fingerprint){
+      const recovered=await api('recover-order',{request_id:pending.id});
+      if(recovered.order){currentOrder={id:recovered.order.id,token:recovered.order.token,number:recovered.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem(key);cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');$('trackBtn')?.classList.remove('hidden');return toast('Seu pedido anterior já foi registrado. Confira o acompanhamento.');}
+      if(Date.now()-pending.at<30000)return toast('Aguarde a confirmação do pedido anterior antes de alterar o carrinho.',true);
+    }
+    const request_id=pending?.fingerprint===fingerprint?pending.id:crypto.randomUUID();
+    sessionStorage.setItem(key,JSON.stringify({fingerprint,id:request_id,at:Date.now()}));
+    const d=await api('create-order',{...payload,request_id});
+    sessionStorage.removeItem(key);
+    trackingFinished=false;
     currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};
     localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));
     cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');toast('Pedido recebido pela adega!');
@@ -263,14 +280,17 @@ async function submitOrder(event){
     loadCatalog();
   }catch(e){toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
 }
+let trackingBusy=false,trackingFinished=false;
 async function loadTracking(){
-  if(!currentOrder)return;
+  if(!currentOrder||trackingBusy)return;
+  trackingBusy=true;
   try{
     const {order}=await api('track',{id:currentOrder.id,token:currentOrder.token});
+    trackingFinished=['delivered','cancelled'].includes(order.status);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado pelo estabelecimento.':order.payment_method==='cash'?'Pague em dinheiro quando o dono entregar no portão.':'Pague com cartão na maquininha, na retirada.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
     $('trackingContent').innerHTML=`<div class="track" style="margin:12px 0"><div class="eyebrow">${esc(pad(order.order_no))} • Retirada no portão</div><h2 style="margin:10px 0">${esc(order.first_name)} ${esc(order.last_name)}</h2><div class="big-status">${esc(stageLabels[order.status]||order.status)}</div><div class="steps">${steps.slice(0,3).map((s,i)=>`<div class="step ${i===current?'current':i<current?'done':''}">${esc(stageLabels[s])}</div>`).join('')}</div><p class="sub small">${esc(instructions)}</p><p style="margin-top:12px">Valor do pedido: <b>${fmt(order.total_cents)}</b></p><p class="small sub" style="margin-top:12px">Acompanhe esta tela ou a TV da adega. Aguarde do lado de fora.</p></div>`;
-  }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}
+  }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){
   $('catalogo').addEventListener('click',e=>{
@@ -347,6 +367,10 @@ function start(){
   try{currentOrder=JSON.parse(localStorage.getItem('adega_my_order_v1')||'null');}catch{}
   if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();}
   $('trackBtn')?.addEventListener('click',()=>{loadTracking();open('trackingModal');});
-  loadCatalog();setInterval(loadCatalog,5000);setInterval(()=>{if(currentOrder)loadTracking();},3500);
+  (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
+  loadCatalog();
+  setInterval(()=>{if(!document.hidden)loadCatalog();},30000);
+  setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden&&$('trackingModal').classList.contains('open'))loadTracking();},8000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadCatalog();});
 }
 start();

@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "npx netlify-cli dev",
     "build": "npm run check",
-    "check": "node --check netlify/functions/api.mjs && node --check public/js/shared.js && node --check public/js/catalog.js && node --check public/js/admin.js && node --check public/js/tv.js && node --test tests/*.test.mjs"
+    "check": "node --check worker/index.js && node --check netlify/functions/api.mjs && node --check public/js/shared.js && node --check public/js/catalog.js && node --check public/js/admin.js && node --check public/js/tv.js && node --test tests/*.test.mjs",
+    "deploy:cloudflare": "npx wrangler deploy",
+    "dev:cloudflare": "npx wrangler dev"
   },
-  "dependencies": { "@supabase/supabase-js": "^2.57.0" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0"
+  },
   "devDependencies": {}
 }

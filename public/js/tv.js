@@ -58,7 +58,7 @@ async function poll(){
   try{
     const d=await api('tv',null,{method:'GET',tvCode});
     showBoard();renderTv(d.orders||[]);
-    $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 2,5 segundos';
+    $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 8 segundos';
   }catch(e){if(/c[oó]digo.*incorreto|passcode|TV_PASSCODE/i.test(e.message)){tvCode='';localStorage.removeItem(STORAGE);showAuth();}else $('modeBanner').textContent='Conexão indisponível • reconectando automaticamente';}
   finally{checking=false;}
 }
@@ -81,7 +81,7 @@ function start(){
   }
   if('speechSynthesis' in window){updateVoices();speechSynthesis.onvoiceschanged=updateVoices;}
   if(tvCode)poll();else showAuth();
-  setInterval(poll,2500);
+  setInterval(poll,8000);
   setInterval(()=>{tvPage++; if(lastOrders.length)renderTv(lastOrders);},8500);
 }
 start();

@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'public/**'
+      - 'worker/**'
+      - 'wrangler.jsonc'
       - 'netlify/functions/**'
       - 'sql/**'
       - 'tests/**'
