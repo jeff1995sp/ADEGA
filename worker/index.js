@@ -63,9 +63,20 @@ async function ensureInternalInventory(db){
  if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',internalInventoryPatch))return;
  await db.batch([stmt(db,internalInventorySeed),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',internalInventoryPatch)]);
 }
+const headshopPatchId='20261124-headshop-acessorios-v1';
+async function populateHeadshop(db){
+ if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',headshopPatchId))return;
+ // Move only the exact, ordinary accessory records already in the inventory.
+ // No change to price, stock, activation or photograph; no duplicate records.
+ const allowed=[['interno-803','Isqueiro BIC'],['interno-805','Tesoura'],['interno-870','BIC Mini (isqueiros)'],['interno-871','Isqueiros coloridos'],['interno-807','Isqueiros sortidos']];
+ await db.batch([
+ ...allowed.filter(([,name])=>headshopAllowed({name})).map(([id,name])=>stmt(db,"UPDATE products SET category='Headshop' WHERE id=? AND name=? AND category='Tabacaria' AND NOT EXISTS (SELECT 1 FROM catalog_patches WHERE id=?)",id,name,headshopPatchId)),
+ stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',headshopPatchId)
+ ]);
+}
 async function catalog(db,admin){
  await applyCatalogPricePatch(db);
- if(admin)await ensureInternalInventory(db);
+ if(admin){await ensureInternalInventory(db);await populateHeadshop(db);}
  const [store,products,drink_options,paidSales]=await Promise.all([
  one(db,'SELECT name,accepting_orders,low_stock_threshold FROM store_settings WHERE id=1'),
  many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products '+(admin?'':"WHERE category<>'Tabacaria'")+' ORDER BY sort_order,name'),

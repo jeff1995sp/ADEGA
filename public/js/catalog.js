@@ -34,7 +34,7 @@ const productCard=(p,featured=false)=>{
   const q=desiredQty(p);
   const customizable=isDoseProduct(p);
   const canConfigure=available(p)&&hasDrinkOptions(p);
-  const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes'].includes(catalogCategory(p));
+  const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes','Headshop'].includes(catalogCategory(p));
   const fallback = photoFallbackFor(p);
   const status=photoStatusFor(p);
   const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':(status==='illustrative'||status==='custom'&&['Whisky','Gin','Vodka','Batidas','Caipirinhas'].includes(catalogCategory(p)))?'<span class="photo-note">Imagem ilustrativa</span>':'';
