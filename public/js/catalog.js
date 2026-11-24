@@ -1,4 +1,4 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-9';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-10';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
@@ -67,6 +67,13 @@ function snackGroup(p){
  if(/halls|mentos|bala|pirulito/.test(n))return 'Balas e pirulitos';
  return 'Doces e chocolates';
 }
+function tabacariaGroup(p){
+ const n=photoSlug(p.name);
+ if(/seda|sadhu|piteira|tabaco|tabaquin|acrema/.test(n))return 'Sedas, Piteiras e Tabacos';
+ if(/gift|eight|cigarro/.test(n))return 'Cigarros';
+ if(/isqueiro|bic|tesoura|cuia/.test(n))return 'Isqueiros e Acessórios';
+ return 'Essências e Narguilé';
+}
 function renderProducts(){
  showCategories();
  const general=products.filter(p=>visibleInCatalog(p));
@@ -79,6 +86,12 @@ function renderProducts(){
   const groups=['Salgadinhos','Chicletes','Balas e pirulitos','Doces e chocolates'];
   $('productGrid').innerHTML=groups.map(group=>{
    const rows=list.filter(p=>snackGroup(p)===group).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+   return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
+  }).join('');
+ }else if(category==='Tabacaria'&&list.length){
+  const groups=['Essências e Narguilé','Sedas, Piteiras e Tabacos','Cigarros','Isqueiros e Acessórios'];
+  $('productGrid').innerHTML=groups.map(group=>{
+   const rows=list.filter(p=>tabacariaGroup(p)===group).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
    return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
   }).join('');
  }else{
