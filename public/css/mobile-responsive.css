@@ -1,7 +1,7 @@
 /* Mobile-only improvements for Android Chrome and iOS Safari/Chrome. */
 @media(max-width:800px){
 body.catalog-body,body.admin-body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body.catalog-body{padding-bottom:86px;padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+body.catalog-body{padding-bottom:env(safe-area-inset-bottom,0px)}
 .catalog-body .hora-nav{padding-top:env(safe-area-inset-top,0px)}
 .catalog-body .hora-nav .header-inner{display:grid;grid-template-columns:44px 40px minmax(0,1fr) 52px;gap:4px;padding:6px max(10px,env(safe-area-inset-right,0px)) 8px max(10px,env(safe-area-inset-left,0px));min-height:0!important}
 .catalog-body .hora-menu-button,.catalog-body .hora-cart-button{min-width:44px;min-height:44px;padding:4px;gap:3px;border-radius:10px;background:#21191c}
@@ -46,7 +46,7 @@ body.catalog-body{padding-bottom:86px;padding-bottom:calc(86px + env(safe-area-i
 .catalog-body .cart-inner{gap:10px;min-width:0}.catalog-body .cart-meta strong{font-size:1.15rem;white-space:nowrap}
 .catalog-body #openCart{min-height:46px;padding:10px 12px;font-size:.86rem;white-space:normal}
 .catalog-body .footer{padding:20px 12px}.catalog-body .end-cta{padding:24px 0}.catalog-body .end-cta-inner{gap:12px}
-.catalog-body .toast{left:12px;right:12px;bottom:96px;bottom:calc(96px + env(safe-area-inset-bottom,0px));max-width:none}
+.catalog-body .toast{left:12px;right:12px;bottom:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:none}
 body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.open){overflow:hidden}
 .catalog-body .modal-backdrop,.admin-body .modal-backdrop,.catalog-body .age-overlay{padding:12px;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto;overscroll-behavior:contain;align-items:flex-start}
 .catalog-body .modal,.admin-body .modal,.catalog-body .age-box{width:100%;max-width:550px;margin:auto;min-width:0;max-height:calc(100vh - 24px);max-height:calc(100dvh - max(12px,env(safe-area-inset-top,0px)) - max(12px,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}

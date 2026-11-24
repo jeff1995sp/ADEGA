@@ -406,6 +406,9 @@ async function loadTracking(){
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){
+  const header=document.querySelector('.hora-nav');
+  const syncHeaderHeight=()=>document.documentElement.style.setProperty('--hora-header-height',Math.ceil(header.getBoundingClientRect().height)+'px');
+  syncHeaderHeight();if('ResizeObserver' in window)new ResizeObserver(syncHeaderHeight).observe(header);window.addEventListener('resize',syncHeaderHeight);
   $('helpBtn').onclick=()=>{open('helpModal');$('closeHelp').focus();};
   const closeHelp=()=>{close('helpModal');$('helpBtn').focus();};
   $('closeHelp').onclick=closeHelp;
