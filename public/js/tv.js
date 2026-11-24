@@ -5,13 +5,15 @@ let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue
 try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
+let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!=='off';}catch{}
+function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
 const DEMAND_INTERVAL=5*60*1000;
 const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o normal. Obrigado pela compreensão.';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);}
+function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);updateIdle();}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -82,7 +84,7 @@ async function poll(){
     setDemand(d.high_demand===true);
     const rows=d.orders,snapshot=JSON.stringify(rows);
     if(snapshot!==tvSnapshot||!started){renderTv(rows);tvSnapshot=snapshot;}
-    connected=true;retryAt=0;announceDemand();
+    connected=true;retryAt=0;updateIdle();announceDemand();
     try{localStorage.setItem(STORAGE,code);}catch{}
     $('tvKey').value='';tvError('');showBoard();
     $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 3 segundos';
@@ -95,7 +97,7 @@ async function poll(){
       tvClearCode();showAuth();tvError(msg);
       $('modeBanner').textContent='TV desconectada';
     }else{
-      retryAt=Date.now()+15000;queue=queue.filter(item=>!item.demand);
+      retryAt=Date.now()+15000;updateIdle();queue=queue.filter(item=>!item.demand);
       $('modeBanner').textContent='Conexão indisponível • nova tentativa em 15 segundos';
     }
   }finally{checking=false;$('tvConnect').disabled=false;$('tvConnect').textContent='Conectar painel ↗';}
@@ -104,6 +106,7 @@ function time(){ $('tvClock').textContent=new Intl.DateTimeFormat('pt-BR',{timeZ
 function start(){
   time();setInterval(time,10000);
   $('tvAuthForm').addEventListener('submit',e=>{e.preventDefault();if(checking)return;const code=$('tvKey').value.trim();if(!code)return tvError('Informe o código da TV.');tvClearCode();tvCode=code;retryAt=0;poll();});
+  $('tvIdleEnabled').checked=idleEnabled;$('tvIdleEnabled').onchange=()=>{idleEnabled=$('tvIdleEnabled').checked;try{localStorage.setItem('adega_tv_idle_v1',idleEnabled?'on':'off');}catch{}updateIdle();};
   $('changeKey').onclick=()=>{tvClearCode();retryAt=0;tvError('');showAuth();$('modeBanner').textContent='TV desconectada';};
   $('fullScreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('A TV não permite tela cheia neste navegador.',true);}};
   $('activateSound').onclick=()=>{

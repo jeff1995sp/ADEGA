@@ -390,6 +390,39 @@ async function submitReview(db,body){
  if(!result.meta.changes)reject('Este pedido já foi avaliado.',409);
  return json({ok:true},201);
 }
+
+const auditSchema=[
+ "CREATE TABLE IF NOT EXISTS audit_events (id INTEGER PRIMARY KEY AUTOINCREMENT,kind TEXT NOT NULL,entity TEXT NOT NULL,field TEXT NOT NULL,old_value TEXT,new_value TEXT,created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))",
+ "CREATE INDEX IF NOT EXISTS idx_audit_kind_id ON audit_events(kind,id)",
+ "CREATE TRIGGER IF NOT EXISTS audit_price AFTER UPDATE OF price_cents ON products WHEN OLD.price_cents IS NOT NEW.price_cents BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('price',NEW.name,'price_cents',OLD.price_cents,NEW.price_cents); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_stock AFTER UPDATE OF stock ON products WHEN OLD.stock IS NOT NEW.stock BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('stock',NEW.name,'stock',OLD.stock,NEW.stock); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_option_stock AFTER UPDATE OF stock ON drink_options WHEN OLD.stock IS NOT NEW.stock BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('stock',NEW.name,'stock',OLD.stock,NEW.stock); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_active AFTER UPDATE OF active ON products WHEN OLD.active IS NOT NEW.active BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('product',NEW.name,'active',OLD.active,NEW.active); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_unlimited AFTER UPDATE OF unlimited ON products WHEN OLD.unlimited IS NOT NEW.unlimited BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('product',NEW.name,'unlimited',OLD.unlimited,NEW.unlimited); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_option_active AFTER UPDATE OF active ON drink_options WHEN OLD.active IS NOT NEW.active BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('product',NEW.name,'active',OLD.active,NEW.active); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_store AFTER UPDATE OF accepting_orders ON store_settings WHEN OLD.accepting_orders IS NOT NEW.accepting_orders BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('store',NEW.name,'accepting_orders',OLD.accepting_orders,NEW.accepting_orders); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_cancel AFTER UPDATE OF status ON orders WHEN OLD.status IS NOT NEW.status AND NEW.status='cancelled' BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('cancel','Pedido #' || NEW.order_no,'status',OLD.status,NEW.status); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_paid AFTER UPDATE OF payment_status ON orders WHEN OLD.payment_status IS NOT NEW.payment_status BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('cash','Pedido #' || NEW.order_no,'payment_status',OLD.payment_status,NEW.payment_status); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_delivered AFTER UPDATE OF status ON orders WHEN OLD.status IS NOT NEW.status AND NEW.status='delivered' BEGIN INSERT INTO audit_events(kind,entity,field,old_value,new_value) VALUES('cash','Pedido #' || NEW.order_no,'status',OLD.status,NEW.status); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_product_created AFTER INSERT ON products BEGIN INSERT INTO audit_events(kind,entity,field,new_value) VALUES('product',NEW.name,'cadastro','Produto cadastrado'); END",
+ "CREATE TRIGGER IF NOT EXISTS audit_cash_archive AFTER INSERT ON cash_batches BEGIN INSERT INTO audit_events(kind,entity,field,new_value) VALUES('cash','Movimento ' || substr(NEW.id,1,8),'archive',NEW.kind); END"
+];
+const auditReady=new WeakMap();
+async function ensureAudit(db){
+ if(auditReady.has(db))return auditReady.get(db);
+ const promise=(async()=>{await ensureCashArchive(db);await db.batch(auditSchema.map(s=>stmt(db,s)));})();
+ auditReady.set(db,promise);try{await promise;}catch(e){auditReady.delete(db);throw e;}
+}
+async function auditList(db,body){
+ const kind=body.kind||'',before=body.before;
+ if(!['','price','stock','cancel','cash','product','store'].includes(kind)||(before!==null&&before!==undefined&&!int(before,1,Number.MAX_SAFE_INTEGER)))reject('Filtro inválido.');
+ await ensureAudit(db);
+ const conditions=[],args=[];if(kind){conditions.push('kind=?');args.push(kind);}if(before){conditions.push('id<?');args.push(before);}
+ const events=await many(db,'SELECT id,kind,entity,field,old_value,new_value,created_at FROM audit_events'+(conditions.length?' WHERE '+conditions.join(' AND '):'')+' ORDER BY id DESC LIMIT 51',...args);
+ const more=events.length>50;const rows=events.slice(0,50);
+ return json({events:rows,next_cursor:more?rows[rows.length-1].id:null});
+}
+
 async function handler(request,env){
  const url=new URL(request.url),method=request.method.toUpperCase(),db=env.DB;
  if(url.pathname.startsWith('/media/')){
@@ -417,6 +450,8 @@ async function handler(request,env){
  }
  if(route==='login'&&method==='POST')return login(db,env,request,body);
  const admin=route.startsWith('admin-');const session=admin?await auth(db,request):null;
+ if(route==='admin-audit'&&method==='POST')return auditList(db,body);
+ if((route==='create-order'&&method==='POST')||(['admin-products','admin-stock','admin-drink-options','admin-cancel','admin-order-action','admin-cash-archive','admin-settings'].includes(route)&&['POST','PATCH'].includes(method)))await ensureAudit(db);
  if(route==='admin-logout'&&method==='POST'){await run(db,'DELETE FROM admin_sessions WHERE token_hash=?',session);return json({ok:true});}
  if(route==='health'&&method==='GET'){const row=await one(db,'SELECT id FROM store_settings WHERE id=1');if(!row)reject('Banco não inicializado.',503);await one(db,'SELECT COUNT(*) AS n FROM sqlite_master WHERE type=\'table\' AND name IN (\'order_requests\',\'stock_reservations\',\'rate_limits\',\'product_photos\')').then(x=>{if(x.n!==4)reject('Complete a instalação do banco D1.',503);});return json({ok:true,database:'D1',online_enabled:false});}
  if(route==='catalog'&&method==='GET')return catalog(db,false);

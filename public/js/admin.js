@@ -212,7 +212,25 @@ function render(){renderStats();renderOrders();
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
   if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
   renderCash();renderSettings();}
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();for(const name of ['orders','inventory','cash','reviews','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
+let auditCursor=null,auditLoading=false,auditVersion=0;
+const auditLabels={price:'Alteração de preço',stock:'Movimento de estoque',cancel:'Pedido cancelado',cash:'Movimento do caixa',product:'Cadastro / disponibilidade',store:'Funcionamento da loja'};
+function auditValue(row,value){if(value===null||value===undefined)return '—';if(row.kind==='price'||row.field==='total_cents')return fmt(Number(value));if(['active','accepting_orders','unlimited'].includes(row.field))return Number(value)?'Ativado':'Desativado';return ({pending:'Pendente',paid:'Pago',closed:'Caixa fechado',test:'Vendas de teste arquivadas',received:'Recebido',preparing:'Preparando',ready:'Pronto',cancelled:'Cancelado',delivered:'Entregue'})[value]||String(value);}
+async function loadAudit(append=false){
+ if(append&&(auditLoading||!auditCursor))return;
+ const version=++auditVersion;const filter=$('auditFilter').value;
+ if(!append){auditCursor=null;$('auditMore').classList.add('hidden');$('auditList').innerHTML='<p class="sub">Carregando histórico…</p>';}
+ auditLoading=true;$('auditMore').disabled=true;
+ try{
+  const data=await api('admin-audit',{kind:filter,before:append?auditCursor:null},{admin:true,method:'POST'});
+  if(version!==auditVersion)return;
+  const rows=Array.isArray(data.events)?data.events:[];
+  const output=rows.map(row=>{const date=new Date(row.created_at);return '<article class="audit-row"><div class="audit-event"><span class="audit-kind">'+esc(auditLabels[row.kind]||row.kind)+'</span><strong>'+esc(row.entity)+'</strong><small>'+esc(Number.isNaN(date.getTime())?row.created_at:date.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))+'</small></div><div class="audit-change"><span>'+esc(auditValue(row,row.old_value))+'</span><b aria-hidden="true">→</b><strong>'+esc(auditValue(row,row.new_value))+'</strong></div></article>';}).join('');
+  if(append)$('auditList').insertAdjacentHTML('beforeend',output);else $('auditList').innerHTML=output||'<p class="sub">Nenhum registro encontrado.</p>';
+  auditCursor=data.next_cursor||null;$('auditMore').classList.toggle('hidden',!auditCursor);
+ }catch(e){if(version===auditVersion){if(!append)$('auditList').textContent='Não foi possível carregar a auditoria. '+e.message;toast(e.message,true);}}
+ finally{if(version===auditVersion){auditLoading=false;$('auditMore').disabled=false;}}
+}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['orders','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
 let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
@@ -454,6 +472,7 @@ async function start(){
 
 
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
+  $('auditRefresh').onclick=()=>loadAudit();$('auditFilter').onchange=()=>loadAudit();$('auditMore').onclick=()=>loadAudit(true);
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});

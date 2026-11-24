@@ -192,6 +192,7 @@ function addConfiguredDose(event){
  toast('Dose adicionada com gelo '+ice.name+' e '+energy.name+'.');
 }
 
+function showStoreClosed(closed){for(const id of ['storeClosedNotice','storeClosedEntry'])$(id)?.classList.toggle('hidden',!closed);if(closed&&$('cartModal').classList.contains('open'))close('cartModal');}
 let loadingCatalog=false;
 async function loadCatalog(){
   if(loadingCatalog||working)return;
@@ -199,6 +200,7 @@ async function loadCatalog(){
   try{
     const d=await api('catalog',null,{method:'GET'});
     const snapshot=JSON.stringify(d);
+    showStoreClosed(d.store?.accepting_orders===false||d.store?.accepting_orders===0);
     if(snapshot===lastSnapshot)return;
     lastSnapshot=snapshot;bestSellers=Array.isArray(d.best_sellers)?d.best_sellers:[];products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
     setBrand(shop.name);
@@ -209,7 +211,7 @@ async function loadCatalog(){
       else {renderCheckoutSummary();renderCheckoutExtras();}
     }
   }catch(e){
-    lastSnapshot='';bestSellers=[];
+    showStoreClosed(false);lastSnapshot='';bestSellers=[];
     // Catálogo de consulta quando o D1 ainda não está configurado.
     // Nunca habilita pedidos fictícios, mesmo que alguns preços já sejam conhecidos.
     try {

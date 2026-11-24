@@ -217,3 +217,18 @@ test('D1: arquiva somente vendas selecionadas, preserva estoque e permite recupe
 test('D1: cartão presencial não exige troco e finaliza somente após receber na maquininha',async()=>{const f=setup(),t=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');const r=await f.call('create-order',payload({payment_method:'card',cash_given_cents:null}));assert.equal(r.status,201);const id=r.data.order.id;const act=body=>f.call('admin-order-action',{id,...body},t);assert.equal((await act({action:'finishcard',received:true,age_confirmed:true})).status,409);await act({action:'voice',value:'female'});await act({action:'status',value:'ready'});assert.equal((await act({action:'finishcash',received:true,age_confirmed:true})).status,409);assert.equal((await act({action:'finishcard',received:false,age_confirmed:true})).status,400);assert.equal((await act({action:'finishcard',received:true,age_confirmed:true})).status,200);assert.equal((await act({action:'finishcard',received:true,age_confirmed:true})).status,409);assert.equal((await f.call('admin-cash',undefined,t)).data.by_method.card,4750);});
 
 test('D1: alta demanda automática inicia no sexto pedido e termina ao voltar a cinco',async()=>{const f=setup(),t=await login(f),tv=()=>f.call('tv',undefined,undefined,'GET',{'X-TV-Code':f.env.TV_PASSCODE});const ids=[];for(let n=0;n<6;n++){const id=crypto.randomUUID();ids.push(id);f.sql.prepare("INSERT INTO orders(id,public_token,first_name,last_name,payment_method,total_cents,status) VALUES(?,?,?,?,?,?,?)").run(id,crypto.randomUUID(),'Teste','Local','cash',100,'received');if(n===4){const r=await tv();assert.equal(r.data.high_demand,false);assert.equal(r.data.demand_count,5);}}let r=await tv();assert.equal(r.data.high_demand,true);assert.equal(r.data.demand_count,6);assert.equal((await f.call('admin-orders',undefined,t)).data.high_demand,true);f.sql.prepare("UPDATE orders SET status='ready' WHERE id=?").run(ids[0]);r=await tv();assert.equal(r.data.high_demand,false);assert.equal(r.data.demand_count,5);});
+
+test('D1: auditoria persistente de preços, estoque e cancelamentos, protegida por login',async()=>{
+ const f=setup(),token=await login(f);
+ assert.equal((await f.call('admin-audit',{})).status,401);
+ assert.equal((await f.call('admin-settings',{accepting_orders:true},token,'PATCH')).status,200);
+ assert.equal((await f.call('admin-products',{id:'produto-061',price_cents:300},token,'PATCH')).status,200);
+ assert.equal((await f.call('admin-stock',{id:'produto-061',mode:'add',quantity:2},token)).status,200);
+ const order=await f.call('create-order',payload({expected_total_cents:4800}));assert.equal(order.status,201,JSON.stringify(order.data));
+ assert.equal((await f.call('admin-cancel',{id:order.data.order.id},token)).status,200);
+ const audit=await f.call('admin-audit',{},token);assert.equal(audit.status,200);
+ assert.ok(audit.data.events.some(e=>e.kind==='price'&&Number(e.old_value)===250&&Number(e.new_value)===300));
+ assert.ok(audit.data.events.some(e=>e.kind==='stock'&&Number(e.new_value)===12));
+ assert.ok(audit.data.events.some(e=>e.kind==='cancel'&&e.new_value==='cancelled'));
+ const filtered=await f.call('admin-audit',{kind:'price'},token);assert.ok(filtered.data.events.length&&filtered.data.events.every(e=>e.kind==='price'));
+});
