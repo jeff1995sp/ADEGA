@@ -1,4 +1,4 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-8';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-9';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
@@ -51,7 +51,7 @@ const categoryCover={'Batidas':'/imagens/morango-com-nutella.webp','Whisky':'/im
 const publicCategoryOrder=['Todos','Batidas','Caipirinhas','Whisky','Vodka','Gin','Cervejas','Bebidas prontas','Águas e Refrigerantes','Doces e Salgadinhos','Vinhos','Diversos','Tabacaria'];
 function showCategories(){
  const exist=new Set(products.filter(p=>visibleInCatalog(p)).map(catalogCategory));
- const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||exist.has(c));
+ const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||exist.has(c)||c==='Tabacaria');
  if(!cats.includes(category))category='Todos';
  $('categorySideLinks').innerHTML=cats.map(c=>`<button type="button" class="hora-side-link ${c===category?'active':''}" data-category="${esc(c)}" aria-pressed="${c===category}"><span aria-hidden="true">${categoryIcons[c]||categoryIcons.Diversos}</span>${esc(categoryLabel(c))}</button>`).join('');
  $('categoryTabs').innerHTML=cats.filter(c=>c!=='Todos').map(c=>{
@@ -220,7 +220,7 @@ let extrasDismissed=false;
 const extraProduct=kind=>{
  const match=checkoutExtras.find(x=>x.key===kind);
  if(!match)return null;
- const found=products.filter(p=>!isDoseProduct(p)&&visibleInCatalog(p)&&match.matches(photoSlug(p.name)));
+ const found=products.filter(p=>p.category!=='Tabacaria'&&!isDoseProduct(p)&&visibleInCatalog(p)&&match.matches(photoSlug(p.name)));
  return found.find(available)||found[0]||null;
 };
 const renderCheckoutSummary=()=>{

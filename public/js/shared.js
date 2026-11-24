@@ -32,10 +32,10 @@ export const photoFallbackFor=p=>{
  return local.startsWith('/imagens/')?local:(PHOTO_ALIAS[p?.id]||localPhotoFor(p));
 };
 export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Doses","Tabacaria"];
-export const catalogCategory=p=>p?.category==='Doses'?'Vodka':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
+export const catalogCategory=p=>p?.category==='Doses'?'Vodka':p?.category==='Headshop'?'Tabacaria':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
 export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
 export const publicCatalogProduct=p=>!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
-export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
+export const isDoseProduct=p=>['Whisky','Gin','Vodka','Doses'].includes(p?.category);
 export const productDescription=p=>{
  if(p?.category==='Batidas')return 'Batida de 700 ml. Escolha com ou sem álcool.';
  if(isHouseGin(p))return 'Gin de 700 ml com gelo e energético. Escolha Energético ou Red Bull.';
@@ -46,7 +46,7 @@ export const productDescription=p=>{
  if(catalogCategory(p)==='Vodka'&&/gelo e energético|personalize após/i.test(p.description||''))return 'Dose no copo de 700 ml com Red Bull.';
  if(p?.category==='Cervejas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Cerveja gelada.';
  if(p?.category==='Batidas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Batida no copo de 700 ml.';
- if(/imagem ilustrativa para conferência/i.test(p?.description||''))return 'Confira a disponibilidade e retire no portão.';
+ if(/imagem ilustrativa para conferência|cadastro interno/i.test(p?.description||''))return 'Confira a disponibilidade e retire no portão.';
  return p?.description||'Escolha a quantidade e retire no portão.';
 };
 export const isHouseGin=p=>p?.id==='produto-062'&&p.category==='Gin';

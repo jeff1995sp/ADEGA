@@ -1,4 +1,4 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-8';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-9';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
@@ -72,7 +72,7 @@ function renderInventory(){
       <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
-      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar / foto','edit',p.id)}</div></div>`;
+      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Prévia do produto','preview',p.id)}${button('Editar / foto','edit',p.id)}</div></div>`;
   };
   const groups=new Map();for(const p of filtered){const cat=catalogCategory(p);if(!groups.has(cat))groups.set(cat,[]);groups.get(cat).push(p);}
   $('inventoryList').innerHTML=filtered.length?[...groups].map(([cat,items])=>`<section class="inventory-group"><header class="inventory-group-heading"><h3>${esc(cat)}</h3><span>${items.length} itens</span></header>${items.map(row).join('')}</section>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
@@ -234,6 +234,19 @@ async function saveProduct(e){
     $('editModal').classList.remove('open');toast('Produto e foto salvos. O catálogo será atualizado automaticamente.');
   }catch(err){toast(err.message,true);}finally{busy=false;await refreshData(true);}
 }
+function closeProductPreview(){
+  const modal=$('productPreviewModal');
+  if(modal?.open)modal.close();
+}
+function showProductPreview(p){
+  if(!p)return;
+  const modal=$('productPreviewModal'),body=$('productPreviewBody');
+  if(!modal||!body)return;
+  const stock=p.unlimited?'Estoque ilimitado':p.stock>0?p.stock+' em estoque':'Esgotado';
+  const status=p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)?'Disponível na vitrine':'Indisponível até ativar preço e estoque';
+  body.innerHTML=`<article class="admin-preview-card"><div class="admin-preview-image"><img src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="${esc(p.name)}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"></div><div class="admin-preview-content"><div class="admin-preview-state"><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span><span>${esc(catalogCategory(p))} · ${esc(stock)}</span></div><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p><strong class="admin-preview-price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</strong><p class="admin-preview-notice">${esc(status)}</p></div></article>`;
+  if(typeof modal.showModal==='function'){if(!modal.open)modal.showModal();}else modal.setAttribute('open','');
+}
 async function performAction(btn){
   if(busy)return;
   const id=btn.dataset.id,action=btn.dataset.action,value=btn.dataset.value;
@@ -250,6 +263,7 @@ async function performAction(btn){
       body.stock=Number(value);
     }
   }
+  else if(action==='preview'){showProductPreview(p);return;}
   else if(action==='edit'){productModal(p);return;}
   if(action==='cancel'&&!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
   if(action==='paid'&&!confirm('O valor realmente foi recebido em dinheiro ou na maquininha?'))return;
@@ -275,7 +289,7 @@ async function performAction(btn){
   try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ $('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
@@ -294,6 +308,7 @@ async function start(){
   $('drinkOptionsList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('exportCash')?.addEventListener('click',exportCash);
   $('closeEdit').onclick=()=>$('editModal').classList.remove('open');
+  $('closeProductPreview')?.addEventListener('click',closeProductPreview);
   $('editForm').addEventListener('submit',saveProduct);
   $('editPhotoFile').addEventListener('change',()=>{
     if(selectedPhotoPreviewUrl){URL.revokeObjectURL(selectedPhotoPreviewUrl);selectedPhotoPreviewUrl=null;}

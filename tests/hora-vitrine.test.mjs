@@ -7,13 +7,12 @@ test('Vitrine urbana mantém busca, navegação, carrinho e formulários existen
  const h=read('index.html'),c=read('js/catalog.js');
  for(const id of ['menuToggle','categorySidebar','categorySideLinks','productSearch','headerCart','categoryTabs','productGrid','checkoutForm','doseForm','trackingModal','trackBtn','openCart'])assert.equal(h.split('id="'+id+'"').length-1,1,id);
  assert.match(h,/hora-vitrine\.css/);assert.match(c,/productSearch.*addEventListener/);assert.match(c,/Chicletes/);
- assert.match(c,/p\.category!==['"]Tabacaria['"]/);
 });
 test('Corrigir nomes não altera IDs nem os nomes personalizados pelo proprietário',()=>{
  const p={id:'produto-049',name:'Fofura (embalagem azul)',price_cents:350};
  assert.deepEqual(normalizeProduct(p),{...p,name:'Fofura Presunto'});
  assert.equal(normalizeProduct({...p,name:'Fofura personalizada'}).name,'Fofura personalizada');
 });
-test('Batidas e Caipirinhas juntas; atalho de estoque interno',()=>{const c=read('js/catalog.js');assert.ok(c.includes("['Todos','Batidas','Caipirinhas','Whisky'"));assert.match(read('admin.html'),/data-tab="tabacaria"/);});
+test('Batidas e Caipirinhas juntas; atalho de Tabacaria no admin',()=>{const c=read('js/catalog.js');assert.ok(c.includes("['Todos','Batidas','Caipirinhas','Whisky'"));assert.match(read('admin.html'),/data-tab="tabacaria"/);});
 
-test('Headshop sempre consta no menu público, antes de Diversos',()=>{const c=read('js/catalog.js');assert.match(c,/publicCategoryOrder=.*'Headshop','Vinhos','Diversos'/);assert.ok(c.includes("exist.has(c)||c==='Headshop'"));});
+test('Tabacaria consta no menu público com todos os produtos liberados',()=>{const c=read('js/catalog.js');assert.match(c,/publicCategoryOrder=.*'Tabacaria'/);assert.ok(c.includes("exist.has(c)||c==='Tabacaria'"));});

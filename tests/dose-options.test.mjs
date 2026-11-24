@@ -69,11 +69,10 @@ test('preços de gin corretos, administração pausa individualmente sem valores
  assert.match(fmt(4000),/40,00/);
 });
 
-test('Tabacaria não aparece na vitrine e caipirinhas só limão/morango',()=>{
+test('Tabacaria liberada na vitrine e caipirinhas só limão/morango',()=>{
  assert.ok(catalog.includes("visibleInCatalog(p)"));
  assert.ok(catalog.includes("'Caipirinha de Limão','Caipirinha de Morango'"));
- assert.ok(catalog.includes("p.category!=='Tabacaria'"));
- assert.ok(backend.includes(".neq('category','Tabacaria')"));
+ assert.ok(catalog.includes("'Tabacaria'"));
 });
 
 test('Gin comum permite energético sem marca e Red Bull com acréscimo',()=>{
