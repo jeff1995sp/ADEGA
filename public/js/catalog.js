@@ -285,6 +285,17 @@ function checkoutMode(direct){
   $('checkoutQuickTotal').textContent=fmt(total());
   const content=modal.querySelector('.modal');content.scrollTop=0;
 }
+function updatePickupNotice(message=''){
+ const el=$('pickupLocationNotice');
+ el.classList.toggle('hidden',!shop.location_required&&!message);
+ el.textContent=message||(shop.location_required?'📍 Pedidos disponíveis somente perto da adega (até '+(shop.location_radius||50)+' m). Ao confirmar, permita a localização precisa. Usamos sua posição apenas para validar a proximidade.':'');
+}
+function readCurrentPosition(){
+ return new Promise((resolve,reject)=>{
+  if(!navigator.geolocation)return reject(Error('Este navegador não oferece localização. Abra o site no Chrome ou Safari do celular.'));
+  navigator.geolocation.getCurrentPosition(p=>resolve({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}),e=>reject(Error(e.code===1?'Autorize a localização precisa nas permissões do navegador e tente novamente.':e.code===3?'Não conseguimos localizar você a tempo. Ative o GPS e tente novamente.':'Localização indisponível. Ative o GPS e aproxime-se do portão.')),{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+ });
+}
 function showCheckout(direct=false){
   if(!count()||!shop.accepting_orders)return;
   try{
@@ -301,7 +312,7 @@ function showCheckout(direct=false){
   $('payWarning').classList.remove('hidden');
   $('payWarning').textContent='Pagamento somente em dinheiro na retirada. Informe o valor para calcular o troco.';
   $('cashField').classList.remove('hidden');
-  refreshCash();
+  refreshCash();updatePickupNotice();
   open('cartModal');checkoutMode(direct===true);
 }
 function updateCashPreview(){
@@ -343,9 +354,11 @@ async function submitOrder(event){
       if(recovered.order){trackingFinished=false;currentOrder={id:recovered.order.id,token:recovered.order.token,number:recovered.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem(key);cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');$('trackBtn')?.classList.remove('hidden');return toast('Seu pedido anterior já foi registrado. Confira o acompanhamento.');}
       if(Date.now()-pending.at<30000)return toast('Aguarde a confirmação do pedido anterior antes de alterar o carrinho.',true);
     }
+    let position;
+    if(shop.location_required){button.textContent='Verificando localização…';updatePickupNotice('📍 Consultando sua localização atual…');position=await readCurrentPosition();button.textContent='Registrando pedido…';}
     const request_id=pending?.fingerprint===fingerprint?pending.id:crypto.randomUUID();
     sessionStorage.setItem(key,JSON.stringify({fingerprint,id:request_id,at:Date.now()}));
-    const d=await api('create-order',{...payload,request_id});
+    const d=await api('create-order',{...payload,request_id,...(position?{position}:{})});
     sessionStorage.removeItem(key);
     trackingFinished=false;
     currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};
@@ -353,7 +366,7 @@ async function submitOrder(event){
     cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');toast('Pedido recebido pela adega!');
     $('trackBtn')?.classList.remove('hidden');
     loadCatalog();
-  }catch(e){toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
+  }catch(e){if(shop.location_required||/localização|proximidade|GPS|área de retirada/i.test(e.message))updatePickupNotice(e.message);toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
 }
 let trackingBusy=false,trackingFinished=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
 const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));

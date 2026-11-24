@@ -113,6 +113,31 @@ function dedupePublicProducts(list){
  }
  return hidden.size?list.filter(p=>!hidden.has(p.id)):list;
 }
+const coordinate=(v,min,max)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
+async function readPickupLocation(db){
+ await run(db,'CREATE TABLE IF NOT EXISTS pickup_location (id INTEGER PRIMARY KEY CHECK(id=1),latitude REAL NOT NULL,longitude REAL NOT NULL,radius INTEGER NOT NULL CHECK(radius BETWEEN 25 AND 500),enabled INTEGER NOT NULL CHECK(enabled IN (0,1)))');
+ return await one(db,'SELECT latitude,longitude,radius,enabled FROM pickup_location WHERE id=1');
+}
+async function savePickupLocation(db,body){
+ await readPickupLocation(db);
+ if(!coordinate(body.latitude,-90,90)||!coordinate(body.longitude,-180,180)||!int(body.radius,25,500)||typeof body.enabled!=='boolean')reject('Informe coordenadas válidas e raio de 25 a 500 metros.');
+ await run(db,'INSERT INTO pickup_location(id,latitude,longitude,radius,enabled) VALUES(1,?,?,?,?) ON CONFLICT(id) DO UPDATE SET latitude=excluded.latitude,longitude=excluded.longitude,radius=excluded.radius,enabled=excluded.enabled',body.latitude,body.longitude,body.radius,body.enabled);
+ return json({location:await readPickupLocation(db)});
+}
+function distanceMeters(a,b){
+ const rad=Math.PI/180,dlat=(b.latitude-a.latitude)*rad,dlon=(b.longitude-a.longitude)*rad;
+ const k=Math.sin(dlat/2)**2+Math.cos(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.sin(dlon/2)**2;
+ return 6371000*2*Math.asin(Math.sqrt(Math.max(0,Math.min(1,k))));
+}
+async function requireNearby(db,position){
+ const location=await readPickupLocation(db);
+ if(!location?.enabled)return;
+ if(!position||!coordinate(position.latitude,-90,90)||!coordinate(position.longitude,-180,180)||!coordinate(position.accuracy,0,100000)||!Number.isFinite(position.timestamp)||position.timestamp<Date.now()-120000||position.timestamp>Date.now()+10000)reject('Autorize a localização atual do celular para confirmar o pedido.',409);
+ if(position.accuracy>location.radius)reject('GPS impreciso. Ative a localização precisa, aproxime-se do portão e tente novamente.',409);
+ const distance=distanceMeters(location,position);
+ if(distance>location.radius)reject('Você está fora da área de retirada. Aproxime-se da adega para confirmar o pedido.',409);
+ if(distance+position.accuracy>location.radius)reject('Não foi possível confirmar sua proximidade com precisão. Aproxime-se do portão e tente novamente.',409);
+}
 async function catalog(db,admin){
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
@@ -126,7 +151,8 @@ async function catalog(db,admin){
  const publicProducts=dedupePublicProducts(products.filter(visible));
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
- return json({store,products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
+ const location=await readPickupLocation(db);
+ return json({store:{...store,location_required:Boolean(location?.enabled),location_radius:location?.radius??50,...(admin?{pickup_location:location}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
 const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
@@ -148,6 +174,7 @@ async function createOrder(db,body){
  const existing=await prior();if(existing)return orderResult(existing);
  const store=await one(db,'SELECT accepting_orders FROM store_settings WHERE id=1');
  if(!store?.accepting_orders)reject('A adega está temporariamente fechada para pedidos.',409);
+ await requireNearby(db,body.position);
  const quantities=aggregate(items,'id'),ice=aggregate(items,'ice_id'),energy=aggregate(items,'energy_id');
  const ids=[...quantities.keys()],opts=[...new Set([...ice.keys(),...energy.keys()])];
  const placeholders=a=>a.map(()=>'?').join(',');
@@ -369,6 +396,7 @@ async function handler(request,env){
  if(!idOk(body.id)||!['set','add'].includes(body.mode)||!int(body.quantity,0,MAX_STOCK))reject('Estoque inválido.');
  const product=await one(db,'UPDATE products SET stock='+ (body.mode==='add'?'stock+?':'?')+' WHERE id=? AND '+(body.mode==='add'?'stock+?<=1000000':'1=1')+' RETURNING *',...([body.quantity,body.id,...(body.mode==='add'?[body.quantity]:[])]));if(!product)reject('Produto inexistente ou limite de estoque.',409);return json({product});
  }
+ if(route==='admin-location'&&method==='PATCH')return savePickupLocation(db,body);
  if(route==='admin-settings'&&method==='PATCH'){
  const p={};if(body.name!==undefined){p.name=text(body.name,101);if(p.name.length<3||p.name.length>100)reject('Nome inválido.');}
  if(body.accepting_orders!==undefined){if(typeof body.accepting_orders!=='boolean')reject('Status inválido.');p.accepting_orders=body.accepting_orders;}
