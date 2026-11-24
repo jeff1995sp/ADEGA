@@ -1,0 +1,1 @@
+CREATE TRIGGER IF NOT EXISTS trg_block_internal_order_items_update BEFORE UPDATE OF product_id ON order_items FOR EACH ROW WHEN EXISTS (SELECT 1 FROM products WHERE id = NEW.product_id AND category = 'Tabacaria') BEGIN SELECT RAISE(ABORT, 'PRODUTO_INDISPONIVEL'); END;
