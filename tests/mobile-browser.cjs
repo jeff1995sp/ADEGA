@@ -37,6 +37,8 @@ const server=http.createServer((req,res)=>{
    await page.locator('#mobileCategoryTabs [data-category="Whisky"]').click();
    const doseButton=page.locator('[data-configure="test-dose"]'),pausedButton=page.locator('[data-configure="test-paused"]'),missingButton=page.locator('[data-configure="test-missing"]');
    assert.equal(await doseButton.isEnabled(),true);assert.equal(await pausedButton.isDisabled(),true);assert.equal(await missingButton.isDisabled(),true);
+   const controlRects=await Promise.all([doseButton,pausedButton,missingButton].map(button=>button.boundingBox()));assert.ok(controlRects.every(r=>r&&Math.abs(r.height-48)<=1),device+' botões uniformes '+JSON.stringify(controlRects));
+   assert.equal(await pausedButton.locator('xpath=ancestor::article').locator('.dose-qty strong').isVisible(),false);
    assert.match(await missingButton.locator('xpath=ancestor::article').innerText(),/gelo ou energético sem estoque/);
    for(const button of [doseButton,pausedButton,missingButton]){const rect=await button.boundingBox(),card=await button.locator('xpath=ancestor::article').boundingBox();assert.ok(rect&&card&&rect.x>=card.x&&rect.x+rect.width<=card.x+card.width+1&&rect.y+rect.height<=card.y+card.height+1&&rect.height>=44,device+' dose cortada '+JSON.stringify({rect,card}));}
    await doseButton.click();await page.locator('#doseModal.open').waitFor();await page.locator('#doseIce').selectOption('test-ice');await page.locator('#doseEnergy').selectOption('test-energy');await page.locator('#closeDose').click();
