@@ -1,0 +1,13 @@
+/* Customer checkout shortcut — same order form, no changes to payment validation. */
+.catalog-body .cart-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;min-width:0}
+.catalog-body .cart-actions .btn{min-height:46px;white-space:nowrap}
+.catalog-body .cart-actions #openCart{background:#211e23;border:1px solid #6d4249}
+.catalog-body .checkout-mode-actions{margin:12px 0}
+#checkoutQuickSummary{display:none}
+#cartModal.payment-direct #checkoutSummary,#cartModal.payment-direct #checkoutExtras,#cartModal.payment-direct #checkoutGoPayment{display:none!important}
+#cartModal.payment-direct #checkoutQuickSummary{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#ffffff08;border:1px solid #ffffff1c;padding:12px;border-radius:12px}
+#checkoutQuickSummary>div{display:grid;gap:4px;min-width:0}
+#checkoutQuickSummary small{font-size:.75rem;color:#c4b9bd}
+#checkoutQuickTotal{font-family:Outfit,sans-serif;font-size:1.4rem;color:#ff777d}
+#checkoutReviewCart{min-height:44px;white-space:normal;flex:none}
+@media(max-width:800px){body.catalog-body .cart-inner{gap:7px}.catalog-body .cart-actions{gap:5px;flex:1;justify-content:flex-end}.catalog-body .cart-actions .btn,.catalog-body .cart-actions #openCart{padding:8px 7px;font-size:clamp(.65rem,2.8vw,.83rem);line-height:1.2;white-space:normal;min-height:46px;max-width:125px;flex:1 1 0;text-align:center}.catalog-body .cart-actions #goPayment span{display:none}.catalog-body .cart-meta{flex:none}.catalog-body .cart-meta strong{font-size:clamp(.95rem,4.5vw,1.15rem)}}

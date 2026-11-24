@@ -106,6 +106,9 @@ function renderProducts(){
  $('headerCartCount').textContent=count();
  $('cartTotal').textContent=fmt(total());
  $('openCart').disabled=count()===0||!shop.accepting_orders;
+ $('goPayment').disabled=$('openCart').disabled;
+ $('checkoutGoPayment').disabled=$('openCart').disabled;
+ $('checkoutQuickTotal').textContent=fmt(total());
 }
 function cleanCart(){
  let changed=false;
@@ -272,8 +275,14 @@ const addCheckoutExtra=key=>{
  renderCheckoutSummary();renderCheckoutExtras();renderProducts();
  toast(p.name+' adicionado ao pedido.');
 };
-function showCheckout(){
-  if(!count())return;
+function checkoutMode(direct){
+  const modal=$('cartModal');modal.classList.toggle('payment-direct',direct);
+  $('checkoutTitle').textContent=direct?'Pagamento':'Finalizar pedido';
+  $('checkoutQuickTotal').textContent=fmt(total());
+  const content=modal.querySelector('.modal');content.scrollTop=0;
+}
+function showCheckout(direct=false){
+  if(!count()||!shop.accepting_orders)return;
   try{
     const saved=JSON.parse(sessionStorage.getItem('adega_customer_profile_v1')||'null');
     if(saved && typeof saved.first==='string' && typeof saved.last==='string'){
@@ -289,7 +298,7 @@ function showCheckout(){
   $('payWarning').textContent='Pagamento somente em dinheiro na retirada. Informe o valor para calcular o troco.';
   $('cashField').classList.remove('hidden');
   refreshCash();
-  open('cartModal');
+  open('cartModal');checkoutMode(direct===true);
 }
 function updateCashPreview(){
  const info=$('cashChangePreview');
@@ -437,7 +446,10 @@ function start(){
   $('productSearch').addEventListener('input',e=>{searchText=e.target.value.trim();category='Todos';renderProducts();});
   $('menuToggle').addEventListener('click',()=>{const el=$('categorySidebar');el.classList.toggle('mobile-open');$('menuToggle').setAttribute('aria-expanded',String(el.classList.contains('mobile-open')));if(el.classList.contains('mobile-open'))$('catalogo').scrollIntoView({block:'start'});});
   $('headerCart').onclick=()=>count()?showCheckout():toast('Seu carrinho está vazio. Escolha um produto.');
-  $('openCart').addEventListener('click',showCheckout);
+  $('openCart').addEventListener('click',()=>showCheckout(false));
+  $('goPayment').addEventListener('click',()=>showCheckout(true));
+  $('checkoutGoPayment').addEventListener('click',()=>checkoutMode(true));
+  $('checkoutReviewCart').addEventListener('click',()=>checkoutMode(false));
   $('closeCart').onclick=()=>close('cartModal');
   $('closeTracking').onclick=()=>close('trackingModal');
   $('checkoutForm').addEventListener('submit',submitOrder);

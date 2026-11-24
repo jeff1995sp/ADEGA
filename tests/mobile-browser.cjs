@@ -35,7 +35,8 @@ const server=http.createServer((req,res)=>{
    await page.locator('#cash').fill('10,00');
    assert.match(await page.locator('#cashChangePreview').innerText(),/7,50/);
    const box=await page.locator('#cartModal .modal').boundingBox();assert.ok(box.width<=width&&box.height<=height);
-   await page.locator('#closeCart').click();
+   await page.locator('#checkoutGoPayment').click();await page.locator('#cartModal.payment-direct').waitFor();assert.match(await page.locator('#checkoutQuickTotal').innerText(),/2,50/);assert.equal(await page.locator('#checkoutSummary').isVisible(),false);assert.equal(await page.locator('#cash').inputValue(),'10,00');await page.locator('#checkoutReviewCart').click();assert.equal(await page.locator('#checkoutSummary').isVisible(),true);
+   await page.locator('#closeCart').click();await page.locator('#goPayment').click();await page.locator('#cartModal.payment-direct.open').waitFor();assert.equal(await page.locator('#paymentOptions input').inputValue(),'cash');assert.equal(await page.locator('#checkoutExtras').isVisible(),false);await page.locator('#closeCart').click();
    await page.goto(origin+'/admin.html');await page.locator('#loginScreen:not(.hidden)').waitFor();
    const dim=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
    assert.ok(dim.actual<=dim.viewport+2,device+' login '+JSON.stringify(dim));
