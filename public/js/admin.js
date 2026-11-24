@@ -300,7 +300,7 @@ async function performAction(btn){
   try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ ordersInitialized=false;knownOrders.clear();$('orderDemo').classList.add('hidden');closeProductPreview();$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();$('orderDemo').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
  $('testNewOrder').onclick=()=>{if(!sounds){sounds=true;$('soundToggle').textContent='🔔 Alertas ligados';}demoStep=0;$('orderDemo').classList.remove('hidden');renderOrderDemo();};
