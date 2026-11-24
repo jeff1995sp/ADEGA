@@ -259,12 +259,12 @@ async function orderAction(db,body){
 }
 async function orders(db){
  const list=await many(db,"SELECT * FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 250");
- const high_demand=await readDemand(db);
- if(!list.length)return json({orders:[],high_demand});
+ const demand=await demandStatus(db);
+ if(!list.length)return json({orders:[],...demand});
  const ids=JSON.stringify(list.map(o=>o.id));
  const lines=await many(db,'SELECT order_id,product_name,quantity,unit_price_cents FROM order_items WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
- return json({orders:list.map(({public_token,...o})=>({...o,order_items:groups.get(o.id)||[]})),high_demand});
+ return json({orders:list.map(({public_token,...o})=>({...o,order_items:groups.get(o.id)||[]})),...demand});
 }
 async function ensureCashArchive(db){
  await run(db,"CREATE TABLE IF NOT EXISTS cash_batches (id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('closed','test')),created_at TEXT NOT NULL)");
@@ -302,11 +302,16 @@ async function readDemand(db){
  await run(db,'CREATE TABLE IF NOT EXISTS tv_demand (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN (0,1)))');
  return Boolean((await one(db,'SELECT enabled FROM tv_demand WHERE id=1'))?.enabled);
 }
+async function demandStatus(db){
+ const manual=await readDemand(db);
+ const {qty}=await one(db,"SELECT COUNT(*) AS qty FROM orders WHERE status IN ('received','preparing')");
+ return {high_demand:manual||qty>5,demand_manual:manual,demand_count:qty};
+}
 async function saveDemand(db,body){
  if(typeof body.enabled!=='boolean')reject('Informe o estado do aviso.');
  await readDemand(db);
  await run(db,'INSERT INTO tv_demand(id,enabled) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled',body.enabled);
- return json({high_demand:body.enabled});
+ return json(await demandStatus(db));
 }
 async function cashReport(db){
  await ensureCashArchive(db);
@@ -433,7 +438,7 @@ async function handler(request,env){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
  if(!await equal(request.headers.get('X-TV-Code'),env.TV_PASSCODE)){await rate(db,request,'tv',10,300);reject('Código da TV incorreto.',403);}
  const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 60");
- return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),high_demand:await readDemand(db)});
+ return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),...await demandStatus(db)});
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(order);}
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);return createOrder(db,body);}

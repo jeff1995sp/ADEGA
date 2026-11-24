@@ -4,12 +4,14 @@ const STORAGE='adega_tv_code_v1', VOICES='adega_tv_voices_v1';
 let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false,connected=false,retryAt=0;
 try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
-let tvPage=0,lastOrders=[],tvSnapshot='';
+let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
+const DEMAND_INTERVAL=5*60*1000;
+const DEMAND_MESSAGE='Atenção, família! Hoje a casa está cheia. Seu pedido pode demorar um pouco mais que o normal. Valeu pela paciência!';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';}
+function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -35,7 +37,19 @@ function say(text,type){
 }
 function nextSpeech(){
   if(!soundEnabled || speaking || !queue.length)return;
-  const item=queue.shift();say(item.text,item.voice);
+  const item=queue.shift();if(item.demand){if(!demandActive)return nextSpeech();lastDemandSpeech=Date.now();}say(item.text,item.voice);
+}
+function setDemand(active){
+  if(!active){lastDemandSpeech=null;queue=queue.filter(item=>!item.demand);}
+  demandActive=active;
+  $('tvDemandNotice').classList.toggle('hidden',!active);
+}
+function announceDemand(){
+  if(!demandActive||!soundEnabled||!connected)return;
+  if(lastDemandSpeech!==null&&Date.now()-lastDemandSpeech<DEMAND_INTERVAL)return;
+  if(queue.some(item=>item.demand))return;
+  queue.push({text:DEMAND_MESSAGE,voice:'female',demand:true});
+  nextSpeech();
 }
 function speakOrder(o){
   queue.push({text:o.status==='preparing'?`${o.first_name}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
@@ -65,10 +79,10 @@ async function poll(){
     const d=await api('tv',null,{method:'GET',tvCode:code,timeout:12000});
     if(tvCode!==code)return;
     if(!Array.isArray(d.orders))throw Error('Resposta inválida do painel da TV.');
-    $('tvDemandNotice').classList.toggle('hidden',d.high_demand!==true);
+    setDemand(d.high_demand===true);
     const rows=d.orders,snapshot=JSON.stringify(rows);
     if(snapshot!==tvSnapshot||!started){renderTv(rows);tvSnapshot=snapshot;}
-    connected=true;retryAt=0;
+    connected=true;retryAt=0;announceDemand();
     try{localStorage.setItem(STORAGE,code);}catch{}
     $('tvKey').value='';tvError('');showBoard();
     $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 3 segundos';
@@ -81,7 +95,7 @@ async function poll(){
       tvClearCode();showAuth();tvError(msg);
       $('modeBanner').textContent='TV desconectada';
     }else{
-      retryAt=Date.now()+15000;
+      retryAt=Date.now()+15000;queue=queue.filter(item=>!item.demand);
       $('modeBanner').textContent='Conexão indisponível • nova tentativa em 15 segundos';
     }
   }finally{checking=false;$('tvConnect').disabled=false;$('tvConnect').textContent='Conectar painel ↗';}
@@ -95,7 +109,7 @@ function start(){
   $('activateSound').onclick=()=>{
     if(!('speechSynthesis' in window))return toast('Este navegador não suporta fala. Use um navegador Android TV compatível ou APK.',true);
     soundEnabled=!soundEnabled;$('activateSound').setAttribute('aria-label',soundEnabled?'Desativar chamadas por voz':'Ativar chamadas por voz');$('activateSound').classList.toggle('sound-on',soundEnabled);$('soundStatus').textContent=soundEnabled?'🔊 Chamadas por voz ativadas':'🔇 Chamadas por voz desativadas';
-    if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');nextSpeech();}
+    if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');announceDemand();nextSpeech();}
     else {speechSynthesis.cancel();queue=[];speaking=false;}
   };
 

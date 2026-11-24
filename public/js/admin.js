@@ -21,8 +21,8 @@ async function refreshOrders(quiet=true){
  if(ordersRequest){orderRefreshPending=true;return ordersRequest;}
  const request=async()=>{
   try{
-   const {orders:incoming=[],high_demand=false}=await api('admin-orders',null,{method:'GET',admin:true});
-   if(!demandBusy){demandActive=Boolean(high_demand);renderDemand();}
+   const {orders:incoming=[],high_demand=false,demand_manual=false,demand_count=0}=await api('admin-orders',null,{method:'GET',admin:true});
+   if(!demandBusy){demandActive=Boolean(high_demand);demandManual=Boolean(demand_manual);demandCount=demand_count;renderDemand();}
    if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
    const snapshot=JSON.stringify(incoming);
    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('Novo pedido: '+order.first_name);}}}
@@ -128,8 +128,8 @@ function renderDrinkOptions(){
   }).join('')}</section>`;
  }).join('');
 }
-let demandActive=false,demandBusy=false,cashActionKind='',cashActionBusy=false,cashActionIds=[];
-function renderDemand(){const b=$('demandToggle');b.textContent=demandActive?'Aviso ativo — desativar':'Ativar aviso';b.classList.toggle('btn-primary',demandActive);b.classList.toggle('btn-secondary',!demandActive);b.setAttribute('aria-pressed',String(demandActive));}
+let demandActive=false,demandManual=false,demandCount=0,demandBusy=false,cashActionKind='',cashActionBusy=false,cashActionIds=[];
+function renderDemand(){const b=$('demandToggle');b.textContent=demandManual?'Voltar ao automático':'Forçar aviso';b.classList.toggle('btn-primary',demandManual);b.classList.toggle('btn-secondary',!demandManual);b.setAttribute('aria-pressed',String(demandManual));$('demandStatus').textContent=(demandActive?'Aviso ativo':'Movimento normal')+' · '+demandCount+' pedidos aguardando ou em preparo'+(demandManual?' · manual':' · automático');}
 function renderCash(){
   if(!cashReport){
     $('cashStats').innerHTML='<div class="stat"><span>Caixa do dia</span><b>—</b></div>';
@@ -395,7 +395,7 @@ function openCashAction(kind){
  $('cashActionModal').classList.add('open');
 }
 async function start(){
- $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandActive},{admin:true,method:'PATCH'});demandActive=r.high_demand;renderDemand();toast(demandActive?'Aviso enviado à TV.':'Aviso da TV desativado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
+ $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso manual enviado à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
  $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
  $('cashActionClose').onclick=()=>{if(!cashActionBusy)$('cashActionModal').classList.remove('open');};
  $('cashActionForm').addEventListener('submit',async e=>{
