@@ -176,3 +176,11 @@ test('D1: mais vendidos usa quantidade paga recente e disponível, não pedidos 
  f.sql.exec("UPDATE orders SET paid_at='2020-01-01T00:00:00.000Z' WHERE payment_status='paid'");
  assert.deepEqual((await f.call('catalog')).data.best_sellers,[]);
 });
+
+test('D1: preço Ninho Trufado atualizado uma vez, caipirinha de cerveja visível',async()=>{
+ const f=setup();f.sql.exec("INSERT INTO products(id,name,category,price_cents,stock,active,age_restricted) VALUES ('produto-024','Ninho Trufado','Batidas',1200,5,1,1),('produto-026','Caipirinha de cerveja','Caipirinhas',0,0,0,1)");
+ const a=await f.call('catalog');assert.equal(a.status,200);assert.equal(a.data.products.find(p=>p.id==='produto-024').price_cents,1500);assert.ok(a.data.products.some(p=>p.id==='produto-026'));
+ f.sql.exec("UPDATE products SET price_cents=1700 WHERE id='produto-024'");
+ assert.equal((await f.call('catalog')).data.products.find(p=>p.id==='produto-024').price_cents,1700);
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-024'").get().stock,5);
+});

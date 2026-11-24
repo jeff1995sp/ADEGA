@@ -47,7 +47,18 @@ async function auth(db,request){
  if(!await one(db,'SELECT token_hash FROM admin_sessions WHERE token_hash=? AND expires_at>?',h,epoch()))reject('Sessão expirada. Faça login novamente.',401);
  return h;
 }
+// One-time owner-requested price correction. Future admin edits are never reset.
+const pricePatchId='20261124-ninho-trufado-1500';
+async function applyCatalogPricePatch(db){
+ await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');
+ if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',pricePatchId))return;
+ await db.batch([
+  stmt(db,"UPDATE products SET price_cents=1500 WHERE id='produto-024' AND name='Ninho Trufado' AND category='Batidas' AND price_cents=1200 AND NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",pricePatchId),
+  stmt(db,"INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)",pricePatchId)
+ ]);
+}
 async function catalog(db,admin){
+ await applyCatalogPricePatch(db);
  const [store,products,drink_options,paidSales]=await Promise.all([
  one(db,'SELECT name,accepting_orders,low_stock_threshold FROM store_settings WHERE id=1'),
  many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products '+(admin?'':"WHERE category<>'Tabacaria'")+' ORDER BY sort_order,name'),
@@ -63,6 +74,7 @@ async function catalog(db,admin){
 const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
+ await applyCatalogPricePatch(db);
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
  const first=text(body.first_name,60),last=text(body.last_name,80),method=body.payment_method;
  if(first.length<2||last.length<2)reject('Informe nome e sobrenome.');
@@ -257,7 +269,7 @@ async function handler(request,env){
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);return createOrder(db,body);}
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
- if(route==='admin-products'&&['POST','PATCH'].includes(method))return productsAdmin(db,body,method);
+ if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);return productsAdmin(db,body,method);}
  if(route==='admin-photo'&&method==='POST')return photo(db,body);
  if(route==='admin-drink-options'&&method==='PATCH'){
  if(!idOk(body.id))reject('Sabor inválido.');const p={};
