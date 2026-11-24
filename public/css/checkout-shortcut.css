@@ -57,3 +57,23 @@ body.catalog-body header.hora-nav #cartBar .cart-actions .btn:disabled{backgroun
 @media(max-width:800px){body.catalog-body header.hora-nav #cartBar{padding:5px 0}body.catalog-body header.hora-nav #cartBar .cart-inner{padding:0 max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px));gap:7px}body.catalog-body header.hora-nav #cartBar .cart-meta{gap:6px}body.catalog-body header.hora-nav #cartBar .cart-meta strong{font-size:.99rem}body.catalog-body header.hora-nav #cartBar .cart-actions{gap:5px;flex:1;min-width:0}body.catalog-body header.hora-nav #cartBar .cart-actions .btn{min-height:44px;padding:7px 9px;font-size:.74rem;white-space:normal;line-height:1.15;flex:0 1 auto} .cart-meta-icon{width:32px;height:32px;flex-basis:32px}.cart-meta-icon svg{width:17px;height:17px}.hora-site-footer .hora-footer-inner{flex-wrap:wrap;gap:13px;padding-top:15px;padding-bottom:18px}.hora-footer-legal{flex:1 1 180px}.hora-footer-links{text-align:left;flex:1 1 100%}}
 @media(max-width:360px){.cart-meta-icon{display:none}body.catalog-body header.hora-nav #cartBar .cart-actions .btn{padding:7px 6px;font-size:.7rem}}
 @media(max-width:800px) and (orientation:landscape) and (max-height:450px){body.catalog-body header.hora-nav{position:relative}}
+
+/* Professional developer credit and contact — footer only. */
+.hora-footer-links .hora-developer{display:flex;align-items:center;gap:16px;text-align:left}
+.hora-developer-copy{display:grid;gap:3px}
+.hora-developer-label{font-size:.58rem;letter-spacing:.12em;font-weight:800;color:#bcb2ba}
+.hora-footer-links .hora-developer-copy strong{font-size:1rem;line-height:1.2;color:#fff}
+.hora-developer-service{font-size:.69rem;color:#bcb2ba}
+.hora-footer-links .hora-developer-contact{display:inline-flex;align-items:center;gap:9px;padding:9px 11px;min-height:48px;border:1px solid #58343d;border-radius:12px;background:#21191e;color:#fff;text-decoration:none;transition:background .2s,border-color .2s,transform .2s}
+.hora-footer-links .hora-developer-contact:hover{background:#302027;border-color:#c65a72;transform:translateY(-2px)}
+.hora-footer-links .hora-developer-contact:focus-visible{outline:2px solid #ff8c9b;outline-offset:3px}
+.hora-developer-ig{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:9px;background:linear-gradient(140deg,#7943c8,#b52f84 48%,#e85b3b 78%,#efac52);color:#fff}
+.hora-developer-ig svg{width:20px;height:20px}
+.hora-developer-contact b{font-size:.75rem;white-space:nowrap}
+.hora-footer-links .hora-developer-contact small{margin:2px 0 0;font-size:.68rem;color:#dfc5d2}
+.hora-developer-arrow{width:14px;height:14px;flex:0 0 14px;color:#edabbc}
+.hora-footer-links .hora-image-credits{display:inline-block;margin-top:8px;font-size:.65rem;color:#a79da5}
+@media(max-width:1050px){.hora-site-footer .hora-footer-inner{flex-wrap:wrap}.hora-footer-links .hora-developer{flex-wrap:wrap}}
+@media(max-width:800px){.hora-footer-links .hora-developer{padding-top:12px;border-top:1px solid #30262d;gap:10px;justify-content:space-between}.hora-footer-links .hora-developer-contact{min-height:46px;padding:8px}.hora-developer-contact b{font-size:.7rem}}
+@media(max-width:360px){.hora-footer-links .hora-developer{align-items:flex-start;flex-direction:column}.hora-footer-links .hora-developer-contact{width:100%}.hora-developer-arrow{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){.hora-footer-links .hora-developer-contact{transition:none;transform:none}}
