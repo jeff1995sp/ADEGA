@@ -116,3 +116,22 @@ test('Cloudflare: HTML navigation delegates unchanged to the assets router',asyn
   assert.equal(await response.text(),'asset');
  }
 });
+
+test('D1: gelo avulso não aparece na vitrine nem entra em pedidos',async()=>{
+ const f=setup();f.sql.exec("UPDATE store_settings SET accepting_orders=1; INSERT INTO products(id,name,category,price_cents,stock,active) VALUES ('produto-067','Gelo de água','Complementos',100,5,1);");
+ const cat=await f.call('catalog');assert.ok(!cat.data.products.some(p=>p.id==='produto-067'));
+ const attempt=await f.call('create-order',payload({items:[{id:'produto-067',quantity:1}],expected_total_cents:100}));
+ assert.equal(attempt.status,409);
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-067'").get().stock,5);
+});
+test('D1: cadastro de produto e foto aparecem no catálogo sem redeploy',async()=>{
+ const f=setup(),t=await login(f);
+ const saved=await f.call('admin-products',{name:'Bala teste',category:'Doces e Salgadinhos',price_cents:15,stock:20,unlimited:false,age_restricted:false},t);
+ assert.equal(saved.status,201,JSON.stringify(saved.data));
+ const id=saved.data.product.id;
+ const body={id,mime:'image/png',base64:Buffer.from([137,80,78,71,13,10,26,10,...Array(20).fill(0)]).toString('base64')};
+ const uploaded=await f.call('admin-photo',body,t);
+ assert.equal(uploaded.status,200);
+ const cat=await f.call('catalog');const p=cat.data.products.find(x=>x.id===id);
+ assert.equal(p.image_url,uploaded.data.image_url);assert.equal(p.price_cents,15);assert.equal(p.active,false);
+});

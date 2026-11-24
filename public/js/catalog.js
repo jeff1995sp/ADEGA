@@ -1,4 +1,4 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,isDoseProduct,energyMatchesDose,optionAvailable} from './shared.js';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable} from './shared.js';
 
 let products=[],drinkOptions=[],shop={name:'ADEGA DIGITAL',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
@@ -11,7 +11,7 @@ const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && 
 const total=()=>[...cart.values()].reduce((sum,item)=>sum+(products.find(p=>p.id===item.id)?.price_cents||0)*item.quantity,0);
 const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
 // O dono confirmou que somente limão e morango seguem no catálogo de caipirinhas.
-const visibleInCatalog=p=>p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name);
+const visibleInCatalog=p=>!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
 const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
 const optionById=id=>drinkOptions.find(o=>o.id===id);
 const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));
@@ -29,20 +29,20 @@ const productCard=p=>{
   const q=desiredQty(p);
   const customizable=isDoseProduct(p);
   const canConfigure=available(p)&&hasDrinkOptions(p);
-  const packaged = ['Cervejas','Salgadinhos','Doces e Balas','Diversos','Bebidas prontas'].includes(p.category);
+  const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes'].includes(catalogCategory(p));
   const fallback = photoFallbackFor(p);
   const status=photoStatusFor(p);
-  const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':'';
+  const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':status==='illustrative'?'<span class="photo-note">Imagem ilustrativa</span>':'';
   const media = `<img class="product-photo" src="${esc(photoFor(p))}" data-fallback="${esc(fallback)}" alt="Foto do produto ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}">`;
   return `<article class="product">
-    <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(p.category)}</span>${photoNote}</div>
-    <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(p.description||'Escolha a quantidade e retire no portão.')}</p>
+    <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(catalogCategory(p))}</span>${photoNote}</div>
+    <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
     <div class="product-footer"><span class="price">${p.price_cents?fmt(p.price_cents):'Preço em breve'}</span>
-    ${customizable?`<div class="qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>Escolher gelo e energético</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
+    ${customizable?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>Escolher gelo e energético</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
 };
 function showCategories(){
-  const exist=new Set(products.filter(visibleInCatalog).map(p=>p.category));
+  const exist=new Set(products.filter(visibleInCatalog).map(catalogCategory));
   const cats=CATEGORIES.filter(c=>c==='Todos'||(c!=='Tabacaria'&&exist.has(c)));
   if(!cats.includes(category))category='Todos';
   $('categoryTabs').innerHTML=cats.map(c=>`<button class="tab ${c===category?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('');
@@ -50,7 +50,7 @@ function showCategories(){
 function renderProducts(){
   showCategories();
   const general=products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p));
-  const list=category==='Todos'?general:general.filter(p=>p.category===category);
+  const list=category==='Todos'?general:general.filter(p=>catalogCategory(p)===category);
   const message='<div class="empty">O cardápio será cadastrado em breve. Nenhuma cobrança ou pedido fictício será criado.</div>';
   $('productGrid').innerHTML=list.length?list.map(productCard).join(''):message;
   // O estoque de Tabacaria permanece exclusivamente no admin, não no checkout online.

@@ -1,8 +1,8 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor} from './shared.js';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,catalogCategory,isStandaloneIce,productDescription} from './shared.js';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
-let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'ADEGA DIGITAL',accepting_orders:true,low_stock_threshold:5},activeTab='orders',inventoryFilter='Todos',busy=false,lastFirst=null,sounds=false,audioContext;
+let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'ADEGA DIGITAL',accepting_orders:true,low_stock_threshold:5},activeTab='orders',inventoryFilter='Todos',inventorySearch='',inventoryStatus='all',busy=false,lastFirst=null,sounds=false,audioContext;
 const button=(label,action,id,value='',type='secondary',disabled=false)=>`<button class="btn btn-${type} btn-sm" data-action="${action}" data-id="${id}" data-value="${value}" ${disabled?'disabled':''}>${label}</button>`;
 const statusBadge=o=>`<span class="pill ${o.payment_status==='paid'?'good':'warn'}">${o.payment_status==='paid'?'● Pago':'◷ Pagamento pendente'}</span>`;
 function tone(){if(!sounds)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();const t=audioContext.currentTime;[780,1040].forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(.0001,t+i*.17);g.gain.exponentialRampToValueAtTime(.11,t+i*.17+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.17+.15);o.connect(g);g.connect(audioContext.destination);o.start(t+i*.17);o.stop(t+i*.17+.16);});}catch{}}
@@ -52,26 +52,39 @@ function renderOrders(){
 }
 function renderInventory(){
   const threshold=shop.low_stock_threshold??5;
-  const filtered=products.filter(p=>inventoryFilter==='Todos'||(inventoryFilter==='Bebidas'?!['Tabacaria','Doces e Balas','Salgadinhos','Diversos','Doces e Snacks'].includes(p.category):p.category===inventoryFilter));
-  document.querySelectorAll('[data-inventory-filter]').forEach(el=>el.classList.toggle('active',el.dataset.inventoryFilter===inventoryFilter));
-  renderDrinkOptions();
-  $('inventoryList').innerHTML=filtered.length?filtered.map(p=>{
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const order=CATEGORIES.map(c=>c);
+  const all=products.filter(p=>!isStandaloneIce(p)).sort((x,y)=>(order.indexOf(catalogCategory(x))<0?999:order.indexOf(catalogCategory(x)))-(order.indexOf(catalogCategory(y))<0?999:order.indexOf(catalogCategory(y)))||x.name.localeCompare(y.name,'pt-BR'));
+  const filtered=all.filter(p=>{
+    const cat=catalogCategory(p);
+    return (inventoryFilter==='Todos'||cat===inventoryFilter)&&(!inventorySearch||norm(p.name+' '+cat).includes(norm(inventorySearch)))&&(inventoryStatus==='all'||(inventoryStatus==='unpriced'&&!p.price_cents)||(inventoryStatus==='paused'&&!p.active)||(inventoryStatus==='out'&&!p.unlimited&&p.stock===0)||(inventoryStatus==='active'&&p.active));
+  });
+  const optionsMode=inventoryFilter==='Sabores';
+  $('drinkOptionsPanel').classList.toggle('hidden',!optionsMode);
+  $('inventoryList').classList.toggle('hidden',optionsMode);
+  $('inventorySearchTools').classList.toggle('hidden',optionsMode);
+  $('inventoryFilters').querySelectorAll('[data-inventory-filter]').forEach(el=>{el.classList.toggle('active',el.dataset.inventoryFilter===inventoryFilter);});
+  if(optionsMode){renderDrinkOptions();return;}
+  $('inventoryCount').textContent=filtered.length+' de '+all.length+' produtos';
+  const row=p=>{
     const stock=p.unlimited?'Ilimitado':p.stock===0?'<span class="stock-badge out">Esgotado</span>':p.stock<=threshold?`<span class="stock-badge low">⚠ Só ${p.stock} restantes</span>`:`<span class="stock-badge">${p.stock} unidades</span>`;
-    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b><div class="tiny">${esc(p.category)} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
+    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b><div class="tiny">${esc(catalogCategory(p))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
       <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
-      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar','edit',p.id)}</div></div>`;
-  }).join(''):'<div class="empty">Nenhum produto cadastrado.</div>';
+      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar / foto','edit',p.id)}</div></div>`;
+  };
+  const groups=new Map();for(const p of filtered){const cat=catalogCategory(p);if(!groups.has(cat))groups.set(cat,[]);groups.get(cat).push(p);}
+  $('inventoryList').innerHTML=filtered.length?[...groups].map(([cat,items])=>`<section class="inventory-group"><header class="inventory-group-heading"><h3>${esc(cat)}</h3><span>${items.length} itens${cat==='Tabacaria'?' · controle interno':''}</span></header>${items.map(row).join('')}</section>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
 }
 function renderDrinkOptions(){
  const element=$('drinkOptionsList');
  if(!element)return;
- if(!drinkOptionsReady){element.innerHTML='<p class="notice danger">Banco ainda não configurado para sabores. Execute sql/02_OPCOES_DOSES_WHISKY_GIN.sql no Supabase antes de liberar doses.</p>';return;}
+ if(!drinkOptionsReady){element.innerHTML='<p class="notice danger">Sabores indisponíveis. Confira a conexão com o banco D1.</p>';return;}
  const groups=[['ice','🧊 Gelo de água e gelos saborizados'],['energy','🥤 Red Bull e Vibe']];
  element.innerHTML=groups.map(([group,title])=>{
   const options=drinkOptions.filter(o=>o.option_group===group);
-  return `<section style="margin:16px 0"><h3>${title}</h3><p class="tiny sub">Inicie com estoque 0 e sabores pausados. Ajuste o estoque e depois ative somente os disponíveis.</p>${options.map(o=>{
+  return `<section style="margin:16px 0"><h3>${title}</h3><p class="tiny sub">Ajuste o estoque e ative somente as opções disponíveis.</p>${options.map(o=>{
    const state=o.active&&(o.unlimited||o.stock>0);
    const status=!o.active?'Pausado':state?'Disponível':'Esgotado';
    return `<div class="inventory-row" style="grid-template-columns:1.4fr .7fr 1fr">
@@ -121,7 +134,7 @@ function renderSettings(){
 function render(){renderStats();renderOrders();
   // O polling não pode sobrescrever preço/estoque enquanto o dono digita.
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
-  if(!(activeTab==='inventory'&&editing))renderInventory();
+  if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
   renderCash();renderSettings();}
 function setTab(tab){activeTab=tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==tab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];}
 let selectedPhotoPreviewUrl=null;
@@ -131,7 +144,7 @@ function setProductPhotoPreview(src){
 function productModal(p){
   if(selectedPhotoPreviewUrl){URL.revokeObjectURL(selectedPhotoPreviewUrl);selectedPhotoPreviewUrl=null;}
   $('editTitle').textContent=p?'Editar produto':'Cadastrar produto';$('editId').value=p?.id||'';
-  $('editName').value=p?.name||'';$('editCategory').value=p?.category||'Batidas';$('editDescription').value=p?.description||'';
+  $('editName').value=p?.name||'';$('editCategory').value=p?catalogCategory(p):(['Todos','Sabores'].includes(inventoryFilter)?'Doces e Salgadinhos':inventoryFilter);$('editDescription').value=p?productDescription(p):'';
   $('editPrice').value=p?.price_cents?String((p.price_cents/100).toFixed(2)).replace('.',','):'';
   $('editStock').value=p?.stock??0;$('editUnlimited').checked=Boolean(p?.unlimited);
   $('editIcon').value=p?.icon||'🥤';$('editImage').value=p?.image_url||'';$('editAge').checked=p?.age_restricted??true;
@@ -178,7 +191,8 @@ async function saveProduct(e){
       const uploaded=await api('admin-photo',{id,...photoData},{admin:true});
       $('editImage').value=uploaded.image_url;
     }
-    $('editModal').classList.remove('open');toast('Produto salvo! Você pode alterar o preço e a imagem quando quiser.');
+    inventoryFilter=catalogCategory(entry);inventoryStatus='all';inventorySearch='';$('inventorySearch').value='';$('inventoryStatus').value='all';
+    $('editModal').classList.remove('open');toast('Produto e foto salvos. O catálogo será atualizado automaticamente.');
   }catch(err){toast(err.message,true);}finally{busy=false;await refreshData(true);}
 }
 async function performAction(btn){
@@ -217,7 +231,7 @@ async function performAction(btn){
     const raw=document.querySelector(`[data-stock-input="${id}"]`)?.value;
     if(raw===''||!Number.isInteger(Number(raw))||Number(raw)<0)return toast('Informe uma quantidade válida.',true);
     route='admin-stock';body={id,mode:'set',quantity:Number(raw)};
-  } else return;
+  } else if(!route)return;
   busy=true;
   try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
@@ -225,12 +239,15 @@ async function performAction(btn){
 function showLogin(){ $('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
-  $('editCategory').innerHTML=CATEGORIES.slice(1).map(c=>`<option>${esc(c)}</option>`).join('');
+  $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;renderInventory();});
   $('newProduct').onclick=()=>productModal(null);
+  $('inventorySearch').addEventListener('input',e=>{inventorySearch=e.target.value.trim();renderInventory();});
+  $('inventoryStatus').addEventListener('change',e=>{inventoryStatus=e.target.value;renderInventory();});
+  $('drinkOptionsList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('exportCash')?.addEventListener('click',exportCash);
   $('closeEdit').onclick=()=>$('editModal').classList.remove('open');
   $('editForm').addEventListener('submit',saveProduct);

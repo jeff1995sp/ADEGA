@@ -5,30 +5,22 @@ import {PHOTO_PENDING,ILLUSTRATIVE_LOCAL_PATHS,LICENSED_LOCAL_PATHS,photoFor,pho
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const products=JSON.parse(read('../public/catalogo-previa.json')).products;
 
-test('fotos provisórias do catálogo aparecem como pendentes',()=>{
+test('fotos ilustrativas aparecem identificadas, sem esconder arquivos existentes',()=>{
  assert.equal(products.length,70);
  assert.ok(ILLUSTRATIVE_LOCAL_PATHS.size>=10);
  assert.ok(LICENSED_LOCAL_PATHS.size>=4);
- assert.equal(products.filter(p=>photoStatusFor(p)==='pending').length,products.filter(p=>ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)||p.image_url===PHOTO_PENDING).length);
- assert.equal(products.filter(p=>photoStatusFor(p)==='local').length,products.filter(p=>p.image_url!==PHOTO_PENDING&&!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)&&!LICENSED_LOCAL_PATHS.has(p.image_url)).length);
- assert.equal(products.filter(p=>photoStatusFor(p)==='licensed').length,products.filter(p=>LICENSED_LOCAL_PATHS.has(p.image_url)).length);
- for(const p of products)assert.ok(statSync(new URL('../public'+p.image_url,import.meta.url)).size>200,p.name);
- for(const name of ['Draft','Refrigerante em lata']){
-  const p=products.find(p=>p.name===name);
-  assert.equal(photoFor(p),PHOTO_PENDING);
-  assert.equal(photoFallbackFor(p),PHOTO_PENDING);
+ for(const p of products){
+  assert.ok(statSync(new URL('../public'+photoFor(p),import.meta.url)).size>200,p.name);
+  if(ILLUSTRATIVE_LOCAL_PATHS.has(photoFor(p)))assert.equal(photoStatusFor(p),'illustrative');
  }
- // Quando a importação licencia uma foto e a salva localmente, ela deixa de ser pendente.
- for(const name of ['Heineken','Caipirinha de Morango','Corona','Budweiser']){
+ for(const name of ['Draft','Refrigerante em lata','Spaten']){
   const p=products.find(p=>p.name===name);
-  if(!ILLUSTRATIVE_LOCAL_PATHS.has(p.image_url)){
-   assert.equal(photoFor(p),p.image_url);
-   assert.equal(photoFallbackFor(p),p.image_url);
-  }
+  assert.equal(photoFor(p),p.image_url);
+  assert.equal(photoStatusFor(p),'illustrative');
  }
  assert.equal(photoFor(products.find(p=>p.name==='Fandangos')),'/imagens/fandangos.webp');
+ assert.equal(photoFor(products.find(p=>p.id==='produto-063')),'/imagens/rocks-com-red-bull.webp');
 });
-
 test('foto personalizada salva no admin tem prioridade',()=>{
  const p={name:'Heineken',image_url:'https://example.test/foto-propria.webp'};
  assert.equal(photoFor(p),p.image_url);

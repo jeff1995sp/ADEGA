@@ -1,4 +1,4 @@
-import { isDoseProduct, energyMatchesDose, CATEGORIES } from '../public/js/shared.js';
+import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct } from '../public/js/shared.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'}});
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -13,7 +13,7 @@ const MAX_MONEY=100000000, MAX_STOCK=1000000;
 const cats=new Set(CATEGORIES.filter(x=>x!=='Todos'));
 const prohibited=/\b(?:vape|vapes|pod|pods|e-?cig|puff\s*bar)\b|cigarro\s*eletr[oô]nico|dispositivo\s*eletr[oô]nico\s*para\s*fumar/i;
 const internalName=/\b(?:cigarros?|tabacos?|narguil[eé]|piteiras?|zgy|seda|tabaquin)\b/i;
-const visible=p=>p.category!=='Tabacaria'&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name))&&!prohibited.test(p.name)&&!internalName.test(p.name);
+const visible=p=>publicCatalogProduct(p)&&!prohibited.test(p.name)&&!internalName.test(p.name);
 const boolKeys=['active','unlimited','age_restricted','age_required','age_checked','receipt_checked','accepting_orders'];
 const normalize=r=>r?Object.fromEntries(Object.entries(r).map(([k,v])=>[k,boolKeys.includes(k)?Boolean(v):v])):r;
 const stmt=(db,s,...v)=>db.prepare(s).bind(...v.map(x=>typeof x==='boolean'?Number(x):x));

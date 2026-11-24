@@ -33,26 +33,39 @@ export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
 export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp", "/imagens/corona.webp", "/imagens/budweiser.webp", "/imagens/caipirinha-de-morango.webp", "/imagens/caipirinha-de-limao.webp", "/imagens/agua.webp", "/imagens/ceu-azul.webp", "/imagens/maracuja.webp", "/imagens/frutas-vermelhas.webp", "/imagens/balas-sortidas.webp", "/imagens/jack-com-red-bull.webp", "/imagens/red-label-com-red-bull.webp", "/imagens/absolut-com-red-bull.webp"]);
 export const photoSlug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor=p=>'/imagens/'+photoSlug(p?.name||'foto-pendente')+'.webp';
+const PHOTO_ALIAS={"produto-063":"/imagens/rocks-com-red-bull.webp","produto-064":"/imagens/beefeater-com-red-bull.webp","interno-800":"/imagens/seda.webp","interno-803":"/imagens/isqueiro-bic.webp","interno-804":"/imagens/piteira.webp","interno-805":"/imagens/tesoura.webp","interno-806":"/imagens/carvao-fumax.webp","interno-807":"/imagens/isqueiros-sortidos.webp"};
+const localPhotoPath=p=>{
+ const stored=String(p?.image_url||'').trim();
+ if(stored&&stored!==PHOTO_PENDING)return stored;
+ return PHOTO_ALIAS[p?.id]||(stored||localPhotoFor(p));
+};
 export const photoStatusFor=p=>{
- const stored=String(p?.image_url||'').trim();
- if(stored&&!stored.startsWith('/imagens/'))return 'custom';
- const local=stored||localPhotoFor(p);
- return local===PHOTO_PENDING||ILLUSTRATIVE_LOCAL_PATHS.has(local)?'pending':LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
+ const local=localPhotoPath(p);
+ if(!local.startsWith('/imagens/'))return 'custom';
+ if(local===PHOTO_PENDING)return 'pending';
+ if(ILLUSTRATIVE_LOCAL_PATHS.has(local))return 'illustrative';
+ return LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
 };
-export const photoFor=p=>{
- const stored=String(p?.image_url||'').trim();
- if(stored&&!stored.startsWith('/imagens/'))return stored;
- const local=stored||localPhotoFor(p);
- return ILLUSTRATIVE_LOCAL_PATHS.has(local)?PHOTO_PENDING:local;
-};
+export const photoFor=p=>localPhotoPath(p);
 export const photoFallbackFor=p=>{
- const stored=String(p?.image_url||'').trim();
- const local=stored.startsWith('/imagens/')?stored:localPhotoFor(p);
- return ILLUSTRATIVE_LOCAL_PATHS.has(local)?PHOTO_PENDING:local;
+ const local=localPhotoPath(p);
+ return local.startsWith('/imagens/')?local:(PHOTO_ALIAS[p?.id]||localPhotoFor(p));
 };
-export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Complementos","Doces e Balas","Salgadinhos","Diversos","Doces e Snacks","Bebidas","Águas","Combos","Tabacaria"];
-// As doses e as combinações têm gelo e energético identificados individualmente no pedido.
-export const isDoseProduct=p=>['Whisky','Gin','Doses'].includes(p?.category);
+export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Tabacaria"];
+export const catalogCategory=p=>['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
+export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
+export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
+export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
+export const productDescription=p=>{
+ if(p?.name==='Caipirinha de Limão')return 'Caipirinha de limão no copo de 700 ml.';
+ if(p?.name==='Caipirinha de Morango')return 'Caipirinha de morango no copo de 700 ml.';
+ if(isDoseProduct(p)&&(!p.description||/personalize após|dose com gelo e energético inclusos/i.test(p.description)))return 'Copo de 700 ml com gelo e energético inclusos.';
+ if(p?.category==='Doses'&&/gelo e energético|personalize após/i.test(p.description||''))return 'Dose no copo de 700 ml com Red Bull.';
+ if(p?.category==='Cervejas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Cerveja gelada.';
+ if(p?.category==='Batidas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Batida no copo de 700 ml.';
+ if(/imagem ilustrativa para conferência/i.test(p?.description||''))return 'Confira a disponibilidade e retire no portão.';
+ return p?.description||'Escolha a quantidade e retire no portão.';
+};
 export const energyMatchesDose=(product,energy)=>{
  const name=String(product?.name||'').toLowerCase(),choice=String(energy?.name||'');
  // O energético Red Bull e o gelo já vêm inclusos no preço de whisky e gin;

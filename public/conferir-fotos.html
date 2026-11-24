@@ -41,6 +41,7 @@ let all=[],category='Todos',quality='todos',term='';
 const $=id=>document.getElementById(id);
 const labels={
  pending:'Foto verdadeira pendente — envie uma foto do produto no admin',
+ illustrative:'Imagem ilustrativa — confira a apresentação do produto',
  local:'Foto enviada pelo proprietário — confira marca, sabor e embalagem',
  licensed:'Fotografia real licenciada de referência — o preparo e a apresentação podem variar',
  custom:'Foto cadastrada no admin — confira marca, sabor e embalagem'
@@ -58,7 +59,7 @@ function render(){
  }).join(''):'<div class="empty">Nenhum produto encontrado nesse filtro.</div>';
  const cats=['Todos',...new Set(all.map(p=>p.category))];
  $('filters').innerHTML=cats.map(c=>'<button type="button" class="'+(category===c?'active':'')+'" data-cat="'+esc(c)+'">'+esc(c)+'</button>').join('');
- const opts=[['todos','Todas as fotos'],['pending','Foto real pendente'],['confirmada','Fotos próprias / licenciadas / admin']];
+ const opts=[['todos','Todas as fotos'],['pending','Foto real pendente'],['confirmada','Fotos próprias / referências / admin']];
  $('qualityFilters').innerHTML=opts.map(([key,label])=>'<button type="button" class="'+(quality===key?'active':'')+'" data-quality="'+key+'">'+label+'</button>').join('');
 }
 $('grid').addEventListener('error',e=>{

@@ -5,3 +5,20 @@
 @media(max-width:650px){.inventory-row .price-inline{width:100%;justify-content:flex-start}}
 
 .inventory-product-info{display:flex;gap:12px;align-items:center;min-width:0}.inventory-product-info>div{min-width:0}.inventory-thumb{width:58px;height:58px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#f9f4ed;border:1px solid #685034} 
+
+/* Inventário organizado, com filtros e grupos fixos. */
+.inventory-filters{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.inventory-search-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0 20px}
+.inventory-search-tools input{flex:2 1 220px;width:auto;min-width:0}
+.inventory-search-tools select{flex:1 1 180px;width:auto}
+.inventory-search-tools span{white-space:nowrap}
+.inventory-group{border:1px solid #70563b66;border-radius:14px;overflow:hidden;margin:0 0 22px;background:#19161a}
+.inventory-group-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#30251f;padding:14px 16px;border-bottom:1px solid #785c3f}
+.inventory-group-heading h3{font-size:1.1rem;color:#f4d49d}
+.inventory-group-heading span{color:#cbb69a;font-size:.76rem}
+.inventory-group .inventory-row{padding:14px;grid-template-columns:minmax(180px,1.4fr) minmax(105px,.65fr) minmax(75px,.4fr) minmax(230px,1.6fr);gap:12px}
+.inventory-group .inventory-thumb{width:76px;height:76px}
+.inventory-group .controls{min-width:0;flex-wrap:wrap;justify-content:flex-start}
+#drinkOptionsPanel{margin:18px 0}
+@media(max-width:980px){.inventory-group .inventory-row{grid-template-columns:1fr 1fr}.inventory-group .inventory-product-info,.inventory-group .controls{grid-column:1/-1}}
+@media(max-width:600px){.inventory-group .inventory-row{padding:12px;gap:8px}.inventory-group .inventory-thumb{width:64px;height:64px}.inventory-search-tools input,.inventory-search-tools select{flex-basis:100%}.inventory-group .price-inline{width:100%}}

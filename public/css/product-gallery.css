@@ -65,3 +65,13 @@
   padding:6px 10px;border-radius:8px;background:#241b20ed;border:1px solid #c59a60;
   color:#fff4df;font:700 .68rem/1.25 system-ui,sans-serif;text-align:center;
 }
+/* Caixa de foto com dimensões fixas, sem recortes ou expansão pelo tamanho intrínseco. */
+.catalog-body .product-visual { display:block; min-width:0; padding:0; height:clamp(190px,24vw,300px)!important; min-height:0!important; max-height:none!important; background:#eee5dc!important; }
+.catalog-body .product-visual.packshot { background:#fff!important; }
+.catalog-body .product-visual .product-photo { position:absolute!important; inset:0!important; width:100%!important; height:100%!important; min-width:0!important; min-height:0!important; max-width:100%!important; max-height:100%!important; box-sizing:border-box!important; padding:12px 12px 28px!important; object-fit:contain!important; object-position:center!important; }
+.catalog-body .product-visual .flag,.catalog-body .product-visual .photo-note{z-index:3}
+.catalog-body .product-footer {min-width:0; align-items:center;}
+.catalog-body .product-footer .dose-qty {display:flex; flex:1 1 100%; min-width:0; max-width:100%; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin:0;}
+.catalog-body .product-footer .dose-qty strong {font-size:.78rem;white-space:normal;}
+.catalog-body .product-footer .dose-qty button {width:auto!important; height:auto!important; min-width:0!important; max-width:100%!important; flex:1 1 120px; white-space:normal; line-height:1.25; padding:10px 12px!important; font-size:.76rem; background:linear-gradient(110deg,#f2cf8b,#d9a85d)!important;color:#20150a!important;}
+@media(max-width:700px){.catalog-body .product-visual{height:clamp(150px,40vw,230px)!important}.catalog-body .product-visual .product-photo{padding:7px 7px 24px!important}.catalog-body .product-footer .dose-qty button{flex:1 1 100%}}
