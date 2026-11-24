@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {CATEGORIES,priceParse} from '../public/js/shared.js';
+import {CATEGORIES,priceParse,catalogCategory} from '../public/js/shared.js';
 const from = path=>readFileSync(new URL(path,import.meta.url),'utf8');
 test('Categorias na ordem desejada e Tabacaria ao final',()=>{
-  assert.deepEqual(CATEGORIES.slice(1,7),['Cervejas','Whisky','Gin','Doses','Batidas','Caipirinhas']);
+  assert.deepEqual(CATEGORIES.slice(1,7),['Cervejas','Whisky','Gin','Vodka','Batidas','Caipirinhas']);
   assert.equal(CATEGORIES.at(-1),'Tabacaria');
 });
 test('Placas transcritas sem inventar preços indisponíveis',()=>{
@@ -22,3 +22,5 @@ test('Admin pode salvar preço individual via API e frontend',()=>{
   assert.ok(api.includes('patch.price_cents=body.price_cents'));
   assert.equal(priceParse('R$ 15,00'),1500);
 });
+
+test('Categoria Vodka agrupa registros antigos e novos',()=>{assert.equal(catalogCategory({category:'Doses'}),'Vodka');assert.equal(catalogCategory({category:'Vodka'}),'Vodka');assert.ok(CATEGORIES.includes('Vodka'));});

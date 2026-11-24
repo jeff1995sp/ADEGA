@@ -31,3 +31,5 @@ VALUES
 ('interno-886','Seda Sadhu Slim','Tabacaria','Somente controle interno; embalagem a conferir.',500,0,0,1,'/imagens/foto-pendente.webp',907);
 -- Não liberar automaticamente nenhum produto nem alterar valores não confirmados.
 SELECT category,COUNT(*) AS quantidade FROM products GROUP BY category ORDER BY category;
+
+UPDATE products SET category='Vodka' WHERE category='Doses';

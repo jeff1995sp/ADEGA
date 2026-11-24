@@ -51,8 +51,8 @@ export const photoFallbackFor=p=>{
  const local=localPhotoPath(p);
  return local.startsWith('/imagens/')?local:(PHOTO_ALIAS[p?.id]||localPhotoFor(p));
 };
-export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Doses","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Tabacaria"];
-export const catalogCategory=p=>['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
+export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Doses","Tabacaria"];
+export const catalogCategory=p=>p?.category==='Doses'?'Vodka':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
 export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
 export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
 export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
@@ -60,7 +60,7 @@ export const productDescription=p=>{
  if(p?.name==='Caipirinha de Limão')return 'Caipirinha de limão no copo de 700 ml.';
  if(p?.name==='Caipirinha de Morango')return 'Caipirinha de morango no copo de 700 ml.';
  if(isDoseProduct(p)&&(!p.description||/personalize após|dose com gelo e energético inclusos/i.test(p.description)))return 'Copo de 700 ml com gelo e energético inclusos.';
- if(p?.category==='Doses'&&/gelo e energético|personalize após/i.test(p.description||''))return 'Dose no copo de 700 ml com Red Bull.';
+ if(catalogCategory(p)==='Vodka'&&/gelo e energético|personalize após/i.test(p.description||''))return 'Dose no copo de 700 ml com Red Bull.';
  if(p?.category==='Cervejas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Cerveja gelada.';
  if(p?.category==='Batidas'&&/imagem ilustrativa para conferência/i.test(p.description||''))return 'Batida no copo de 700 ml.';
  if(/imagem ilustrativa para conferência/i.test(p?.description||''))return 'Confira a disponibilidade e retire no portão.';
