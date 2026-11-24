@@ -33,81 +33,10 @@
 .checkout-extra .btn{white-space:nowrap;font-size:.77rem;padding:8px 9px}
 @media(max-width:380px){.checkout-extras-head{flex-direction:column}.checkout-extra{gap:6px}.checkout-extra-emoji{width:28px}.checkout-extra .btn{padding:7px 6px}}
 </style>
-<link rel="stylesheet" href="/css/hora-extra.css?v=20261124-1"></head>
+<link rel="stylesheet" href="/css/hora-extra.css?v=20261124-1"><link rel="stylesheet" href="/css/hora-vitrine.css?v=20261124-1"></head>
 <body class="catalog-body">
   <div id="modeBanner" class="mode-banner">Conectando ao catálogo...</div>
-  <header class="header">
-    <div class="shell header-inner">
-      <a class="brand" href="/" aria-label="Página inicial da adega">
-        <span class="brand-mark brand-crest"><img src="/img/hora-extra-logo.webp" alt="" /></span>
-        <span class="brand-copy"><strong class="brand-name">Hora Extra Drinks</strong><small class="muted-line">ESCOLHA • PEÇA • RETIRE</small></span>
-      </a>
-      <div class="header-actions">
-        <span class="header-pickup"><span class="live-dot"></span> PEDIDOS AO VIVO</span>
-        <button type="button" id="trackBtn" class="btn btn-outline btn-sm hidden">Meu pedido</button>
-        <a href="#catalogo" class="btn btn-primary btn-sm header-buy">Fazer pedido <span aria-hidden="true">↗</span></a>
-      </div>
-    </div>
-  </header>
-  <main>
-    <!-- A arte aprovada como capa responsiva; a navegação é feita por links HTML reais. -->
-    <section class="concept-landing" aria-label="Hora Extra Drinks: escolha, peça e retire">
-      <img src="/img/catalogo-conceito.webp" alt="Hora Extra Drinks. Escolha, peça e retire. Faça seu pedido pelo celular e aguarde no portão." class="concept-landing-image" fetchpriority="high" />
-      <a class="concept-link concept-link-top" href="#catalogo" aria-label="Fazer pedido e abrir o catálogo"></a>
-      <a class="concept-link concept-link-main" href="#catalogo" aria-label="Explorar o cardápio e escolher produtos"></a>
-      <a class="concept-link concept-cat concept-cat-one" href="#catalogo" aria-label="Ver cervejas"></a>
-      <a class="concept-link concept-cat concept-cat-two" href="#catalogo" aria-label="Ver drinks"></a>
-      <a class="concept-link concept-cat concept-cat-three" href="#catalogo" aria-label="Ver destilados"></a>
-      <a class="concept-link concept-cat concept-cat-four" href="#catalogo" aria-label="Ver vinhos"></a>
-    </section>
-    <section class="hero">
-      <div class="hero-orbit orbit-one" aria-hidden="true"></div>
-      <div class="hero-orbit orbit-two" aria-hidden="true"></div>
-      <div class="shell hero-grid">
-        <div class="hero-copy">
-          <div class="hero-kicker">ELDORADO • HORA EXTRA DRINKS</div>
-          <h1>Escolha.<br>Peça.<br><span class="hero-accent">Retire.</span></h1>
-          <p>Seu drink, sua hora. Escolha pelo celular e retire no portão, sem complicação.</p>
-          <div class="hero-actions">
-            <a href="#catalogo" class="btn btn-primary btn-hero"><span aria-hidden="true">◈</span> Explorar o cardápio <span aria-hidden="true">→</span></a>
-            <span class="hero-action-note"><span>♙</span> Só nome e sobrenome</span>
-          </div>
-          <div class="hero-small-note"><span aria-hidden="true">⌖</span> Rua Dourado, 34 • Eldorado</div><div class="hero-tracking-note">Acompanhe o preparo na TV ou no seu celular.</div>
-        </div>
-        <div class="hero-visual" aria-hidden="true">
-          <div class="hero-visual-halo"></div>
-          <div class="hero-outline">HORA EXTRA • DRINKS</div>
-          <img class="hero-cocktail" src="/img/drink-premium.webp" alt="" fetchpriority="high">
-          <div class="hero-visual-sticker"><span class="spark">◷</span><span>SEU PEDIDO<br><strong>EM TEMPO REAL</strong></span></div>
-          <div class="hero-vertical">SABOR E PRATICIDADE</div>
-        </div>
-      </div>
-      <div class="shell category-showcase" aria-label="Explore nossas categorias">
-        <a href="#catalogo" class="showcase-tile"><span>♧</span><b>Cervejas</b></a>
-        <a href="#catalogo" class="showcase-tile"><span>♜</span><b>Vodka</b></a>
-        <a href="#catalogo" class="showcase-tile"><span>♢</span><b>Batidas</b></a>
-      </div>
-      <div class="shell hero-benefits">
-        <span><b>01</b> Escolha os produtos</span><span class="benefit-sep"></span>
-        <span><b>02</b> Confirme em segundos</span><span class="benefit-sep"></span>
-        <span><b>03</b> Aguarde no portão</span>
-      </div>
-    </section>
-    <section id="catalogo" class="section catalog-section">
-      <div class="shell">
-        <div class="section-head">
-          <div><div class="eyebrow"><span class="tiny-star">✦</span> O CARDÁPIO</div>
-            <h2>Encontre o seu <em>favorito.</em></h2>
-            <p class="sub small">Escolha o que quiser. As quantidades são atualizadas automaticamente.</p>
-          </div>
-          <span class="catalog-head-tag">✧ SELECIONE E RETIRE</span>
-        </div>
-        <div id="categoryTabs" class="tabs" aria-label="Categorias do cardápio"></div>
-        <div id="productGrid" class="products"><div class="empty">Carregando produtos...</div></div>
-        <div id="endCategory"></div>
-      </div>
-    </section>
-    <section class="end-cta"><div class="shell end-cta-inner"><span class="end-cta-icon">✳</span><div><div class="eyebrow">PRATICIDADE DE VERDADE</div><h2>Escolheu? A gente prepara.</h2><p>Você pede. Nós avisamos quando estiver pronto. Simples assim.</p></div><a class="btn btn-outline" href="#catalogo">Voltar ao cardápio ↑</a></div></section>
+  <header class="header hora-nav" id="inicio"><div class="shell header-inner"><button id="menuToggle" class="hora-menu-button" type="button" aria-label="Abrir categorias" aria-expanded="false" aria-controls="categorySidebar">☰</button><a class="hora-nav-logo" href="#inicio" aria-label="Hora Extra Drinks"><img src="/img/hora-extra-logo.webp" alt="Hora Extra Drinks"></a><nav class="hora-nav-links" aria-label="Navegação principal"><a href="#inicio" class="nav-home">⌂ Início</a><a href="#catalogo">▣ Cardápio</a><button id="trackBtn" type="button">▤ Meu pedido</button></nav><label class="hora-search"><span aria-hidden="true">⌕</span><input type="search" id="productSearch" placeholder="Buscar produto..." aria-label="Buscar produto"></label><button type="button" id="headerCart" class="hora-cart-button" aria-label="Abrir carrinho">🛒 <span id="headerCartCount">0</span></button></div></header><main><section class="hora-banner" aria-label="Hora Extra Drinks, Rua Dourado 34, Eldorado"><div class="hora-banner-brand"><img src="/img/hora-extra-logo.webp" alt="Hora Extra Drinks"><div class="hora-address"><span aria-hidden="true">⌖</span><b>RUA DOURADO, 34<br>ELDORADO</b></div></div><div class="hora-banner-drinks" aria-hidden="true"><img class="hero-whisky" src="/imagens/jack-com-red-bull.webp" alt=""><img class="hero-mixed" src="/imagens/morango-com-nutella.webp" alt=""><img class="hero-beer" src="/imagens/heineken.webp" alt=""></div><div class="hora-banner-copy"><strong>BATIDAS • WHISKY<br>VODKA • GIN<br>CERVEJAS</strong><em>E MUITO MAIS!</em><a href="#catalogo" class="btn btn-primary">VER CARDÁPIO</a></div></section><section id="catalogo" class="section catalog-section hora-catalog"><div class="shell hora-catalog-layout"><aside id="categorySidebar" class="hora-sidebar" aria-label="Categorias"><div class="hora-sidebar-title">CARDÁPIO</div><div id="categorySideLinks"></div></aside><div class="hora-catalog-main"><div id="categoryTabs" class="tabs hora-category-cards" aria-label="Categorias do cardápio"></div><div class="hora-catalog-heading"><h2 id="catalogHeading">DESTAQUES DA HORA EXTRA</h2><span id="catalogResultCount"></span></div><div id="productGrid" class="products"><div class="empty">Carregando produtos...</div></div><div id="endCategory"></div></div></div></section><section class="end-cta"><div class="shell end-cta-inner"><span class="end-cta-icon">✳</span><div><div class="eyebrow">PRATICIDADE DE VERDADE</div><h2>Escolheu? A gente prepara.</h2><p>Você pede. Nós avisamos quando estiver pronto. Simples assim.</p></div><a class="btn btn-outline" href="#catalogo">Voltar ao cardápio ↑</a></div></section>
   </main>
   <div class="cart-bar" id="cartBar"><div class="cart-inner"><div class="cart-meta"><small class="sub" id="cartCount">0 itens</small><strong id="cartTotal">R$ 0,00</strong></div><button type="button" class="btn btn-primary" id="openCart" disabled>Ver meu carrinho <span aria-hidden="true">↗</span></button></div></div>
   <div class="modal-backdrop" id="doseModal" role="dialog" aria-modal="true" aria-label="Escolher gelo e energético da dose">

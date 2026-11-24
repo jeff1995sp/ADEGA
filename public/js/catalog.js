@@ -1,8 +1,8 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice} from './shared.js';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct} from './shared.js';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
-let currentOrder=null;
+let currentOrder=null,searchText='';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const open=id=>$(id)?.classList.add('open');
@@ -41,23 +41,51 @@ const productCard=p=>{
     <div class="product-footer"><span class="price">${p.price_cents?(isHouseGin(p)?'A partir de '+fmt(p.price_cents):fmt(p.price_cents)):'Preço em breve'}</span>
     ${customizable?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo e energético'}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
 };
+const categoryIcons={'Todos':'▦','Batidas':'◉','Whisky':'♜','Vodka':'♜','Gin':'♜','Cervejas':'▥','Caipirinhas':'◈','Bebidas prontas':'▣','Águas e Refrigerantes':'♧','Doces e Salgadinhos':'◇','Diversos':'•••','Vinhos':'♢'};
+const categoryLabel=c=>c==='Todos'?'Todos os Produtos':c==='Batidas'?'Batidas (700 ml)':c;
+const categoryCover={'Batidas':'/imagens/morango-com-nutella.webp','Whisky':'/imagens/jack-com-red-bull.webp','Vodka':'/imagens/absolut-com-red-bull.webp','Gin':'/imagens/beefeater-com-red-bull.webp','Cervejas':'/imagens/heineken.webp','Caipirinhas':'/imagens/caipirinha-de-limao.webp','Bebidas prontas':'/imagens/draft.webp','Águas e Refrigerantes':'/imagens/refrigerante-em-lata.webp','Doces e Salgadinhos':'/imagens/doritos.webp','Diversos':'/imagens/pilhas-panasonic.webp'};
+const publicCategoryOrder=['Todos','Batidas','Whisky','Vodka','Gin','Cervejas','Caipirinhas','Bebidas prontas','Águas e Refrigerantes','Doces e Salgadinhos','Vinhos','Diversos'];
 function showCategories(){
-  const exist=new Set(products.filter(visibleInCatalog).map(catalogCategory));
-  const cats=CATEGORIES.filter(c=>c==='Todos'||(c!=='Tabacaria'&&exist.has(c)));
-  if(!cats.includes(category))category='Todos';
-  $('categoryTabs').innerHTML=cats.map(c=>`<button class="tab ${c===category?'active':''}" data-category="${esc(c)}">${esc(c)}</button>`).join('');
+ const exist=new Set(products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)).map(catalogCategory));
+ const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||(c!=='Tabacaria'&&exist.has(c)));
+ if(!cats.includes(category))category='Todos';
+ $('categorySideLinks').innerHTML=cats.map(c=>`<button type="button" class="hora-side-link ${c===category?'active':''}" data-category="${esc(c)}" aria-pressed="${c===category}"><span aria-hidden="true">${categoryIcons[c]||'◇'}</span>${esc(categoryLabel(c))}</button>`).join('');
+ $('categoryTabs').innerHTML=cats.filter(c=>c!=='Todos').map(c=>{
+  const sample=products.find(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)&&catalogCategory(p)===c&&photoStatusFor(p)!=='pending');
+  const photo=sample?photoFor(sample):categoryCover[c];
+  return `<button type="button" class="tab ${c===category?'active':''}" data-category="${esc(c)}" aria-pressed="${c===category}">${photo?`<img src="${esc(photo)}" alt="" loading="lazy">`:`<span class="category-symbol">${categoryIcons[c]||'◇'}</span>`}<strong>${esc(categoryLabel(c))}</strong></button>`;
+ }).join('');
+}
+function snackGroup(p){
+ const n=photoSlug(p.name);
+ if(/trident|bubbaloo|plutonita|chiclete/.test(n))return 'Chicletes';
+ if(/doritos|fofura|torcida|fandangos|lays|lay-s|salgadinho|rikitos/.test(n))return 'Salgadinhos';
+ if(/halls|mentos|bala|pirulito/.test(n))return 'Balas e pirulitos';
+ return 'Doces e chocolates';
 }
 function renderProducts(){
-  showCategories();
-  const general=products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p));
-  const list=category==='Todos'?general:general.filter(p=>catalogCategory(p)===category);
-  const message='<div class="empty">O cardápio será cadastrado em breve. Nenhuma cobrança ou pedido fictício será criado.</div>';
-  $('productGrid').innerHTML=list.length?list.map(productCard).join(''):message;
-  // O estoque de Tabacaria permanece exclusivamente no admin, não no checkout online.
-  $('endCategory').innerHTML='';
-  $('cartCount').textContent=`${count()} ${count()===1?'item':'itens'}`;
-  $('cartTotal').textContent=fmt(total());
-  $('openCart').disabled=count()===0||!shop.accepting_orders;
+ showCategories();
+ const general=products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p));
+ const norm=photoSlug(searchText);
+ const list=general.filter(p=>(category==='Todos'||catalogCategory(p)===category)&&(!norm||photoSlug(p.name+' '+catalogCategory(p)).includes(norm)));
+ $('catalogHeading').textContent=searchText?'RESULTADOS DA BUSCA':category==='Todos'?'DESTAQUES DA HORA EXTRA':categoryLabel(category).toUpperCase();
+ $('catalogResultCount').textContent=list.length+' produtos';
+ const message='<div class="empty">Nenhum produto encontrado.</div>';
+ if(category==='Doces e Salgadinhos'&&list.length){
+  const groups=['Salgadinhos','Chicletes','Balas e pirulitos','Doces e chocolates'];
+  $('productGrid').innerHTML=groups.map(group=>{
+   const rows=list.filter(p=>snackGroup(p)===group).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+   return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(productCard).join(''):'';
+  }).join('');
+ }else{
+  const ordered=category==='Todos'?[...list].sort((a,b)=>publicCategoryOrder.indexOf(catalogCategory(a))-publicCategoryOrder.indexOf(catalogCategory(b))||(a.sort_order||0)-(b.sort_order||0)):list;
+  $('productGrid').innerHTML=ordered.length?ordered.map(productCard).join(''):message;
+ }
+ $('endCategory').innerHTML='';
+ $('cartCount').textContent=`${count()} ${count()===1?'item':'itens'}`;
+ $('headerCartCount').textContent=count();
+ $('cartTotal').textContent=fmt(total());
+ $('openCart').disabled=count()===0||!shop.accepting_orders;
 }
 function cleanCart(){
  let changed=false;
@@ -144,7 +172,7 @@ async function loadCatalog(){
     const d=await api('catalog',null,{method:'GET'});
     const snapshot=JSON.stringify(d);
     if(snapshot===lastSnapshot)return;
-    lastSnapshot=snapshot;products=d.products||[];drinkOptions=d.drink_options||[];shop=d.store||shop;
+    lastSnapshot=snapshot;products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
     setBrand(shop.name);
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
@@ -161,7 +189,7 @@ async function loadCatalog(){
       if (!response.ok) throw Error('Catálogo indisponível');
       const d=await response.json();
       if (!Array.isArray(d.products)) throw Error('Catálogo inválido');
-      products=d.products.filter(p=>p.category!=='Tabacaria').map(p=>({...p,active:false,stock:0,unlimited:false}));drinkOptions=[];
+      products=d.products.filter(p=>p.category!=='Tabacaria').map(normalizeProduct).map(p=>({...p,active:false,stock:0,unlimited:false}));drinkOptions=[];
       shop={...(d.store||{}),accepting_orders:false};
       setBrand(shop.name);
       $('modeBanner').className='mode-banner offline';
@@ -342,7 +370,12 @@ function start(){
    if(button)addCheckoutExtra(button.dataset.checkoutExtra);
   });
   $('checkoutExtrasDismiss').addEventListener('click',()=>{extrasDismissed=true;renderCheckoutExtras();});
-  $('categoryTabs').addEventListener('click',e=>{const btn=e.target.closest('[data-category]');if(!btn)return;category=btn.dataset.category;renderProducts();});
+  const chooseCategory=e=>{const btn=e.target.closest('[data-category]');if(!btn)return;category=btn.dataset.category;searchText='';$('productSearch').value='';renderProducts();$('categorySidebar').classList.remove('mobile-open');$('menuToggle').setAttribute('aria-expanded','false');};
+  $('categoryTabs').addEventListener('click',chooseCategory);
+  $('categorySideLinks').addEventListener('click',chooseCategory);
+  $('productSearch').addEventListener('input',e=>{searchText=e.target.value.trim();category='Todos';renderProducts();});
+  $('menuToggle').addEventListener('click',()=>{const el=$('categorySidebar');el.classList.toggle('mobile-open');$('menuToggle').setAttribute('aria-expanded',String(el.classList.contains('mobile-open')));if(el.classList.contains('mobile-open'))$('catalogo').scrollIntoView({block:'start'});});
+  $('headerCart').onclick=()=>count()?showCheckout():toast('Seu carrinho está vazio. Escolha um produto.');
   $('openCart').addEventListener('click',showCheckout);
   $('closeCart').onclick=()=>close('cartModal');
   $('closeTracking').onclick=()=>close('trackingModal');
@@ -388,7 +421,7 @@ function start(){
   }
   try{currentOrder=JSON.parse(localStorage.getItem('adega_my_order_v1')||'null');}catch{}
   if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();}
-  $('trackBtn')?.addEventListener('click',()=>{loadTracking();open('trackingModal');});
+  $('trackBtn')?.addEventListener('click',()=>{if(!currentOrder)return toast('Você ainda não possui pedido neste dispositivo.');loadTracking();open('trackingModal');});
   (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
   loadCatalog();
   setInterval(()=>{if(!document.hidden)loadCatalog();},30000);

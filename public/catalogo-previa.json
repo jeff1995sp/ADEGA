@@ -617,7 +617,7 @@
     },
     {
       "id": "produto-048",
-      "name": "Lay's (embalagem preta)",
+      "name": "Lay's Sensações",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 0,
@@ -630,7 +630,7 @@
     },
     {
       "id": "produto-049",
-      "name": "Fofura (embalagem azul)",
+      "name": "Fofura Presunto",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 350,
@@ -656,7 +656,7 @@
     },
     {
       "id": "produto-051",
-      "name": "Fofura (embalagem roxa)",
+      "name": "Fofura Churrasco",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 350,
@@ -682,7 +682,7 @@
     },
     {
       "id": "produto-053",
-      "name": "Torcida (embalagem roxa)",
+      "name": "Torcida Churrasco",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 300,
@@ -708,7 +708,7 @@
     },
     {
       "id": "produto-055",
-      "name": "Bubbaloo (embalagem rosa)",
+      "name": "Bubbaloo Tutti-Frutti",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 50,
@@ -721,7 +721,7 @@
     },
     {
       "id": "produto-056",
-      "name": "Bubbaloo (embalagem azul)",
+      "name": "Bubbaloo Hortelã",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 50,
@@ -734,7 +734,7 @@
     },
     {
       "id": "produto-057",
-      "name": "Trident (embalagem verde)",
+      "name": "Trident Melancia",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 300,

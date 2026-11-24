@@ -1,0 +1,62 @@
+/* Layout de vitrine Hora Extra Drinks. Preserva todos os controles funcionais. */
+body.catalog-body{background:#090909;color:#fff}
+.catalog-body .shell{max-width:1800px;padding:0 22px}
+.catalog-body .hora-nav{position:sticky;top:0;z-index:24;background:#090909f7;border-bottom:1px solid #9d181d}
+.hora-nav .header-inner{min-height:72px!important;display:flex;gap:16px;align-items:center}
+.hora-menu-button,.hora-cart-button,.hora-nav-links button{border:0;background:none;color:#fff;font-weight:800}
+.hora-menu-button{font-size:1.8rem;padding:6px 10px}
+.hora-nav-logo img{width:62px;height:62px;object-fit:contain;display:block}
+.hora-nav-links{display:flex;gap:10px;align-items:center;white-space:nowrap}
+.hora-nav-links a,.hora-nav-links button{font-weight:800;font-size:1.05rem;padding:12px 17px;border-radius:9px}
+.hora-nav-links .nav-home{background:linear-gradient(#f11b24,#bd050d);border:1px solid #ff3535}
+.hora-search{display:flex;align-items:center;gap:10px;border:1px solid #ff343e;border-radius:28px;flex:1;max-width:510px;margin-left:auto;background:#161616;padding:0 14px}
+.hora-search span{font-size:1.6rem}.hora-search input{background:transparent!important;border:0!important;padding:10px 0;font-size:1rem;min-width:0}
+.hora-cart-button{font-size:1.35rem;position:relative;white-space:nowrap}
+#headerCartCount{display:inline-grid;place-items:center;border-radius:50%;background:#e20c19;color:white;min-width:24px;height:24px;padding:2px;font-size:.8rem}
+.hora-banner{isolation:isolate;display:grid;grid-template-columns:minmax(180px,25%) minmax(0,47%) minmax(175px,28%);align-items:center;min-height:290px;padding:12px 3%;gap:12px;overflow:hidden;border-bottom:2px solid #8b1518;background:linear-gradient(90deg,#09090935,#09090938 65%,#090909b0),url('/img/comunidade-urbana.svg') center 45%/cover}
+.hora-banner-brand{text-align:center}.hora-banner-brand img{display:block;margin:auto;width:min(100%,245px);height:210px;object-fit:contain;filter:drop-shadow(0 8px 16px #000b)}
+.hora-address{display:flex;justify-content:center;align-items:center;gap:10px;color:#fff;text-shadow:1px 2px #000;font-weight:900;font-size:clamp(.8rem,1.4vw,1.2rem);line-height:1.15}
+.hora-address span{color:#ff303a;font-size:2rem}
+.hora-banner-drinks{display:flex;justify-content:center;align-items:end;height:275px;gap:4px;min-width:0;overflow:hidden}
+.hora-banner-drinks img{width:33%;height:90%;object-fit:contain;filter:drop-shadow(0 10px 10px #000);border-radius:12px}
+.hora-banner-drinks .hero-mixed{height:100%;width:37%}
+.hora-banner-copy{font-family:'Outfit',sans-serif;text-transform:uppercase;font-size:clamp(1.15rem,2.45vw,2.8rem);font-style:italic;font-weight:900;line-height:1.1;color:#fff;text-shadow:2px 3px #000}
+.hora-banner-copy em{display:block;color:#ff202a;font-weight:900;margin:10px 0}
+.hora-banner-copy .btn{font-style:normal;font-size:.85rem}
+.catalog-body .hora-catalog{padding:20px 0 50px!important;background:#090909;scroll-margin-top:85px}
+.hora-catalog-layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:20px;align-items:start}
+.hora-sidebar{position:sticky;top:90px;padding:8px;background:#101010;border:1px solid #353535;border-radius:16px;max-height:calc(100vh - 170px);overflow:auto}
+.hora-sidebar-title{padding:11px 13px;color:#aaa;letter-spacing:.13em;font-size:.72rem;font-weight:800}
+.hora-side-link{display:flex;align-items:center;gap:13px;padding:14px 12px;width:100%;border:0;border-bottom:1px solid #262626;background:none;color:white;text-align:left;font-weight:800;font-size:.98rem;border-radius:8px}
+.hora-side-link span{width:24px;flex:none;text-align:center;font-size:1.4rem}
+.hora-side-link.active{background:linear-gradient(100deg,#b70912,#ed1925);border-color:#f62e39}
+.hora-catalog-main{min-width:0}
+.catalog-body .hora-category-cards{display:flex;flex-wrap:nowrap;overflow:auto;padding:0 0 12px;margin-bottom:12px;gap:8px;scrollbar-width:thin;scrollbar-color:#c31a23 #242424}
+.catalog-body .hora-category-cards .tab{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:4px;flex:0 0 clamp(100px,9vw,145px);height:135px;white-space:normal;border:2px solid #c91b26;background:linear-gradient(#301212,#101010);padding:5px;border-radius:12px;text-align:center;color:#fff}
+.hora-category-cards .tab img{width:100%;height:85px;object-fit:contain;border-radius:7px}.hora-category-cards .tab strong{font-size:.85rem;line-height:1.12}.hora-category-cards .category-symbol{font-size:2.5rem}
+.catalog-body .hora-category-cards .tab.active{border-color:#ff5c62;box-shadow:inset 0 0 0 2px #d52228}
+.hora-catalog-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 12px}
+.hora-catalog-heading h2{font-family:'Outfit',sans-serif;font-weight:900;font-style:italic;background:linear-gradient(90deg,#b20c15,#a50812 65%,transparent);padding:9px 26px 9px 15px;font-size:clamp(1.05rem,1.7vw,1.7rem);color:white}
+#catalogResultCount{color:#bfbfbf;font-size:.72rem;white-space:nowrap}
+.catalog-body .hora-catalog .products{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.catalog-body .hora-catalog .product{border:1px solid #93313a;background:#111;box-shadow:none;border-radius:11px;min-width:0}
+.catalog-body .hora-catalog .product-visual{height:clamp(142px,13.6vw,240px)!important;background:radial-gradient(ellipse at center,#442022,#151515)!important;border-bottom:1px solid #333}
+.catalog-body .hora-catalog .product-visual.packshot{background:#f8f8f8!important}
+.catalog-body .hora-catalog .product-visual .product-photo{padding:8px 7px 20px!important;object-fit:contain!important;object-position:center}
+.catalog-body .hora-catalog .product-visual .flag{display:none}
+.catalog-body .hora-catalog .photo-note{font-size:.54rem;max-width:96%;padding:3px 5px}
+.catalog-body .hora-catalog .product-content{background:#111;padding:10px;gap:5px;min-width:0}
+.catalog-body .hora-catalog .product-content h3{font-size:.94rem;line-height:1.18;color:#fff;overflow-wrap:anywhere}
+.catalog-body .hora-catalog .product-content p{min-height:0;font-size:.73rem;line-height:1.28;color:#d2d2d2}
+.catalog-body .hora-catalog .product-content .tiny{font-size:.64rem}
+.catalog-body .hora-catalog .product-footer{display:flex;flex-wrap:wrap;align-items:center;padding-top:8px;gap:5px;border-top:1px solid #383838}
+.catalog-body .hora-catalog .price{color:#ff3d48;font-size:1.13rem;width:100%}
+.catalog-body .hora-catalog .qty{width:100%;justify-content:space-between}
+.catalog-body .hora-catalog .qty button{border-color:#b4373c}
+.catalog-body .hora-catalog .dose-qty strong{font-size:.65rem}
+.catalog-body .hora-catalog .dose-qty button{font-size:.66rem;padding:8px!important}
+.hora-product-group{grid-column:1/-1;font-size:1.02rem;border-bottom:1px solid #6a2529;color:#fff;padding:10px 0 5px;margin-top:8px}
+@media(max-width:1350px){.catalog-body .hora-catalog .products{grid-template-columns:repeat(5,minmax(0,1fr))}.hora-catalog-layout{grid-template-columns:205px minmax(0,1fr)}}
+@media(max-width:1120px){.catalog-body .hora-catalog .products{grid-template-columns:repeat(4,minmax(0,1fr))}.hora-catalog-layout{grid-template-columns:180px minmax(0,1fr)}.hora-nav-links a,.hora-nav-links button{font-size:.85rem;padding:10px 8px}.hora-nav-logo img{width:48px;height:48px}}
+@media(max-width:800px){.catalog-body .shell{padding:0 12px}.hora-nav .header-inner{gap:8px;flex-wrap:wrap;padding:6px 12px}.hora-nav-links{margin-left:auto}.hora-nav-links .nav-home{display:none}.hora-nav-links a,.hora-nav-links button{font-size:.76rem;padding:8px 5px}.hora-search{flex-basis:100%;order:5;max-width:none}.hora-menu-button{font-size:1.4rem;padding:4px}.hora-banner{grid-template-columns:34% minmax(0,1fr);min-height:190px;gap:6px;padding:9px}.hora-banner-brand img{height:130px}.hora-address{font-size:.66rem}.hora-banner-drinks{height:180px}.hora-banner-copy{grid-column:1/-1;font-size:.93rem;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 6px}.hora-banner-copy strong br{display:none}.hora-banner-copy .btn{display:none}.hora-banner-copy em{white-space:nowrap}.hora-catalog-layout{display:block}.hora-sidebar{display:none;position:relative;top:0;max-height:none;margin-bottom:12px}.hora-sidebar.mobile-open{display:block}.catalog-body .hora-catalog .products{grid-template-columns:repeat(3,minmax(0,1fr))}.catalog-body .hora-category-cards .tab{height:107px;flex-basis:95px}.hora-category-cards .tab img{height:65px}.catalog-body .hora-catalog .product-visual{height:150px!important}.hora-catalog-heading h2{font-size:1rem}}
+@media(max-width:520px){.catalog-body .hora-catalog .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.catalog-body .hora-catalog .product-content{padding:9px}.catalog-body .hora-catalog .product-visual{height:155px!important}.hora-banner-copy strong{font-size:.72rem}.hora-banner-copy em{font-size:.75rem}.hora-nav-links a,.hora-nav-links button{font-size:.74rem}.hora-catalog-heading h2{padding:7px 10px}.hora-banner-drinks{height:150px}}

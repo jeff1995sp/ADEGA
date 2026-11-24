@@ -46,6 +46,8 @@ export const photoStatusFor=p=>{
  if(ILLUSTRATIVE_LOCAL_PATHS.has(local))return 'illustrative';
  return LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
 };
+const NAME_CORRECTIONS={"produto-049":["Fofura (embalagem azul)","Fofura Presunto"],"produto-051":["Fofura (embalagem roxa)","Fofura Churrasco"],"produto-053":["Torcida (embalagem roxa)","Torcida Churrasco"],"produto-055":["Bubbaloo (embalagem rosa)","Bubbaloo Tutti-Frutti"],"produto-056":["Bubbaloo (embalagem azul)","Bubbaloo Hortelã"],"produto-057":["Trident (embalagem verde)","Trident Melancia"],"produto-048":["Lay's (embalagem preta)","Lay's Sensações"]};
+export const normalizeProduct=p=>{const known=NAME_CORRECTIONS[p?.id];return known&&p.name===known[0]?{...p,name:known[1]}:p;};
 export const photoFor=p=>localPhotoPath(p);
 export const photoFallbackFor=p=>{
  const local=localPhotoPath(p);
