@@ -100,10 +100,15 @@ export async function api(route,body={},opts={}){
   if(method!=='GET')headers['Content-Type']='application/json';
   if(opts.admin && session?.token)headers['Authorization']='Bearer '+session.token;
   if(opts.tvCode)headers['X-TV-Code']=opts.tvCode;
-  const response=await fetch('/api?route='+encodeURIComponent(route),{method,headers,body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store'});
-  let data;try{data=await response.json();}catch{throw Error('O servidor não respondeu corretamente.');}
-  if(!response.ok)throw Error(data?.error||'Falha de conexão.');
-  return data;
+  const controller=typeof AbortController==='function'?new AbortController():null;
+  const timeout=controller?setTimeout(()=>controller.abort(),opts.timeout||15000):null;
+  try{
+    const response=await fetch('/api?route='+encodeURIComponent(route),{method,headers,body:method==='GET'?undefined:JSON.stringify(body),cache:'no-store',...(controller?{signal:controller.signal}:{})});
+    let data;try{data=await response.json();}catch{const e=Error('O servidor não respondeu corretamente (HTTP '+response.status+').');e.status=response.status;throw e;}
+    if(!response.ok){const e=Error(data?.error||'Falha de conexão (HTTP '+response.status+').');e.status=response.status;throw e;}
+    return data;
+  }catch(e){if(e.name==='AbortError')throw Error('O servidor demorou a responder. Tente novamente.');throw e;}
+  finally{if(timeout!==null)clearTimeout(timeout);}
 }
 export const setBrand=(name)=>document.querySelectorAll('.brand-name').forEach(e=>e.textContent=(!name||/^adega digital$/i.test(name.trim()))?'Hora Extra Drinks':name);
 export const minutesAgo=iso=>{

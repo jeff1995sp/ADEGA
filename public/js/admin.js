@@ -1,4 +1,4 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-12';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-auth';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
@@ -389,19 +389,16 @@ async function start(){
   $('soundToggle').onclick=()=>{sounds=!sounds;$('soundToggle').textContent=sounds?'🔔 Alertas ligados':'🔕 Ativar alertas';if(sounds)tone();};
   $('logoutBtn').onclick=async()=>{try{await api('admin-logout',{}, {admin:true});}catch{}finally{authClear();showLogin();lastCatalogAt=0;}};
   $('loginForm').addEventListener('submit',async e=>{
-    e.preventDefault();$('loginError').textContent='';
+    e.preventDefault();const button=$('adminLoginSubmit');if(button.disabled)return;
+    $('loginError').textContent='';button.disabled=true;button.textContent='Entrando…';
     try{
       const username=$('username').value.trim().toLowerCase(),password=$('pass').value;
       if(username!=='admin')throw Error('Use o usuário admin.');
-      const response=await fetch('/api/admin-login',{
-        method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({username,password}),cache:'no-store'
-      });
-      const d=await response.json().catch(()=>({error:'Resposta inválida do servidor.'}));
-      if(!response.ok)throw Error(d.error||'Falha ao entrar no painel.');
+      const d=await api('login',{username,password},{timeout:12000});
+      if(!d.token||!d.expires_at)throw Error('Resposta de login inválida.');
       authSave(d);$('pass').value='';showAdmin();await refreshData();
-    }
-    catch(err){$('loginError').textContent=err.message;}
+    }catch(err){$('loginError').textContent=err.message||'Não foi possível conectar ao admin.';}
+    finally{button.disabled=false;button.textContent='Entrar no painel';}
   });
   if(authRead()?.token){showAdmin();await refreshData();}else showLogin();
   setInterval(()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);},3000);

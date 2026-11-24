@@ -1,12 +1,15 @@
-import {api,esc,pad,toast,setBrand} from './shared.js';
+import {api,esc,pad,toast,setBrand} from './shared.js?v=20261124-auth';
 const $=id=>document.getElementById(id);
 const STORAGE='adega_tv_code_v1', VOICES='adega_tv_voices_v1';
-let tvCode=localStorage.getItem(STORAGE)||'',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false;
+let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false,connected=false,retryAt=0;
+try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
+function tvError(message){$('tvLoginError').textContent=message;}
+function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -53,20 +56,40 @@ function renderTv(orders){
   if(seen.size>1500)seen=new Set([...seen].slice(-300));
 }
 async function poll(){
-  if(checking || !tvCode)return;
+  if(checking||!tvCode||Date.now()<retryAt)return;
+  const code=tvCode;
   checking=true;
+  $('tvConnect').disabled=true;$('tvConnect').textContent='Conectando…';
+  if(!connected)tvError('');
   try{
-    const d=await api('tv',null,{method:'GET',tvCode});
-    showBoard();const rows=d.orders||[],snapshot=JSON.stringify(rows);if(snapshot!==tvSnapshot||!started){tvSnapshot=snapshot;renderTv(rows);}
+    const d=await api('tv',null,{method:'GET',tvCode:code,timeout:12000});
+    if(tvCode!==code)return;
+    if(!Array.isArray(d.orders))throw Error('Resposta inválida do painel da TV.');
+    const rows=d.orders,snapshot=JSON.stringify(rows);
+    if(snapshot!==tvSnapshot||!started){renderTv(rows);tvSnapshot=snapshot;}
+    connected=true;retryAt=0;
+    try{localStorage.setItem(STORAGE,code);}catch{}
+    $('tvKey').value='';tvError('');showBoard();
     $('modeBanner').className='mode-banner live';$('modeBanner').textContent='● Painel conectado • atualização automática a cada 3 segundos';
-  }catch(e){if(/c[oó]digo.*incorreto|passcode|TV_PASSCODE/i.test(e.message)){tvCode='';localStorage.removeItem(STORAGE);showAuth();}else $('modeBanner').textContent='Conexão indisponível • reconectando automaticamente';}
-  finally{checking=false;}
+  }catch(e){
+    if(tvCode!==code)return;
+    const msg=e.message||'Não foi possível conectar à TV.';
+    const rejected=[401,403,429].includes(e.status)||/c[oó]digo.*incorreto|passcode|TV_PASSCODE/i.test(msg);
+    $('modeBanner').className='mode-banner offline';
+    if(!connected||rejected){
+      tvClearCode();showAuth();tvError(msg);
+      $('modeBanner').textContent='TV desconectada';
+    }else{
+      retryAt=Date.now()+15000;
+      $('modeBanner').textContent='Conexão indisponível • nova tentativa em 15 segundos';
+    }
+  }finally{checking=false;$('tvConnect').disabled=false;$('tvConnect').textContent='Conectar painel ↗';}
 }
 function time(){ $('tvClock').textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date()); }
 function start(){
   time();setInterval(time,10000);
-  $('tvAuthForm').addEventListener('submit',e=>{e.preventDefault();tvCode=$('tvKey').value.trim();localStorage.setItem(STORAGE,tvCode);started=false;seen.clear();poll();});
-  $('changeKey').onclick=()=>{tvCode='';started=false;seen.clear();localStorage.removeItem(STORAGE);showAuth();};
+  $('tvAuthForm').addEventListener('submit',e=>{e.preventDefault();if(checking)return;const code=$('tvKey').value.trim();if(!code)return tvError('Informe o código da TV.');tvClearCode();tvCode=code;retryAt=0;poll();});
+  $('changeKey').onclick=()=>{tvClearCode();retryAt=0;tvError('');showAuth();$('modeBanner').textContent='TV desconectada';};
   $('fullScreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('A TV não permite tela cheia neste navegador.',true);}};
   $('activateSound').onclick=()=>{
     if(!('speechSynthesis' in window))return toast('Este navegador não suporta fala. Use um navegador Android TV compatível ou APK.',true);
@@ -81,7 +104,7 @@ function start(){
 
   }
   if('speechSynthesis' in window){updateVoices();speechSynthesis.onvoiceschanged=updateVoices;}
-  if(tvCode)poll();else showAuth();
+  if(tvCode){showAuth();poll();}else{showAuth();$('modeBanner').textContent='TV desconectada';}
   setInterval(poll,3000);
   window.addEventListener('focus',poll);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();});

@@ -8,6 +8,10 @@ const server=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api'){
   if(url.searchParams.get('route')==='catalog'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({store:{name:'Hora Extra Drinks',accepting_orders:true},products:[product],drink_options:[],best_sellers:[]}));}
+  if(url.searchParams.get('route')==='tv'){const ok=req.headers['x-tv-code']==='local-tv-valid-code';res.writeHead(ok?200:403,{'Content-Type':'application/json'});return res.end(JSON.stringify(ok?{orders:[]}:{error:'Código da TV incorreto.'}));}
+  if(url.searchParams.get('route')==='login'){let data='';req.on('data',chunk=>data+=chunk);req.on('end',()=>{const body=JSON.parse(data);const ok=body.password==='local-admin-valid-code';res.writeHead(ok?200:401,{'Content-Type':'application/json'});res.end(JSON.stringify(ok?{token:'local-session',expires_at:Math.floor(Date.now()/1000)+3600}:{error:'Usuário ou senha incorretos.'}));});return;}
+  if(url.searchParams.get('route')==='admin-orders'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({orders:[]}));}
+  if(url.searchParams.get('route')==='admin-catalog'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({store:{name:'Hora Extra Drinks',accepting_orders:true,low_stock_threshold:5},products:[product],drink_options:[],drink_options_ready:true}));}
   res.writeHead(403,{'Content-Type':'application/json'});return res.end('{}');
  }
  const filename=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
@@ -35,7 +39,11 @@ const server=http.createServer((req,res)=>{
    await page.goto(origin+'/admin.html');await page.locator('#loginScreen:not(.hidden)').waitFor();
    const dim=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
    assert.ok(dim.actual<=dim.viewport+2,device+' login '+JSON.stringify(dim));
-   console.log(device+' '+width+'x'+height+': catálogo, carrinho, dinheiro, troco e login OK');
+   await page.locator('#username').fill('admin');await page.locator('#pass').fill('wrong');await page.locator('#adminLoginSubmit').click();await page.locator('#loginError').filter({hasText:'Usuário ou senha incorretos.'}).waitFor();
+   await page.locator('#pass').fill('local-admin-valid-code');await page.locator('#adminLoginSubmit').click();await page.locator('#appScreen:not(.hidden)').waitFor();
+   await page.goto(origin+'/tv.html');await page.locator('#tvAuth:not(.hidden)').waitFor();await page.locator('#tvKey').fill('wrong');await page.locator('#tvConnect').click();await page.locator('#tvLoginError').filter({hasText:'Código da TV incorreto.'}).waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('adega_tv_code_v1')),null);
+   await page.locator('#tvKey').fill('local-tv-valid-code');await page.locator('#tvConnect').click();await page.locator('#tvBoard:not(.hidden)').waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('adega_tv_code_v1')),'local-tv-valid-code');
+   console.log(device+' '+width+'x'+height+': catálogo, carrinho, dinheiro, troco e autenticação admin/TV OK');
   }finally{await browser.close();}
  }
  }finally{server.close();}
