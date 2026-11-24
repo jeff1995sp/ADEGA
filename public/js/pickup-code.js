@@ -1,3 +1,2 @@
 export const pickupNameKey=o=>[o.first_name,o.last_name].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
 export const duplicateNames=orders=>{const counts=new Map();for(const o of orders){if(['delivered','cancelled'].includes(o.status))continue;const k=pickupNameKey(o);counts.set(k,(counts.get(k)||0)+1);}return new Set([...counts].filter(([,n])=>n>1).map(([k])=>k));};
-export const pickupCode=async o=>{const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('pickup:v1:'+o.public_token)));const n=new DataView(digest.buffer).getUint32(0)%1000000;return String(o.order_no).padStart(4,'0')+'-'+String(n).padStart(6,'0');};

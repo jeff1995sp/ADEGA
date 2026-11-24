@@ -78,7 +78,7 @@ function renderOrders(){
     const steps=o.status==='received'?button('Iniciar preparo','status',o.id,'preparing','primary')+button('Marcar pronto','status',o.id,'ready','secondary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card premium-order order-${esc(o.status)}"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
-    ${o.duplicate_name?'<div class="order-duplicate-warning"><strong>Atenção: nome repetido na fila</strong><span>Confira o número do pedido e o código privado no celular do cliente antes de entregar.</span></div>':''}<div class="order-flow" aria-label="Etapas do pedido">${timeline}</div><section class="order-items-panel"><div class="order-items-caption">ITENS DO PEDIDO</div><ul class="order-item-lines">${allItems(o)||'<li>Sem itens registrados</li>'}</ul><div class="order-payment-line"><div><small>Forma de pagamento</small><strong>${esc(labels[o.payment_method]||o.payment_method)}</strong></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div></div></section>${cash}
+    ${o.duplicate_name?'<div class="order-duplicate-warning"><strong>Atenção: nome repetido na fila</strong><span>Confira o número do pedido na TV ou no celular do cliente. Não é necessário digitar código.</span></div>':''}<div class="order-flow" aria-label="Etapas do pedido">${timeline}</div><section class="order-items-panel"><div class="order-items-caption">ITENS DO PEDIDO</div><ul class="order-item-lines">${allItems(o)||'<li>Sem itens registrados</li>'}</ul><div class="order-payment-line"><div><small>Forma de pagamento</small><strong>${esc(labels[o.payment_method]||o.payment_method)}</strong></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div></div></section>${cash}
     ${proof}<div class="muted-separator"></div>
     <div class="order-bottom order-actions">${cardAtPickup?'<span class="small sub">Cobrar na maquininha antes de finalizar.</span>':''}
       
@@ -391,7 +391,7 @@ async function performAction(btn){
   else if(action==='finishcash'||action==='finishcard'){
     const order=orders.find(o=>o.id===id);if(!order||order.status!=='ready'||order.payment_method!==(action==='finishcard'?'card':'cash'))return toast('Pedido não está pronto para finalizar.',true);
     const ageNeeded=order.age_required&&!order.age_checked;
-    if(!confirm('Confirme que o pedido foi entregue e o pagamento de '+fmt(order.total_cents)+' foi recebido.'+(ageNeeded?'\nDocumento conferido: cliente tem 18 anos ou mais.':'')))return;
+    if(!confirm('Pedido #'+pad(order.order_no)+' — '+order.first_name+' '+order.last_name+'\nConfirme que o pedido foi entregue e o pagamento de '+fmt(order.total_cents)+' foi recebido.'+(ageNeeded?'\nDocumento conferido: cliente tem 18 anos ou mais.':'')))return;
     route='admin-order-action';body={id,action:action==='finishcard'?'finishcard':'finishcash',received:true,age_confirmed:ageNeeded};
   }
   if(action==='cancel'&&!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
@@ -414,10 +414,6 @@ async function performAction(btn){
     if(raw===''||!Number.isInteger(Number(raw))||Number(raw)<0)return toast('Informe uma quantidade válida.',true);
     route='admin-stock';body={id,mode:'set',quantity:Number(raw)};
   } else if(!route)return;
-  if(['finishcash','finishcard'].includes(action)||(action==='status'&&value==='delivered')){
-    const order=orders.find(o=>o.id===id);
-    if(order?.duplicate_name){const code=prompt('Nome repetido! Digite o código de retirada do pedido '+pad(order.order_no)+' mostrado no celular do cliente.');if(code===null)return;if(!/^\d{4,}-\d{6}$/.test(code.trim()))return toast('Informe o código completo de retirada.',true);body.pickup_code=code.trim();}
-  }
   busy=true;
   try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
