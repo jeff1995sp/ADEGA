@@ -147,3 +147,17 @@ test('D1: Gin comum com energético custa 10 e com Red Bull custa 20, com estoqu
  assert.equal(f.sql.prepare("SELECT stock FROM drink_options WHERE id='energy-common'").get().stock,4);
  assert.equal(f.sql.prepare("SELECT stock FROM drink_options WHERE id='energy-1'").get().stock,4);
 });
+
+test('D1: batidas com e sem álcool são escolhas obrigatórias e chegam separadas ao admin',async()=>{
+ const f=setup(),token=await login(f);
+ f.sql.exec("UPDATE store_settings SET accepting_orders=1; INSERT INTO products(id,name,category,price_cents,stock,active,age_restricted) VALUES ('produto-016','Açaí Batido','Batidas',1500,5,1,1)");
+ const item={id:'produto-016',quantity:1};
+ const req=(items,total=1500)=>payload({items,expected_total_cents:total});
+ assert.equal((await f.call('create-order',req([item]))).status,409);
+ assert.equal((await f.call('create-order',req([{...item,shake_alcohol:'invalido'}]))).status,400);
+ const response=await f.call('create-order',req([{...item,shake_alcohol:'com'},{...item,shake_alcohol:'sem'}],3000));
+ assert.equal(response.status,201,JSON.stringify(response.data));
+ const order=(await f.call('admin-orders',undefined,token)).data.orders[0];
+ assert.deepEqual(order.order_items.map(i=>i.product_name).sort(),['Açaí Batido | Com álcool','Açaí Batido | Sem álcool']);
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-016'").get().stock,3);
+});

@@ -1,98 +1,44 @@
 [
   [
-    "produto-048",
-    "lay-s-embalagem-preta",
-    "https://static.extramercado.com.br/img/uploads/1/718/33244718.png?im=Resize%2Cwidth%3D800",
-    "Lay’s Sensações Peito de Peru; embalagem de referência"
-  ],
-  [
     "produto-052",
     "torcida-bacon",
-    "https://meubrasilonline.com/cdn/shop/files/3_75e872f4-8fff-4146-b88a-e8620829c1bd.png?v=1762800679&width=1920",
+    "https://gigavc.vtexassets.com/arquivos/ids/157384/68fe65586e007a2185e6c6f6.jpg?v=638970993934230000",
     "Torcida Bacon"
   ],
   [
-    "produto-053",
-    "torcida-embalagem-roxa",
-    "https://www.arenaatacado.com.br/on/demandware.static/-/Sites-storefront-catalog-sv/default/dw1c2936b0/Produtos/1013050-7892840822590-salgadinho%20torcida%20churrasco%2060g-torcida-1.jpg",
-    "Torcida Churrasco"
+    "produto-031",
+    "doritos",
+    "https://assets.ibecom.com.br/ib.item.image.large/l-353e7fe2c40146e4a71a4b881c94e356.png",
+    "Doritos Queijo Nacho"
   ],
   [
-    "produto-054",
-    "torcida-embalagem-verde",
-    "https://gddistribuidor.agilecdn.com.br/6199.png?v=543-2416064849",
-    "Torcida Pimenta Mexicana"
+    "produto-032",
+    "fofura",
+    "https://www.elitemasters.com.br/img/Salgadinhos/D_NQ_NP_2X_912014-MLB43151288435_082020-F.jpg",
+    "Fofura sabores variados; referência"
   ],
   [
-    "produto-049",
-    "fofura-embalagem-azul",
-    "https://down-br.img.susercontent.com/file/dfeee5a6a43c9aca81871623742e119b",
-    "Fofura Presunto"
+    "produto-033",
+    "torcida",
+    "https://down-br.img.susercontent.com/file/br-11134207-7r98o-lxramx2y9jtec0",
+    "Torcida sabores variados; referência"
   ],
   [
-    "produto-050",
-    "fofura-embalagem-vermelha",
-    "https://destro.fbitsstatic.net/img/p/salgadinho-fofura-sabor-queijo-60g-87631/274628.jpg?h=500&qs=ignore&v=202501231555&w=500",
-    "Fofura Queijo"
+    "produto-034",
+    "bubbaloo",
+    "https://down-br.img.susercontent.com/file/100f35210dc339607a021f920e17396e",
+    "Bubbaloo sabores variados"
   ],
   [
-    "produto-051",
-    "fofura-embalagem-roxa",
-    "https://docemalu.vtexassets.com/arquivos/ids/5341173-800-auto?aspect=true&height=auto&v=638421750571400000&width=800",
-    "Fofura Churrasco"
+    "produto-027",
+    "smirnoff-ice",
+    "https://www.chegouafeira.com.br/image/cache/catalog/PRODUTOS/Smirnoff%20ICE%20275ml-500x500.jpg",
+    "Smirnoff Ice Original"
   ],
   [
-    "produto-055",
-    "bubbaloo-embalagem-rosa",
-    "https://destro.fbitsstatic.net/img/p/chicletes-bubbaloo-tutti-frutti-300g-60-unidades-73323/259873-1.jpg?h=500&qs=ignore&v=202502071619&w=500",
-    "Bubbaloo Tutti-Frutti unidade"
-  ],
-  [
-    "produto-056",
-    "bubbaloo-embalagem-azul",
-    "https://destro.fbitsstatic.net/img/p/chiclete-bubbaloo-hortela-menta-300g-60-unidades-85525/272089.jpg?h=500&qs=ignore&v=202307191639&w=500",
-    "Bubbaloo Hortelã unidade"
-  ],
-  [
-    "produto-057",
-    "trident-embalagem-verde",
-    "https://down-br.img.susercontent.com/file/br-11134207-7r98o-ma21s0q3kchlae",
-    "Trident Melancia"
-  ],
-  [
-    "produto-059",
-    "mentos-mint",
-    "https://prezunic.vtexassets.com/arquivos/ids/187955/656790db1ef37396807631d4.jpg?v=638368829112630000",
-    "Mentos Mint"
-  ],
-  [
-    "produto-060",
-    "mentos-wild",
-    "https://superadega.agilecdn.com.br/385307.jpg?v=512-2631630625",
-    "Mentos Wild Spearmint"
-  ],
-  [
-    "produto-036",
-    "mentos",
-    "https://cdn.sanity.io/images/e4jxgyeh/production/50f7ed3115815c36bb16bb29da7ebf5ef1dacc95-541x461.png/Captura_de_tela_2025-09-16_135947-removebg-preview.png?auto=format&h=775&rect=41%2C0%2C461%2C461&w=775",
-    "Mentos sabores variados"
-  ],
-  [
-    "produto-035",
-    "trident",
-    "https://down-br.img.susercontent.com/file/br-11134201-23010-gj0t2b25vpmv3e",
-    "Trident sabores variados"
-  ],
-  [
-    "produto-030",
-    "refrigerante-em-lata",
-    "https://dcdn-us.mitiendanube.com/stores/005/194/756/products/img_3119-cf47fa1bcd1fbbbfb217283971449409-640-0.webp",
-    "Refrigerantes em lata; sabores de referência"
-  ],
-  [
-    "produto-029",
-    "draft",
-    "https://multbev.agilecdn.com.br/58_1.jpg",
-    "Draft chopp de vinho tinto; uva roxa, apresentação de referência"
+    "produto-038",
+    "bala-te-adoro",
+    "https://himalaia.agilecdn.com.br/7932.png",
+    "Lacta Te Adoro"
   ]
 ]
