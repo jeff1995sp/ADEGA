@@ -226,14 +226,14 @@ async function createOrder(db,body){
  const saved=await one(db,'SELECT * FROM orders WHERE id=?',oid);if(!saved)throw Error('order missing');
  return orderResult(saved);
 }
-async function cancel(db,id){
+async function cancel(db,id,restoreStock=true){
  if(!uuid(id))reject('Pedido inválido.');
  const eligible="EXISTS(SELECT 1 FROM orders WHERE id=? AND status IN ('received','preparing','ready') AND payment_status<>'paid')";
  const a=stmt(db,"UPDATE products SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='product' AND item_id=products.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='product') AND "+eligible,id,id,id);
  const b=stmt(db,"UPDATE drink_options SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='option' AND item_id=drink_options.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='option') AND "+eligible,id,id,id);
  const c=stmt(db,"UPDATE orders SET status='cancelled',updated_at=? WHERE id=? AND status IN ('received','preparing','ready') AND payment_status<>'paid'",now(),id);
- const result=await db.batch([a,b,c]);
- if(!result[2].meta.changes)reject('Pedido encerrado ou pago. Pedido pago exige estorno.',409);
+ const result=await db.batch(restoreStock?[a,b,c]:[c]);
+ if(!result[result.length-1].meta.changes)reject('Pedido encerrado ou pago. Pedido pago exige estorno.',409);
  return json({ok:true});
 }
 async function orderAction(db,body){
@@ -474,7 +474,7 @@ async function handler(request,env,ctx){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}return json({order:{...order,reviewed}});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}return json({order:{...order,reviewed}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
@@ -483,7 +483,7 @@ async function handler(request,env,ctx){
  return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),...await demandStatus(db)});
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(order);}
- if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);return createOrder(db,body);}
+ if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);const result=await createOrder(db,body);if(validSubscription(body.subscription)){try{const {order}=await result.clone().json();await bindPush(db,order.id,body.subscription);}catch{/* The order is already saved; notifications are optional. */}}return result;}
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
  if(route==='admin-cash-archive'&&method==='POST')return archiveCash(db,body);
@@ -509,7 +509,7 @@ async function handler(request,env,ctx){
  return json({store:await patchRow(db,'store_settings',1,p)});
  }
  if(route==='admin-order-action'&&method==='POST'){const r=await orderAction(db,body);const ready=body.action==='status'&&body.value==='ready',done=['finishcash','finishcard'].includes(body.action)||(body.action==='status'&&body.value==='delivered');if(ready||done){const task=(ready?notifyReady(db,body.id,new URL(request.url).origin):removePush(db,body.id)).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}return r;}
- if(route==='admin-cancel'&&method==='POST'){const r=await cancel(db,body.id);const task=removePush(db,body.id).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;return r;}
+ if(route==='admin-cancel'&&method==='POST'){if(body.restore_stock!==undefined&&typeof body.restore_stock!=='boolean')reject('Informe se o estoque deve ser devolvido.');const r=await cancel(db,body.id,body.restore_stock!==false);const task=removePush(db,body.id).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;return r;}
  return json({error:'Rota não encontrada.'},404);
 }
 export default {async fetch(request,env,ctx){try{return await handler(request,env,ctx);}catch(e){if(e instanceof ApiError)return json({error:e.message},e.status);console.error('ADEGA D1:',String(e?.message||e));return json({error:'Falha no servidor. Tente novamente sem repetir o pedido.'},503);}}};

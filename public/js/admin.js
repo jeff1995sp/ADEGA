@@ -396,12 +396,12 @@ async function performAction(btn){
     if(!confirm('Pedido #'+pad(order.order_no)+' — '+order.first_name+' '+order.last_name+'\nConfirme que o pedido foi entregue e o pagamento de '+fmt(order.total_cents)+' foi recebido.'+(ageNeeded?'\nDocumento conferido: cliente tem 18 anos ou mais.':'')))return;
     route='admin-order-action';body={id,action:action==='finishcard'?'finishcard':'finishcash',received:true,age_confirmed:ageNeeded};
   }
-  if(action==='cancel'&&!confirm('Cancelar este pedido? Os itens serão devolvidos ao estoque do sistema. Se já foram preparados, confira o estoque físico depois.'))return;
+  if(action==='cancel'&&!confirm('Cancelar este pedido? Esta operação encerra o atendimento.'))return;
   if(action==='paid'&&!confirm('O valor realmente foi recebido em dinheiro ou na maquininha?'))return;
   if(action==='age'&&!confirm('Você conferiu o documento e confirmou que a pessoa tem 18 anos ou mais?'))return;
   if(action==='receipt'&&!confirm('O gateway confirmou o Pix e você conferiu o comprovante na entrega?'))return;
   else if(action==='status'||['paid','age','receipt','voice'].includes(action)) {route='admin-order-action';body={id,action,value};}
-  else if(action==='cancel'){route='admin-cancel';body={id};}
+  else if(action==='cancel'){const o=orders.find(x=>x.id===id);const restore=o?.status==='received'||confirm('Os produtos e ingredientes estão intactos e podem voltar ao estoque? OK = devolver ao estoque; Cancelar = não devolver (pedido será cancelado mesmo assim).');route='admin-cancel';body={id,restore_stock:restore};}
   else if(action==='toggle'){route='admin-products';body={id,active:!p.active};method='PATCH';}
   else if(action==='stock'){route='admin-stock';body={id,mode:'add',quantity:Number(value)};}
   else if(action==='setprice'){
