@@ -1,4 +1,4 @@
-import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice, dedupeCatalog, headshopAllowed } from '../public/js/shared.js';
+import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice } from '../public/js/shared.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'}});
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -11,9 +11,7 @@ const now=()=>new Date().toISOString();
 const epoch=()=>Math.floor(Date.now()/1000);
 const MAX_MONEY=100000000, MAX_STOCK=1000000;
 const cats=new Set(CATEGORIES.filter(x=>x!=='Todos'));
-const prohibited=/\b(?:vape|vapes|pod|pods|e-?cig|puff\s*bar)\b|cigarro\s*eletr[oô]nico|dispositivo\s*eletr[oô]nico\s*para\s*fumar/i;
-const internalName=/\b(?:cigarros?|tabacos?|narguil[eé]|piteiras?|zgy|seda|tabaquin)\b/i;
-const visible=p=>publicCatalogProduct(p)&&!prohibited.test(p.name)&&!internalName.test(p.name);
+const visible=p=>publicCatalogProduct(p);
 const boolKeys=['active','unlimited','age_restricted','age_required','age_checked','receipt_checked','accepting_orders'];
 const normalize=r=>r?Object.fromEntries(Object.entries(r).map(([k,v])=>[k,boolKeys.includes(k)?Boolean(v):v])):r;
 const stmt=(db,s,...v)=>db.prepare(s).bind(...v.map(x=>typeof x==='boolean'?Number(x):x));
@@ -63,28 +61,17 @@ async function ensureInternalInventory(db){
  if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',internalInventoryPatch))return;
  await db.batch([stmt(db,internalInventorySeed),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',internalInventoryPatch)]);
 }
-const headshopPatchId='20261124-headshop-acessorios-v1';
-async function populateHeadshop(db){
- if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',headshopPatchId))return;
- // Move only the exact, ordinary accessory records already in the inventory.
- // No change to price, stock, activation or photograph; no duplicate records.
- const allowed=[['interno-803','Isqueiro BIC'],['interno-805','Tesoura'],['interno-870','BIC Mini (isqueiros)'],['interno-871','Isqueiros coloridos'],['interno-807','Isqueiros sortidos']];
- await db.batch([
- ...allowed.filter(([,name])=>headshopAllowed({name})).map(([id,name])=>stmt(db,"UPDATE products SET category='Headshop' WHERE id=? AND name=? AND category='Tabacaria' AND NOT EXISTS (SELECT 1 FROM catalog_patches WHERE id=?)",id,name,headshopPatchId)),
- stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',headshopPatchId)
- ]);
-}
 async function catalog(db,admin){
  await applyCatalogPricePatch(db);
- if(admin){await ensureInternalInventory(db);await populateHeadshop(db);}
+ await ensureInternalInventory(db);
  const [store,products,drink_options,paidSales]=await Promise.all([
  one(db,'SELECT name,accepting_orders,low_stock_threshold FROM store_settings WHERE id=1'),
- many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products '+(admin?'':"WHERE category<>'Tabacaria'")+' ORDER BY sort_order,name'),
+ many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products ORDER BY sort_order,name'),
  many(db,'SELECT id,option_group,name,active,stock,unlimited,sort_order FROM drink_options ORDER BY option_group,sort_order,name'),
  admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
  ]);
  if(!store)reject('Configuração da loja ausente.',503);
- const publicProducts=dedupeCatalog(products.filter(visible));
+ const publicProducts=products.filter(visible);
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  return json({store,products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
@@ -128,7 +115,7 @@ async function createOrder(db,body){
  if(!int(total,1,MAX_MONEY)||total!==body.expected_total_cents)reject('O preço mudou. Atualize o carrinho e confira o total.',409);
  if(method==='cash'&&cash<total)reject('O valor em dinheiro deve cobrir o total do pedido.',409);
  const oid=crypto.randomUUID(),publicToken=crypto.randomUUID(),date=now(),payload=JSON.stringify(lines);
- const sqlItems="INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents,ice_option_id,energy_option_id) SELECT ?,CASE WHEN p.id IS NOT NULL AND p.active=1 AND p.category<>'Tabacaria' AND p.category=json_extract(j.value,'$.category') AND p.name=json_extract(j.value,'$.base_name') AND p.price_cents=json_extract(j.value,'$.base_price') AND p.age_restricted=json_extract(j.value,'$.age') AND p.unlimited=json_extract(j.value,'$.product_unlimited') AND (json_extract(j.value,'$.ice_id') IS NULL OR (a.active=1 AND a.option_group='ice' AND a.name=json_extract(j.value,'$.ice_name') AND a.unlimited=json_extract(j.value,'$.ice_unlimited'))) AND (json_extract(j.value,'$.energy_id') IS NULL OR (b.active=1 AND b.option_group='energy' AND b.name=json_extract(j.value,'$.energy_name') AND b.unlimited=json_extract(j.value,'$.energy_unlimited'))) THEN p.id ELSE NULL END,json_extract(j.value,'$.name'),json_extract(j.value,'$.quantity'),json_extract(j.value,'$.price'),json_extract(j.value,'$.ice_id'),json_extract(j.value,'$.energy_id') FROM json_each(?) j LEFT JOIN products p ON p.id=json_extract(j.value,'$.id') LEFT JOIN drink_options a ON a.id=json_extract(j.value,'$.ice_id') LEFT JOIN drink_options b ON b.id=json_extract(j.value,'$.energy_id')";
+ const sqlItems="INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents,ice_option_id,energy_option_id) SELECT ?,CASE WHEN p.id IS NOT NULL AND p.active=1 AND p.category=json_extract(j.value,'$.category') AND p.name=json_extract(j.value,'$.base_name') AND p.price_cents=json_extract(j.value,'$.base_price') AND p.age_restricted=json_extract(j.value,'$.age') AND p.unlimited=json_extract(j.value,'$.product_unlimited') AND (json_extract(j.value,'$.ice_id') IS NULL OR (a.active=1 AND a.option_group='ice' AND a.name=json_extract(j.value,'$.ice_name') AND a.unlimited=json_extract(j.value,'$.ice_unlimited'))) AND (json_extract(j.value,'$.energy_id') IS NULL OR (b.active=1 AND b.option_group='energy' AND b.name=json_extract(j.value,'$.energy_name') AND b.unlimited=json_extract(j.value,'$.energy_unlimited'))) THEN p.id ELSE NULL END,json_extract(j.value,'$.name'),json_extract(j.value,'$.quantity'),json_extract(j.value,'$.price'),json_extract(j.value,'$.ice_id'),json_extract(j.value,'$.energy_id') FROM json_each(?) j LEFT JOIN products p ON p.id=json_extract(j.value,'$.id') LEFT JOIN drink_options a ON a.id=json_extract(j.value,'$.ice_id') LEFT JOIN drink_options b ON b.id=json_extract(j.value,'$.energy_id')";
  const stockRows=[...quantities].map(([id,qty])=>({id,qty}));
  const optionRows=[...ice,...energy].map(([id,qty])=>({id,qty}));
  const stockSql=table=>"UPDATE "+table+" SET stock=CASE WHEN unlimited=1 THEN stock ELSE stock-(SELECT SUM(json_extract(j.value,'$.qty')) FROM json_each(?) j WHERE json_extract(j.value,'$.id')="+table+".id) END WHERE id IN (SELECT json_extract(value,'$.id') FROM json_each(?))";
@@ -202,11 +189,11 @@ async function patchRow(db,table,id,patch){
 }
 function productPatch(body,creating=false){
  const p={};
- if(creating||body.name!==undefined){const n=text(body.name,121);if(n.length<2||n.length>120||prohibited.test(n))reject('Nome inválido ou produto não permitido.');p.name=n;}
+ if(creating||body.name!==undefined){const n=text(body.name,121);if(n.length<2||n.length>120)reject('Nome inválido.');p.name=n;}
  if(creating||body.category!==undefined){if(!cats.has(body.category))reject('Categoria inválida.');p.category=body.category;}
  if(creating||body.price_cents!==undefined){if(!int(body.price_cents,0,MAX_MONEY))reject('Preço inválido.');p.price_cents=body.price_cents;}
  for(const k of ['active','unlimited','age_restricted'])if(body[k]!==undefined){if(typeof body[k]!=='boolean')reject('Configuração inválida.');p[k]=body[k];}
- if(body.description!==undefined){p.description=text(body.description,450);if(prohibited.test(p.description))reject('Descrição inválida.');}
+ if(body.description!==undefined){p.description=text(body.description,450);}
  if(body.icon!==undefined)p.icon=text(body.icon,6);
  if(body.image_url!==undefined){const v=text(body.image_url,1201);if(v&&(v.length>1200||!validPhoto(v)))reject('URL da foto inválida.');p.image_url=v||null;}
  if(body.sort_order!==undefined){if(!int(body.sort_order,-100000,100000))reject('Ordem inválida.');p.sort_order=body.sort_order;}
@@ -216,18 +203,12 @@ async function productsAdmin(db,body,method){
  const p=productPatch(body,method==='POST');
  if(method==='POST'){
  if(!int(body.stock,0,MAX_STOCK))reject('Estoque inválido.');
- if(internalName.test(p.name)&&p.category!=='Tabacaria')reject('Produto de inventário interno.');
- if(p.category==='Headshop'&&!headshopAllowed(p))reject('Headshop público aceita somente acessórios comuns permitidos.');
  const data={...p,id:crypto.randomUUID(),stock:body.stock,active:false,created_at:now()};
  const keys=Object.keys(data),saved=await one(db,'INSERT INTO products('+keys.join(',')+') VALUES('+keys.map(()=>'?').join(',')+') RETURNING *',...keys.map(k=>data[k]));
  return json({product:saved},201);
  }
  if(!idOk(body.id))reject('Produto inválido.');
  const old=await one(db,'SELECT name,category FROM products WHERE id=?',body.id);if(!old)missing();
- const next={name:p.name??old.name,category:p.category??old.category};
- if(next.category==='Headshop'&&!headshopAllowed(next))reject('Headshop público aceita somente acessórios comuns permitidos.');
- if(old.category==='Tabacaria'&&next.category!=='Tabacaria'&&!(next.category==='Headshop'&&headshopAllowed(old)&&headshopAllowed(next)))reject('Produto interno não pode entrar no cardápio.');
- if(internalName.test(next.name)&&next.category!=='Tabacaria')reject('Produto interno não pode entrar no cardápio.');
  return json({product:await patchRow(db,'products',body.id,p)});
 }
 async function photo(db,body){

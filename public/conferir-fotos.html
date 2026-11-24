@@ -94,7 +94,7 @@ async function loadPhotos(){
    return;
   }
  }
- all=(data.products||[]).filter(p=>p.category!=='Tabacaria');
+ all=data.products||[];
  $('dataMode').textContent=source+' • '+(source.startsWith('Prévia')?'Preços podem diferir do admin. ':'')+'Conferir embalagens antes de marcar como definitivas.';
  render();
 }

@@ -1,11 +1,10 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate,dedupeCatalog,headshopAllowed} from './shared.js?v=20261124-9';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-8';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
 let bestSellers=[];
 let currentOrder=null,searchText='',shakeSelected=null;
 const isShake=p=>p?.category==='Batidas';
-const shakePreparationNote=p=>p?.id==='produto-017'?'Sem álcool: usar somente ingredientes sem álcool, inclusive o substituto do vinho.':'';
 const validShake=v=>v==='com'||v==='sem';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -15,7 +14,7 @@ const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && 
 const total=()=>[...cart.values()].reduce((sum,item)=>sum+doseUnitPrice(products.find(p=>p.id===item.id),optionById(item.energy_id))*item.quantity,0);
 const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
 // O dono confirmou que somente limão e morango seguem no catálogo de caipirinhas.
-const visibleInCatalog=p=> (p.category!=='Headshop'||headshopAllowed(p))&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
+const visibleInCatalog=p=>!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
 const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
 const optionById=id=>drinkOptions.find(o=>o.id===id);
 const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));
@@ -34,7 +33,7 @@ const productCard=(p,featured=false)=>{
   const q=desiredQty(p);
   const customizable=isDoseProduct(p);
   const canConfigure=available(p)&&hasDrinkOptions(p);
-  const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes','Headshop'].includes(catalogCategory(p));
+  const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes','Tabacaria'].includes(catalogCategory(p));
   const fallback = photoFallbackFor(p);
   const status=photoStatusFor(p);
   const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':(status==='illustrative'||status==='custom'&&['Whisky','Gin','Vodka','Batidas','Caipirinhas'].includes(catalogCategory(p)))?'<span class="photo-note">Imagem ilustrativa</span>':'';
@@ -46,17 +45,17 @@ const productCard=(p,featured=false)=>{
     <div class="product-footer"><span class="price">${p.price_cents?(isHouseGin(p)?'A partir de '+fmt(p.price_cents):fmt(p.price_cents)):'Preço em breve'}</span>
     ${isShake(p)?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-shake="${esc(p.id)}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>Com ou sem álcool</button></div>`:customizable?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo e energético'}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
 };
-const categoryIcons={"Todos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/></svg>","Batidas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 8h14l-2 13H7L5 8ZM4 8h16M13 8l3-6h4M8 13h8\"/></svg>","Whisky":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Vodka":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Gin":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Cervejas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 7h12v14H5zM17 9h3v8h-3M5 7V5a2 2 0 0 1 4-1 3 3 0 0 1 5 0 2 2 0 0 1 3 2v1M9 11v6M13 11v6\"/></svg>","Caipirinhas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Bebidas prontas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\"/><path d=\"M8 6h8M8 18h8m5-9-3 4h4l-3 4\"/></svg>","Águas e Refrigerantes":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v4l2 2v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9l2-2V3ZM8 13h8M8 17h8\"/></svg>","Doces e Salgadinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"3\" transform=\"rotate(-30 12 12)\"/><path d=\"m6 10-4-3 1 7 4-1m11 1 4 3-1-7-4 1\"/></svg>","Diversos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7 5l10 4\"/></svg>","Vinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3h8l2 6a6 6 0 0 1-12 0l2-6ZM7 10h10M12 15v6M8 21h8\"/></svg>","Headshop":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 7h14l2 14H3L5 7zM9 7V5a3 3 0 0 1 6 0v2\"/><path d=\"M9 13h6\"/></svg>"};
+const categoryIcons={"Todos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/></svg>","Batidas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 8h14l-2 13H7L5 8ZM4 8h16M13 8l3-6h4M8 13h8\"/></svg>","Whisky":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Vodka":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Gin":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Cervejas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 7h12v14H5zM17 9h3v8h-3M5 7V5a2 2 0 0 1 4-1 3 3 0 0 1 5 0 2 2 0 0 1 3 2v1M9 11v6M13 11v6\"/></svg>","Caipirinhas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Bebidas prontas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\"/><path d=\"M8 6h8M8 18h8m5-9-3 4h4l-3 4\"/></svg>","Águas e Refrigerantes":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v4l2 2v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9l2-2V3ZM8 13h8M8 17h8\"/></svg>","Doces e Salgadinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"3\" transform=\"rotate(-30 12 12)\"/><path d=\"m6 10-4-3 1 7 4-1m11 1 4 3-1-7-4 1\"/></svg>","Diversos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7 5l10 4\"/></svg>","Vinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3h8l2 6a6 6 0 0 1-12 0l2-6ZM7 10h10M12 15v6M8 21h8\"/></svg>","Tabacaria":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3c.5 3.5-3 5-3 9a5 5 0 0 0 10 0c0-3-2-5.5-3-7-1 2-2.5 2.5-3 1 .5-1 0-2.5-1-3Z\"/></svg>"};
 const categoryLabel=c=>c==='Todos'?'Todos os Produtos':c==='Batidas'?'Batidas (700 ml)':c;
-const categoryCover={'Batidas':'/imagens/morango-com-nutella.webp','Whisky':'/imagens/jack-com-red-bull-natural-v5.webp','Vodka':'/imagens/absolut-com-red-bull-natural-v5.webp','Gin':'/imagens/beefeater-com-red-bull-natural-v5.webp','Cervejas':'/imagens/heineken.webp','Caipirinhas':'/imagens/caipirinha-de-limao-v4.webp','Bebidas prontas':'/imagens/draft.webp','Águas e Refrigerantes':'/imagens/refrigerante-em-lata.webp','Doces e Salgadinhos':'/imagens/doritos.webp','Diversos':'/imagens/pilhas-panasonic.webp'};
-const publicCategoryOrder=['Todos','Batidas','Caipirinhas','Whisky','Vodka','Gin','Cervejas','Bebidas prontas','Águas e Refrigerantes','Doces e Salgadinhos','Headshop','Vinhos','Diversos'];
+const categoryCover={'Batidas':'/imagens/morango-com-nutella.webp','Whisky':'/imagens/jack-com-red-bull-natural-v5.webp','Vodka':'/imagens/absolut-com-red-bull-natural-v5.webp','Gin':'/imagens/beefeater-com-red-bull-natural-v5.webp','Cervejas':'/imagens/heineken.webp','Caipirinhas':'/imagens/caipirinha-de-limao-v4.webp','Bebidas prontas':'/imagens/draft.webp','Águas e Refrigerantes':'/imagens/refrigerante-em-lata.webp','Doces e Salgadinhos':'/imagens/doritos.webp','Diversos':'/imagens/pilhas-panasonic.webp','Tabacaria':'/imagens/seda.webp'};
+const publicCategoryOrder=['Todos','Batidas','Caipirinhas','Whisky','Vodka','Gin','Cervejas','Bebidas prontas','Águas e Refrigerantes','Doces e Salgadinhos','Vinhos','Diversos','Tabacaria'];
 function showCategories(){
- const exist=new Set(products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)).map(catalogCategory));
- const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||(c!=='Tabacaria'&&(exist.has(c)||c==='Headshop')));
+ const exist=new Set(products.filter(p=>visibleInCatalog(p)).map(catalogCategory));
+ const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||exist.has(c));
  if(!cats.includes(category))category='Todos';
  $('categorySideLinks').innerHTML=cats.map(c=>`<button type="button" class="hora-side-link ${c===category?'active':''}" data-category="${esc(c)}" aria-pressed="${c===category}"><span aria-hidden="true">${categoryIcons[c]||categoryIcons.Diversos}</span>${esc(categoryLabel(c))}</button>`).join('');
  $('categoryTabs').innerHTML=cats.filter(c=>c!=='Todos').map(c=>{
-  const sample=products.find(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)&&catalogCategory(p)===c&&photoStatusFor(p)!=='pending');
+  const sample=products.find(p=>visibleInCatalog(p)&&catalogCategory(p)===c&&photoStatusFor(p)!=='pending');
   const photo=categoryCover[c]||(sample?photoFor(sample):null);
   return `<button type="button" class="tab ${c===category?'active':''} ${['Batidas','Caipirinhas'].includes(c)?'hora-category-featured':''}" data-category="${esc(c)}" aria-pressed="${c===category}"><span class="hora-category-media">${photo?`<img src="${esc(photo)}" alt="" loading="lazy">`:`<span class="category-symbol">${categoryIcons[c]||categoryIcons.Diversos}</span>`}</span><span class="hora-category-label">${categoryIcons[c]||categoryIcons.Diversos}<strong>${esc(categoryLabel(c))}</strong></span></button>`;
  }).join('');
@@ -70,12 +69,12 @@ function snackGroup(p){
 }
 function renderProducts(){
  showCategories();
- const general=dedupeCatalog(products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)));
+ const general=products.filter(p=>visibleInCatalog(p));
  const norm=photoSlug(searchText);
  const list=general.filter(p=>(category==='Todos'||catalogCategory(p)===category)&&(!norm||photoSlug(p.name+' '+catalogCategory(p)).includes(norm)));
  $('catalogHeading').textContent=searchText?'RESULTADOS DA BUSCA':category==='Todos'?'DESTAQUES DA HORA EXTRA':categoryLabel(category).toUpperCase();
  $('catalogResultCount').textContent=list.length+' produtos';
- const message=category==='Headshop'?'<div class="empty">Nenhum acessório disponível no momento.</div>':'<div class="empty">Nenhum produto encontrado.</div>';
+ const message='<div class="empty">Nenhum produto encontrado.</div>';
  if(category==='Doces e Salgadinhos'&&list.length){
   const groups=['Salgadinhos','Chicletes','Balas e pirulitos','Doces e chocolates'];
   $('productGrid').innerHTML=groups.map(group=>{
@@ -198,7 +197,7 @@ async function loadCatalog(){
       if (!response.ok) throw Error('Catálogo indisponível');
       const d=await response.json();
       if (!Array.isArray(d.products)) throw Error('Catálogo inválido');
-      products=d.products.filter(p=>p.category!=='Tabacaria').map(normalizeProduct).map(p=>({...p,active:false,stock:0,unlimited:false}));drinkOptions=[];
+      products=d.products.map(normalizeProduct).map(p=>({...p,active:false,stock:0,unlimited:false}));drinkOptions=[];
       shop={...(d.store||{}),accepting_orders:false};
       setBrand(shop.name);
       $('modeBanner').className='mode-banner offline';
@@ -221,7 +220,7 @@ let extrasDismissed=false;
 const extraProduct=kind=>{
  const match=checkoutExtras.find(x=>x.key===kind);
  if(!match)return null;
- const found=products.filter(p=>p.category!=='Tabacaria'&&!isDoseProduct(p)&&visibleInCatalog(p)&&match.matches(photoSlug(p.name)));
+ const found=products.filter(p=>!isDoseProduct(p)&&visibleInCatalog(p)&&match.matches(photoSlug(p.name)));
  return found.find(available)||found[0]||null;
 };
 const renderCheckoutSummary=()=>{
@@ -252,7 +251,7 @@ const renderCheckoutExtras=()=>{
 };
 const addCheckoutExtra=key=>{
  const p=extraProduct(key);
- if(!p||!available(p)||isDoseProduct(p)||p.category==='Tabacaria')return toast('Este extra não está disponível.',true);
+ if(!p||!available(p)||isDoseProduct(p))return toast('Este extra não está disponível.',true);
  const q=desiredQty(p);
  if(!p.unlimited&&q>=p.stock)return toast('Este extra esgotou.',true);
  if(q>=99)return toast('Limite de 99 unidades por produto.',true);
@@ -351,7 +350,7 @@ async function loadTracking(){
 function start(){
   $('catalogo').addEventListener('click',e=>{
     const shake=e.target.closest('button[data-shake]');
-    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml'+(shakePreparationNote(p)?' — '+shakePreparationNote(p):'');$('shakeAlcohol').value='';open('shakeModal');}return;}
+    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');}return;}
     const config=e.target.closest('button[data-configure]');
     if(config){const p=products.find(x=>x.id===config.dataset.configure);if(p)showDoseConfigurator(p);return;}
     const btn=e.target.closest('button[data-qty]');if(!btn)return;
