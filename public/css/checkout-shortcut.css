@@ -26,3 +26,34 @@ body.catalog-body #avaliacoes{scroll-margin-top:calc(var(--hora-header-height,13
 body.catalog-body header.hora-nav{display:block!important;visibility:visible;overflow:visible}
 body.catalog-body .hora-nav #cartBar,body.catalog-body .hora-nav #cartBar .cart-inner,body.catalog-body .hora-nav #cartBar .cart-actions{visibility:visible}
 body.catalog-body .hora-nav #cartBar .cart-actions .btn{display:inline-flex!important;align-items:center;justify-content:center;visibility:visible}
+
+/* One cart, inside the top navigation, on every screen size. */
+html:has(body.catalog-body),body.catalog-body{overflow-x:clip}
+body.catalog-body header.hora-nav{position:sticky;top:0;bottom:auto;z-index:24}
+body.catalog-body header.hora-nav #cartBar{position:static!important;inset:auto!important;width:100%;padding:6px 0;border:0;border-top:1px solid #292126;box-shadow:none;background:#111013}
+body.catalog-body header.hora-nav #cartBar .cart-inner{max-width:1800px;padding:0 22px;gap:16px}
+body.catalog-body header.hora-nav #cartBar .cart-meta{display:flex;flex-direction:row;align-items:center;gap:10px}
+.cart-meta-copy{display:grid;gap:1px;min-width:0}
+.cart-meta-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border:1px solid #71333a;border-radius:11px;color:#ff6570;background:#2a181d}
+.cart-meta-icon svg{width:21px;height:21px}
+body.catalog-body header.hora-nav #cartBar .cart-meta small{font-size:.71rem;color:#bdb4ba;line-height:1.1}
+body.catalog-body header.hora-nav #cartBar .cart-meta strong{font-size:1.15rem;line-height:1.2;white-space:nowrap;color:#fff}
+body.catalog-body header.hora-nav #cartBar .cart-actions{gap:8px;flex:none}
+body.catalog-body header.hora-nav #cartBar .cart-actions .btn{min-height:42px;padding:8px 17px;border-radius:10px;font-size:.84rem;max-width:none;white-space:nowrap}
+body.catalog-body header.hora-nav #cartBar .cart-actions #openCart{background:#201b20;border-color:#5f3940;color:#eee}
+body.catalog-body header.hora-nav #cartBar .cart-actions .btn:disabled{background:#242126!important;color:#a19aa1!important;border-color:#3b343b!important;opacity:1;box-shadow:none!important;cursor:not-allowed}
+.hora-site-footer{margin-top:20px;border-top:1px solid #4f242b;background:#101013;color:#bdb5bb}
+.hora-site-footer .hora-footer-inner{display:flex;justify-content:space-between;align-items:center;gap:18px;padding-top:17px;padding-bottom:17px}
+.hora-footer-brand{display:flex;align-items:center;gap:10px;flex:none}
+.hora-footer-brand img{display:block;object-fit:contain}
+.hora-footer-brand strong,.hora-footer-brand small,.hora-footer-links small{display:block}
+.hora-footer-brand strong{color:#f5f0f2;font-size:.85rem}
+.hora-footer-brand small,.hora-footer-links small{font-size:.72rem;color:#b1a7af;margin-top:3px}
+.hora-footer-legal{display:flex;align-items:center;gap:8px;font-size:.72rem;max-width:350px;line-height:1.4}
+.hora-footer-age{display:grid;place-items:center;width:31px;height:31px;flex:0 0 31px;border:1px solid #8c3943;color:#ff7880;border-radius:50%;font-size:.72rem;font-weight:800}
+.hora-footer-links{font-size:.72rem;text-align:right;line-height:1.4}
+.hora-footer-links a{color:#e2d9df;text-decoration:underline;text-underline-offset:3px}
+.hora-footer-links strong{color:#eee4e9}
+@media(max-width:800px){body.catalog-body header.hora-nav #cartBar{padding:5px 0}body.catalog-body header.hora-nav #cartBar .cart-inner{padding:0 max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px));gap:7px}body.catalog-body header.hora-nav #cartBar .cart-meta{gap:6px}body.catalog-body header.hora-nav #cartBar .cart-meta strong{font-size:.99rem}body.catalog-body header.hora-nav #cartBar .cart-actions{gap:5px;flex:1;min-width:0}body.catalog-body header.hora-nav #cartBar .cart-actions .btn{min-height:44px;padding:7px 9px;font-size:.74rem;white-space:normal;line-height:1.15;flex:0 1 auto} .cart-meta-icon{width:32px;height:32px;flex-basis:32px}.cart-meta-icon svg{width:17px;height:17px}.hora-site-footer .hora-footer-inner{flex-wrap:wrap;gap:13px;padding-top:15px;padding-bottom:18px}.hora-footer-legal{flex:1 1 180px}.hora-footer-links{text-align:left;flex:1 1 100%}}
+@media(max-width:360px){.cart-meta-icon{display:none}body.catalog-body header.hora-nav #cartBar .cart-actions .btn{padding:7px 6px;font-size:.7rem}}
+@media(max-width:800px) and (orientation:landscape) and (max-height:450px){body.catalog-body header.hora-nav{position:relative}}

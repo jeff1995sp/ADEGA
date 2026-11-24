@@ -42,10 +42,10 @@ body.catalog-body{padding-bottom:env(safe-area-inset-bottom,0px)}
 .catalog-body .hora-catalog .qty button{min-width:44px;min-height:44px;width:44px;height:44px;font-size:1.15rem}
 .catalog-body .hora-catalog .dose-qty{flex-direction:column;align-items:stretch;gap:5px}
 .catalog-body .hora-catalog .dose-qty button{width:100%;height:auto;min-height:44px;white-space:normal;line-height:1.25;font-size:.76rem;padding:8px 6px!important}
-.catalog-body .cart-bar{position:fixed;bottom:0;left:0;right:0;width:100%;padding:9px 12px;padding:9px max(12px,env(safe-area-inset-right,0px)) calc(9px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));z-index:30}
+/* Carrinho permanece no cabeçalho; nunca fixado no rodapé. */
 .catalog-body .cart-inner{gap:10px;min-width:0}.catalog-body .cart-meta strong{font-size:1.15rem;white-space:nowrap}
 .catalog-body #openCart{min-height:46px;padding:10px 12px;font-size:.86rem;white-space:normal}
-.catalog-body .footer{padding:20px 12px}.catalog-body .end-cta{padding:24px 0}.catalog-body .end-cta-inner{gap:12px}
+
 .catalog-body .toast{left:12px;right:12px;bottom:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:none}
 body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.open){overflow:hidden}
 .catalog-body .modal-backdrop,.admin-body .modal-backdrop,.catalog-body .age-overlay{padding:12px;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto;overscroll-behavior:contain;align-items:flex-start}
