@@ -56,7 +56,7 @@ const allItems=o=>(o.order_items||[]).map(i=>`<strong>${i.quantity}x</strong> ${
 function renderStats(){
   const pending=orders.filter(o=>o.status!=='delivered'&&o.status!=='cancelled');
   const p=[['Aguardando',pending.filter(o=>o.status==='received').length],['Preparando',pending.filter(o=>o.status==='preparing').length],['Prontos',pending.filter(o=>o.status==='ready').length],['Pagos em andamento',orders.filter(o=>paid(o)).length]];
-  $('stats').innerHTML=p.map(([l,v])=>`<div class="stat"><span>${l}</span><b>${v}</b></div>`).join('');
+  $('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
 function renderOrders(){
   const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).sort((x,y)=>({received:0,preparing:1,ready:2}[x.status]-{received:0,preparing:1,ready:2}[y.status])||new Date(x.created_at)-new Date(y.created_at));
@@ -135,10 +135,9 @@ function renderCash(){
   }
   const r=cashReport;
   const stats=[['Faturamento do dia',fmt(r.total_cents)],['Vendas pagas',r.paid_count],['Em aberto',r.pending_count],['Itens vendidos',r.item_count]];
-  $('cashStats').innerHTML=stats.map(([l,v])=>`<div class="stat"><span>${l}</span><b>${v}</b></div>`).join('');
+  $('cashStats').innerHTML=stats.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
   const methods=Object.entries(r.by_method||{}).map(([key,value])=>`<span>${esc(labels[key]||key)}: ${fmt(value)}</span>`).join('');
-  $('cashList').innerHTML=`<div class="notice ok">Relatório real do dia ${esc(r.day.split('-').reverse().join('/'))}, por data de recebimento. ${r.truncated?'Volume muito alto: peça exportação ampliada.':''}</div><div class="order-details">${methods}</div><div class="order-items">`+
-    (r.transactions?.length?r.transactions.map(o=>`<div class="order-line"><span>${esc(o.first_name)} ${esc(o.last_name)} · ${pad(o.order_no)} · ${esc(labels[o.payment_method])}</span><b>${fmt(o.total_cents)}</b></div>`).join(''):'<p class="sub small">Nenhuma venda paga hoje.</p>')+'</div>';
+  $('cashList').innerHTML=`<div class="cash-summary-header"><span>Movimento de ${esc(r.day.split('-').reverse().join('/'))}</span><small>Registros detalhados disponíveis no CSV.</small></div><div class="order-details cash-methods">${methods}</div>`;
   $('itemReport').innerHTML=r.products?.length?r.products.sort((a,b)=>b.quantity-a.quantity).map(i=>`<div class="order-line" style="padding:9px 0"><span>${esc(i.name)} · ${i.quantity} unidades</span><b>${fmt(i.total_cents)}</b></div>`).join(''):'<p class="sub">Sem produtos vendidos hoje.</p>';
 }
 async function loadReport(){
@@ -157,6 +156,7 @@ function exportCash(){
 }
 
 function renderSettings(){
+ const state=$('adminShopState');state.classList.toggle('is-open',Boolean(shop.accepting_orders));state.querySelector('span').textContent=shop.accepting_orders?'Loja aberta':'Pedidos pausados';
  $('orderShopPaused').classList.toggle('hidden',Boolean(shop.accepting_orders));
   $('shopToggle').textContent=shop.accepting_orders?'● Aceitando pedidos — Pausar loja':'⏸ Pedidos pausados — Reabrir loja';
   $('shopToggle').className='btn '+(shop.accepting_orders?'btn-danger':'btn-primary');
