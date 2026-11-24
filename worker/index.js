@@ -269,7 +269,7 @@ async function orders(db){
  const demand=await demandStatus(db);
  if(!list.length)return json({orders:[],...demand});
  const ids=JSON.stringify(list.map(o=>o.id));
- const lines=await many(db,'SELECT order_id,product_name,quantity,unit_price_cents FROM order_items WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY id',ids);
+ const lines=await many(db,'SELECT i.order_id,i.product_id,i.product_name,i.quantity,i.unit_price_cents,i.ice_option_id,i.energy_option_id,p.category FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id IN (SELECT value FROM json_each(?)) ORDER BY i.id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
  const same=duplicateNames(list);return json({orders:list.map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand});
 }
