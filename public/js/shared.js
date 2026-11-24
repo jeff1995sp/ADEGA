@@ -24,6 +24,7 @@ export const photoStatusFor=p=>{
 const NAME_CORRECTIONS={"produto-049":["Fofura (embalagem azul)","Fofura Presunto"],"produto-051":["Fofura (embalagem roxa)","Fofura Churrasco"],"produto-053":["Torcida (embalagem roxa)","Torcida Churrasco"],"produto-055":["Bubbaloo (embalagem rosa)","Bubbaloo Tutti-Frutti"],"produto-056":["Bubbaloo (embalagem azul)","Bubbaloo Hortelã"],"produto-057":["Trident (embalagem verde)","Trident Melancia"],"produto-048":["Lay's (embalagem preta)","Lay's Sensações"],"produto-031":["Doritos","Doritos Queijo Nacho"],"produto-047":["Fandangos","Fandangos Presunto"],"produto-050":["Fofura (embalagem vermelha)","Fofura Queijo"],"produto-054":["Torcida (embalagem verde)","Torcida Pimenta Mexicana"],"produto-058":["Trident (embalagem rosa)","Trident — sabor a confirmar"]};
 export const normalizeProduct=p=>{const known=NAME_CORRECTIONS[p?.id];let name=known&&p.name===known[0]?known[1]:p.name;if(p.id==='produto-048'&&["Lay's Sensações","Lay's (embalagem preta)"].includes(name))name="Lay's Sensações Peito de Peru";if(p.id==='produto-029'&&name==='Draft')name='Draft Uva Roxa';if(p.id==='produto-060'&&name==='Mentos Wild')name='Mentos Wild Spearmint';return name===p.name?p:{...p,name};};
 const LEGACY_DUPLICATE_NAMES={"produto-032":"Fofura","produto-033":"Torcida","produto-034":"Bubbaloo","produto-035":"Trident","produto-036":"Mentos","produto-011":"Beefeater com Red Bull","produto-015":"Rocks com Red Bull","produto-039":"Balas sortidas"};
+export const legacyCatalogEntry=p=>Boolean(p&&(LEGACY_DUPLICATE_NAMES[p.id]===p.name||p.id==='produto-058'&&['Trident (embalagem rosa)','Trident — sabor a confirmar'].includes(p.name)));
 export const unconfirmedDuplicate=p=>Boolean(p&&!p.active&&!p.unlimited&&!(p.stock>0)&&(LEGACY_DUPLICATE_NAMES[p.id]===p.name||p.id==='produto-058'&&['Trident (embalagem rosa)','Trident — sabor a confirmar'].includes(p.name)));
 
 export const photoFor=p=>localPhotoPath(p);
@@ -35,7 +36,21 @@ export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Ca
 export const catalogCategory=p=>p?.category==='Doses'?'Vodka':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
 export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
 export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
-export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
+// Preserve inventory and old orders. Prefer the stocked record when two known entries describe the same dose.
+export const dedupeCatalog=rows=>{
+ const ids=new Map(rows.map(p=>[p.id,p])),hidden=new Set();
+ const ready=p=>Boolean(p?.active&&p.price_cents>0&&(p.unlimited||p.stock>0));
+ const sameNames=(p,name)=>p?.name===name;
+ for(const [oldId,newId,oldName,newName] of [['produto-011','produto-064','Beefeater com Red Bull','Beefeater (dose)'],['produto-015','produto-063','Rocks com Red Bull','Rocks (dose)']]){
+  const old=ids.get(oldId),current=ids.get(newId);
+  if(sameNames(old,oldName)&&sameNames(current,newName)&&old.category==='Gin'&&current.category==='Gin')hidden.add(ready(old)&&!ready(current)?newId:oldId);
+ }
+ for(const [oldId,variants] of [['produto-032',['produto-049','produto-050','produto-051']],['produto-033',['produto-052','produto-053','produto-054']],['produto-034',['produto-055','produto-056']],['produto-035',['produto-057']],['produto-036',['produto-059','produto-060']]]){
+  const old=ids.get(oldId);if(legacyCatalogEntry(old)&&variants.some(id=>ready(ids.get(id))))hidden.add(oldId);
+ }
+ return rows.filter(p=>!hidden.has(p.id));
+};
+export const isDoseProduct=p=>['Whisky','Gin','Vodka','Doses'].includes(p?.category);
 export const productDescription=p=>{
  if(p?.category==='Batidas')return 'Batida de 700 ml. Escolha com ou sem álcool.';
  if(isHouseGin(p))return 'Gin de 700 ml com gelo e energético. Escolha Energético ou Red Bull.';

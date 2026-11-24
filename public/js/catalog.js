@@ -1,10 +1,11 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-6';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate,dedupeCatalog} from './shared.js?v=20261124-8';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
 let bestSellers=[];
 let currentOrder=null,searchText='',shakeSelected=null;
 const isShake=p=>p?.category==='Batidas';
+const shakePreparationNote=p=>p?.id==='produto-017'?'Sem álcool: usar somente ingredientes sem álcool, inclusive o substituto do vinho.':'';
 const validShake=v=>v==='com'||v==='sem';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -69,7 +70,7 @@ function snackGroup(p){
 }
 function renderProducts(){
  showCategories();
- const general=products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p));
+ const general=dedupeCatalog(products.filter(p=>p.category!=='Tabacaria'&&visibleInCatalog(p)));
  const norm=photoSlug(searchText);
  const list=general.filter(p=>(category==='Todos'||catalogCategory(p)===category)&&(!norm||photoSlug(p.name+' '+catalogCategory(p)).includes(norm)));
  $('catalogHeading').textContent=searchText?'RESULTADOS DA BUSCA':category==='Todos'?'DESTAQUES DA HORA EXTRA':categoryLabel(category).toUpperCase();
@@ -350,7 +351,7 @@ async function loadTracking(){
 function start(){
   $('catalogo').addEventListener('click',e=>{
     const shake=e.target.closest('button[data-shake]');
-    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');}return;}
+    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml'+(shakePreparationNote(p)?' — '+shakePreparationNote(p):'');$('shakeAlcohol').value='';open('shakeModal');}return;}
     const config=e.target.closest('button[data-configure]');
     if(config){const p=products.find(x=>x.id===config.dataset.configure);if(p)showDoseConfigurator(p);return;}
     const btn=e.target.closest('button[data-qty]');if(!btn)return;

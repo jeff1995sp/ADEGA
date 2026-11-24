@@ -1,4 +1,4 @@
-import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice } from '../public/js/shared.js';
+import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice, dedupeCatalog } from '../public/js/shared.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'}});
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -73,7 +73,7 @@ async function catalog(db,admin){
  admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
  ]);
  if(!store)reject('Configuração da loja ausente.',503);
- const publicProducts=products.filter(visible);
+ const publicProducts=dedupeCatalog(products.filter(visible));
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  return json({store,products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});

@@ -84,3 +84,5 @@ test('Gin comum permite energético sem marca e Red Bull com acréscimo',()=>{
  assert.equal(doseUnitPrice(p,{name:'Energético'}),1000);
  assert.equal(doseUnitPrice(p,{name:'Red Bull Original'}),2000);
 });
+
+test('Vodka e categoria legada Doses usam personalização de gelo e Red Bull',()=>{for(const category of ['Vodka','Doses']){const p={name:'Absolut com Red Bull',category};assert.equal(isDoseProduct(p),true);assert.equal(energyMatchesDose(p,{name:'Red Bull Original'}),true);assert.equal(energyMatchesDose(p,{name:'Vibe Original'}),false);}assert.equal(isDoseProduct({category:'Cervejas'}),false);assert.equal(isDoseProduct({category:'Batidas'}),false);});

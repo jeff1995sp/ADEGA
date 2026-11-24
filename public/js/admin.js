@@ -1,4 +1,4 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-6';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct,legacyCatalogEntry} from './shared.js?v=20261124-8';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
@@ -68,7 +68,7 @@ function renderInventory(){
   $('inventoryCount').textContent=filtered.length+' de '+all.length+' produtos';
   const row=p=>{
     const stock=p.unlimited?'Ilimitado':p.stock===0?'<span class="stock-badge out">Esgotado</span>':p.stock<=threshold?`<span class="stock-badge low">⚠ Só ${p.stock} restantes</span>`:`<span class="stock-badge">${p.stock} unidades</span>`;
-    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b><div class="tiny">${esc(catalogCategory(p))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
+    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b>${legacyCatalogEntry(p)?'<div class="tiny warn">Cadastro antigo/genérico — confira antes de reativar</div>':''}<div class="tiny">${esc(catalogCategory(p))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
       <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
