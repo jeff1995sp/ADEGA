@@ -1,0 +1,15 @@
+/* Instagram oficial da loja, distinto do contato do desenvolvedor. */
+.hora-store-instagram{display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#fff;text-decoration:none;font-weight:750;font-size:clamp(.65rem,1.05vw,.93rem);line-height:1.2;white-space:nowrap}
+.hora-banner-brand .hora-store-instagram{margin-top:12px;padding:7px 10px;border:1px solid #79404e;border-radius:10px;background:#20171ce8;max-width:100%}
+.hora-store-ig-icon{display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;border-radius:7px;background:linear-gradient(140deg,#7943c8,#b52f84 48%,#e85b3b 78%,#efac52)}
+.hora-store-ig-icon svg{width:16px;height:16px}
+.hora-store-instagram:hover{color:#ff9eb0;border-color:#dd6178}
+.hora-store-instagram:focus-visible{outline:2px solid #ff9eb0;outline-offset:3px}
+.hora-footer-brand .hora-store-instagram{justify-content:flex-start;margin-top:6px;font-size:.73rem}
+.hora-footer-brand .hora-store-ig-icon{width:19px;height:19px;flex-basis:19px;border-radius:5px}
+.hora-footer-brand .hora-store-ig-icon svg{width:13px;height:13px}
+.tv-body .hora-tv-bottom,.tv-body .tv-idle-address{display:flex;align-items:center;justify-content:center;gap:clamp(6px,2vw,34px);flex-wrap:wrap}
+.tv-body .tv-idle-address{left:5%;right:5%;bottom:4%}
+.tv-store-instagram{display:inline-flex;align-items:center;gap:7px;color:#fff0f2;letter-spacing:.025em;text-transform:none;white-space:nowrap}
+.tv-store-instagram svg{width:1.3em;height:1.3em;color:#ff8299}
+@media(max-width:800px){.hora-banner-brand .hora-store-instagram{font-size:clamp(.52rem,2.2vw,.73rem);margin-top:6px;padding:4px;gap:3px}.hora-banner-brand .hora-store-ig-icon{width:17px;height:17px;flex-basis:17px}.hora-banner-brand .hora-store-ig-icon svg{width:12px;height:12px}}

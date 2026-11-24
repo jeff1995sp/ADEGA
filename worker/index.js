@@ -410,7 +410,7 @@ const auditSchema=[
 const auditReady=new WeakMap();
 async function ensureAudit(db){
  if(auditReady.has(db))return auditReady.get(db);
- const promise=(async()=>{await ensureCashArchive(db);await db.batch(auditSchema.map(s=>stmt(db,s)));})();
+ const promise=(async()=>{await ensureCashArchive(db);for(const sql of auditSchema)await run(db,sql);})();
  auditReady.set(db,promise);try{await promise;}catch(e){auditReady.delete(db);throw e;}
 }
 async function auditList(db,body){
