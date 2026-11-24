@@ -63,12 +63,12 @@ function renderOrders(){
   $('ordersList').innerHTML=visible.length?visible.map(o=>{
     const cash=o.payment_method==='cash'
       ?o.cash_given_cents!==null
-        ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Marque como pago somente após receber.</span></div>`
+        ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Finalize somente após receber o dinheiro e entregar o pedido.</span></div>`
         :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
       :'';
     const voice=o.voice||'';
-    const showPay=!paid(o)&&['cash','card'].includes(o.payment_method);
-    const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):button('Entregar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
+    const showPay=!paid(o)&&o.payment_method==='card';
+    const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card premium-order order-${esc(o.status)}"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
     <div class="order-details"><span>${allItems(o)}</span><span>${fmt(o.total_cents)}</span><span>Pagamento: ${esc(labels[o.payment_method]||o.payment_method)}</span></div>${cash}
@@ -310,6 +310,12 @@ async function performAction(btn){
   }
   else if(action==='preview'){showProductPreview(p);return;}
   else if(action==='edit'){productModal(p);return;}
+  else if(action==='finishcash'){
+    const order=orders.find(o=>o.id===id);if(!order||order.status!=='ready'||order.payment_method!=='cash')return toast('Pedido não está pronto para finalizar.',true);
+    const ageNeeded=order.age_required&&!order.age_checked;
+    if(!confirm('Confirme que o pedido foi entregue e o pagamento de '+fmt(order.total_cents)+' foi recebido.'+(ageNeeded?'\nDocumento conferido: cliente tem 18 anos ou mais.':'')))return;
+    route='admin-order-action';body={id,action:'finishcash',received:true,age_confirmed:ageNeeded};
+  }
   if(action==='cancel'&&!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
   if(action==='paid'&&!confirm('O valor realmente foi recebido em dinheiro ou na maquininha?'))return;
   if(action==='age'&&!confirm('Você conferiu o documento e confirmou que a pessoa tem 18 anos ou mais?'))return;
@@ -331,7 +337,7 @@ async function performAction(btn){
     route='admin-stock';body={id,mode:'set',quantity:Number(raw)};
   } else if(!route)return;
   busy=true;
-  try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
+  try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(action==='finishcash'?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
 function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }

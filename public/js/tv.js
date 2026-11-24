@@ -5,7 +5,7 @@ let tvCode=localStorage.getItem(STORAGE)||'',soundEnabled=false,started=false,se
 let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
-const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-body"><small><span>PEDIDO</span><b>${pad(o.number)}</b></small><strong>${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Disponível para retirada':o.status==='preparing'?'Preparando com cuidado':'Pedido recebido'}</span></div></article>`;
+const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){

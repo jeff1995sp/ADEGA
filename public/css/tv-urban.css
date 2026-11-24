@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Oswald:wght@600;700&display=swap');
+body.tv-body .tv-concept-canvas{background:linear-gradient(110deg,#100b10d9,#100c11a8 52%,#10090bd9),url('/img/comunidade-urbana.svg') center/cover;isolation:isolate}
+.tv-body .hora-tv-intro h1{font-family:'Barlow Condensed','Outfit',sans-serif;text-transform:uppercase;font-size:clamp(30px,5.4vw,86px);font-weight:900;line-height:.95;letter-spacing:.005em;text-shadow:3px 4px #080709}
+.tv-body .hora-tv-intro h1 em{font-style:normal;color:#ffb45b}
+.tv-body .hora-tv-intro p{color:#e4d1c6;font-weight:550}
+.tv-body .hora-tv-label{font-family:'Barlow Condensed','Outfit',sans-serif;text-transform:uppercase;font-weight:800;letter-spacing:.045em;font-size:clamp(17px,2.35vw,38px)}
+.tv-body .tv-label-dot{display:inline-block;width:.45em;height:.45em;border-radius:50%;background:#eab26e;vertical-align:middle;margin-right:.45em}
+.tv-body .hora-tv-label-ready .tv-label-dot{background:#87e4ad}
+.tv-body .tv-concept-list{gap:3%;top:47%;height:38%}
+.tv-body .tv-concept-list .tv-ticket{--tv-accent:#f2b36d;display:flex;align-items:center;gap:4%;height:31.3%;padding:0 4%;border:1px solid #8a5338;border-left:4px solid var(--tv-accent);border-radius:9px;background:linear-gradient(115deg,#2d2023ef,#151419fa);box-shadow:0 8px 20px #0007}
+.tv-body .tv-concept-ready .tv-ticket{--tv-accent:#8be4b0;border-color:#447f61;border-left-color:var(--tv-accent);background:linear-gradient(115deg,#1d2f29f2,#141a19fa)}
+.tv-ticket-number{flex:0 0 23%;display:grid;gap:2px;border-right:1px solid #ffffff24;padding-right:3%;text-align:center;align-content:center;min-width:0}
+.tv-ticket-number span{font-size:clamp(7px,.65vw,12px);letter-spacing:.12em;color:#c8b5ab;font-weight:700}
+.tv-ticket-number b{font-family:'Oswald','Outfit',sans-serif;font-size:clamp(16px,2vw,35px);font-weight:700;color:var(--tv-accent);line-height:1.05;white-space:nowrap}
+.tv-body .tv-concept-list .tv-ticket-body{min-width:0;flex:1;display:grid;gap:4px}
+.tv-body .tv-concept-list .tv-ticket strong{font-family:'Barlow Condensed','Outfit',sans-serif;text-transform:uppercase;font-size:clamp(19px,3vw,51px);font-weight:800;letter-spacing:.015em;color:#fff4df;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:2px 2px #000}
+.tv-body .tv-concept-list .tv-ticket strong.tv-name-long{font-size:clamp(15px,2.1vw,36px)}
+.tv-body .tv-ticket-status{font-size:clamp(9px,.9vw,15px);letter-spacing:.055em;text-transform:uppercase;color:var(--tv-accent);font-weight:700}
+.tv-body .tv-concept-list .tv-empty{background:#161317ce;border:1px dashed #96745566;border-radius:9px}
+.tv-body .hora-tv-bottom{border-color:#a85b36;color:#d3bcae}
+@media(max-width:780px){.tv-body .tv-concept-list .tv-ticket strong{font-size:clamp(16px,3vw,30px)}.tv-body .tv-concept-list .tv-ticket strong.tv-name-long{font-size:clamp(13px,2.1vw,23px)}}

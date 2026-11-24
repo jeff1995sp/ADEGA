@@ -49,7 +49,7 @@ test('o admin vê o troco e o pagamento permanece pendente até receber',()=>{
  assert.ok(admin.includes('PREPARAR TROCO:'));
  assert.ok(admin.includes('o.cash_given_cents-o.total_cents'));
  assert.ok(admin.includes('Cliente entrega:'));
- assert.ok(admin.includes('Marque como pago somente após receber.'));
+ assert.ok(admin.includes('Finalize somente após receber o dinheiro e entregar o pedido.'));
  assert.ok(backend.includes("sb.rpc('place_order'"));
  assert.ok(backend.includes('p_cash_given_cents:cash'));
  assert.ok(migrate.includes('p_payment_method'));
