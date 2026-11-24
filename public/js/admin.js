@@ -188,7 +188,7 @@ function renderPickupPreview(){
 }
 function renderPickupSettings(){
  const loc=shop.pickup_location;
- $('pickupAdminState').textContent=loc?.enabled?'Regra salva: pedidos somente dentro de '+loc.radius+' m.':'Regra desativada: confirme o ponto do portão antes de ativar.';
+ $('pickupAdminState').textContent=loc?.enabled?'Regra salva: confere GPS autorizado em até '+loc.radius+' m. Sem GPS, aceita pedidos normalmente.':'Regra desativada: confirme o ponto do portão antes de ativar.';
  $('pickupStateBadge').textContent=loc?.enabled?'Ativo':'Desativado';$('pickupStateBadge').classList.toggle('is-active',Boolean(loc?.enabled));
  if(pickupDirty)return;
  $('pickupAddress').value=shop.pickup_address||loc?.address||defaultPickupAddress;
@@ -481,7 +481,7 @@ async function start(){
   const latitude=$('pickupLat').valueAsNumber,longitude=$('pickupLng').valueAsNumber,radius=$('pickupRadius').valueAsNumber,enabled=$('pickupEnabled').checked;
   const address=$('pickupAddress').value.trim();
   if(!validPickupPoint()||!Number.isInteger(radius)||radius<25||radius>500){$('pickupAdvanced').open=true;return toast('Defina o ponto exato do portão e um raio de 25 a 500 metros.',true);}
-  if(!confirm(enabled?'Ativar pedidos somente perto deste ponto?':'Desativar a exigência de proximidade?'))return;
+  if(!confirm(enabled?'Conferir o raio quando o cliente autorizar o GPS? Pedidos sem localização continuarão permitidos.':'Desativar a conferência de proximidade?'))return;
   btn.disabled=true;try{const {location}=await api('admin-location',{latitude,longitude,radius,enabled,address},{admin:true,method:'PATCH'});shop={...shop,pickup_location:location,pickup_address:location.address,location_required:enabled,location_radius:radius};pickupDirty=false;renderPickupSettings();toast('Regra de localização salva.');}catch(err){toast(err.message,true);}finally{btn.disabled=false;}
  });
 

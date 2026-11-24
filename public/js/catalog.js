@@ -354,20 +354,20 @@ function checkoutMode(direct){
   $('checkoutQuickTotal').textContent=fmt(total());
   const content=modal.querySelector('.modal');content.scrollTop=0;
 }
-let permissionPanelShown=false,locationBusy=false;
+let permissionPanelShown=false,locationBusy=false,locationOptIn=false;
 function updateLocationPanel(){
  const el=$('entryLocationBox');if(!el)return;el.classList.toggle('hidden',!shop.location_required);
- $('entryLocationRadius').textContent='Raio permitido: '+(shop.location_radius||50)+' m. Permita a localização precisa para fazer pedidos.';
+ $('entryLocationRadius').textContent='Raio de atendimento: '+(shop.location_radius||50)+' m. A localização é opcional. Se não quiser permitir, pode fazer seu pedido normalmente.';
 }
 async function checkEntryLocation(){
  if(locationBusy)return;locationBusy=true;const btn=$('entryLocation');btn.disabled=true;$('entryLocationResult').textContent='Consultando GPS…';
- try{const position=await readCurrentPosition();const r=await api('check-location',{position});$('entryLocationResult').textContent=r.message+(Number.isFinite(r.distance)?' Distância aproximada: '+r.distance+' m · precisão: '+r.accuracy+' m.':'');btn.textContent='Verificar novamente';}catch(e){$('entryLocationResult').textContent=e.message;}finally{locationBusy=false;btn.disabled=false;}
+ try{const position=await readCurrentPosition();locationOptIn=true;const r=await api('check-location',{position});$('entryLocationResult').textContent=r.message+(Number.isFinite(r.distance)?' Distância aproximada: '+r.distance+' m · precisão: '+r.accuracy+' m.':'');btn.textContent='Verificar novamente';}catch(e){locationOptIn=false;$('entryLocationResult').textContent='Não foi possível confirmar a localização. Você pode pedir normalmente sem GPS.';}finally{locationBusy=false;btn.disabled=false;}
 }
 function showEntryPermissions(){if(permissionPanelShown)return;permissionPanelShown=true;$('entryPermissions').classList.remove('hidden');updateLocationPanel();void initNotifications();}
 function updatePickupNotice(message=''){
  const el=$('pickupLocationNotice');
  el.classList.toggle('hidden',!shop.location_required&&!message);
- el.textContent=message||(shop.location_required?'📍 Pedidos disponíveis somente perto da adega (até '+(shop.location_radius||50)+' m). Ao confirmar, permita a localização precisa. Usamos sua posição apenas para validar a proximidade.':'');
+ el.textContent=message||(shop.location_required?'📍 Retirada no portão. Raio de atendimento: '+(shop.location_radius||50)+' m. A localização é opcional; se autorizada, será conferida antes de aceitar o pedido.':'');
 }
 function readCurrentPosition(){
  return new Promise((resolve,reject)=>{
@@ -435,7 +435,7 @@ async function submitOrder(event){
       if(Date.now()-pending.at<30000)return toast('Aguarde a confirmação do pedido anterior antes de alterar o carrinho.',true);
     }
     let position;
-    if(shop.location_required){button.textContent='Verificando localização…';updatePickupNotice('📍 Consultando sua localização atual…');position=await readCurrentPosition();button.textContent='Registrando pedido…';}
+    if(shop.location_required&&locationOptIn){button.textContent='Verificando localização…';updatePickupNotice('📍 Consultando sua localização atual…');try{position=await readCurrentPosition();}catch{locationOptIn=false;updatePickupNotice('GPS indisponível. Continuando sem localização.');}button.textContent='Registrando pedido…';}
     const request_id=pending?.fingerprint===fingerprint?pending.id:crypto.randomUUID();
     sessionStorage.setItem(key,JSON.stringify({fingerprint,id:request_id,at:Date.now()}));
     const d=await api('create-order',{...payload,request_id,...(position?{position}:{})});

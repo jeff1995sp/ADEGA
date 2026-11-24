@@ -149,7 +149,7 @@ async function nearbyResult(db,position){
  if(distance>radius)return result(false,'Você está fora da área de retirada. Aproxime-se da adega.',details);
  return result(true,'Você está dentro da área de atendimento.',details);
 }
-async function requireNearby(db,position){const r=await nearbyResult(db,position);if(!r.allowed)reject(r.message,409);}
+async function requireNearby(db,position){if(position===undefined||position===null)return;const r=await nearbyResult(db,position);if(!r.allowed)reject(r.message,409);}
 async function catalog(db,admin){
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
@@ -165,7 +165,7 @@ async function catalog(db,admin){
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  const location=await readPickupLocation(db);
- return json({store:{...store,location_required:Boolean(location?.enabled),location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
+ return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
 const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
