@@ -1,4 +1,4 @@
-import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct} from './shared.js';
+import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
@@ -11,7 +11,7 @@ const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && 
 const total=()=>[...cart.values()].reduce((sum,item)=>sum+doseUnitPrice(products.find(p=>p.id===item.id),optionById(item.energy_id))*item.quantity,0);
 const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
 // O dono confirmou que somente limão e morango seguem no catálogo de caipirinhas.
-const visibleInCatalog=p=>!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
+const visibleInCatalog=p=>!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
 const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
 const optionById=id=>drinkOptions.find(o=>o.id===id);
 const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));

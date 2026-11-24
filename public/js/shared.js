@@ -46,8 +46,10 @@ export const photoStatusFor=p=>{
  if(ILLUSTRATIVE_LOCAL_PATHS.has(local))return 'illustrative';
  return LICENSED_LOCAL_PATHS.has(local)?'licensed':'local';
 };
-const NAME_CORRECTIONS={"produto-049":["Fofura (embalagem azul)","Fofura Presunto"],"produto-051":["Fofura (embalagem roxa)","Fofura Churrasco"],"produto-053":["Torcida (embalagem roxa)","Torcida Churrasco"],"produto-055":["Bubbaloo (embalagem rosa)","Bubbaloo Tutti-Frutti"],"produto-056":["Bubbaloo (embalagem azul)","Bubbaloo Hortelã"],"produto-057":["Trident (embalagem verde)","Trident Melancia"],"produto-048":["Lay's (embalagem preta)","Lay's Sensações"]};
+const NAME_CORRECTIONS={"produto-049":["Fofura (embalagem azul)","Fofura Presunto"],"produto-051":["Fofura (embalagem roxa)","Fofura Churrasco"],"produto-053":["Torcida (embalagem roxa)","Torcida Churrasco"],"produto-055":["Bubbaloo (embalagem rosa)","Bubbaloo Tutti-Frutti"],"produto-056":["Bubbaloo (embalagem azul)","Bubbaloo Hortelã"],"produto-057":["Trident (embalagem verde)","Trident Melancia"],"produto-048":["Lay's (embalagem preta)","Lay's Sensações"],"produto-031":["Doritos","Doritos Queijo Nacho"],"produto-047":["Fandangos","Fandangos Presunto"],"produto-050":["Fofura (embalagem vermelha)","Fofura Queijo"],"produto-054":["Torcida (embalagem verde)","Torcida Pimenta Mexicana"],"produto-058":["Trident (embalagem rosa)","Trident — sabor a confirmar"]};
 export const normalizeProduct=p=>{const known=NAME_CORRECTIONS[p?.id];return known&&p.name===known[0]?{...p,name:known[1]}:p;};
+export const unconfirmedDuplicate=p=>p?.id==='produto-058'&&['Trident (embalagem rosa)','Trident — sabor a confirmar'].includes(p.name)&&!p.active&&!(p.stock>0);
+
 export const photoFor=p=>localPhotoPath(p);
 export const photoFallbackFor=p=>{
  const local=localPhotoPath(p);
@@ -56,7 +58,7 @@ export const photoFallbackFor=p=>{
 export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Doses","Tabacaria"];
 export const catalogCategory=p=>p?.category==='Doses'?'Vodka':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
 export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
-export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
+export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
 export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
 export const productDescription=p=>{
  if(isHouseGin(p))return 'Gin de 700 ml com gelo e energético. Escolha Energético ou Red Bull.';

@@ -396,7 +396,7 @@
     },
     {
       "id": "produto-031",
-      "name": "Doritos",
+      "name": "Doritos Queijo Nacho",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 0,
@@ -604,7 +604,7 @@
     },
     {
       "id": "produto-047",
-      "name": "Fandangos",
+      "name": "Fandangos Presunto",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 0,
@@ -643,7 +643,7 @@
     },
     {
       "id": "produto-050",
-      "name": "Fofura (embalagem vermelha)",
+      "name": "Fofura Queijo",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 350,
@@ -695,7 +695,7 @@
     },
     {
       "id": "produto-054",
-      "name": "Torcida (embalagem verde)",
+      "name": "Torcida Pimenta Mexicana",
       "category": "Salgadinhos",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 300,
@@ -747,7 +747,7 @@
     },
     {
       "id": "produto-058",
-      "name": "Trident (embalagem rosa)",
+      "name": "Trident — sabor a confirmar",
       "category": "Doces e Balas",
       "description": "Imagem ilustrativa para conferência. Preço e estoque sujeitos à confirmação no admin.",
       "price_cents": 300,

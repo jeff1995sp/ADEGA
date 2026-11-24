@@ -1,4 +1,4 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription} from './shared.js';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
@@ -16,7 +16,7 @@ async function refreshData(quiet=false,forceCatalog=true){
     if(c)lastCatalogAt=Date.now();
     const newFirst=o.orders?.[0]?.id;
     if(lastFirst && newFirst && lastFirst!==newFirst){tone();if(!quiet)toast('🔔 Novo pedido recebido!');}
-    lastFirst=newFirst||lastFirst;orders=o.orders||[];if(c){products=c.products||[];drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);}
+    lastFirst=newFirst||lastFirst;orders=o.orders||[];if(c){products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);}
     render();$('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }catch(e){if(/sessão|login|autorizada|expirada/i.test(e.message)){authClear();showLogin();return;}if(!quiet)toast(e.message,true);}finally{refreshBusy=false;}
 }
