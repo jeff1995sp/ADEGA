@@ -1,0 +1,39 @@
+name: Importar referências de produtos
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/importar_fotos_produtos.py'
+      - 'scripts/fotos-produtos-referencia.json'
+      - '.github/workflows/importar-fotos-produtos.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: importar-fotos-produtos-main
+  cancel-in-progress: false
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install Pillow==11.3.0
+      - run: python scripts/importar_fotos_produtos.py
+      - run: npm run build
+      - name: Gravar somente imagens e referências verificadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/imagens/ public/js/shared.js public/catalogo-previa.json FOTOS-REFERENCIAS-WEB.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "Salvar fotografias de referência dos produtos"
+            git push
+          fi
