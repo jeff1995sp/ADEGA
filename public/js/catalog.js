@@ -266,6 +266,7 @@ async function loadCatalog(){
   loadingCatalog=true;
   try{
     const d=await api('catalog',null,{method:'GET'});
+    if(working)return;
     const snapshot=JSON.stringify(d);
     showStoreClosed(d.store?.accepting_orders===false||d.store?.accepting_orders===0);
     if(snapshot===lastSnapshot)return;
@@ -445,8 +446,7 @@ async function submitOrder(event){
     localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));
     cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');toast('Pedido recebido pela adega!');
     $('trackBtn')?.classList.remove('hidden');
-    loadCatalog();
-  }catch(e){if(shop.location_required||/localização|proximidade|GPS|área de retirada/i.test(e.message))updatePickupNotice(e.message);toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
+  }catch(e){if(shop.location_required||/localização|proximidade|GPS|área de retirada/i.test(e.message))updatePickupNotice(e.message);toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';void loadCatalog();}
 }
 let trackingBusy=false,trackingFinished=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
 const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
@@ -629,7 +629,7 @@ function start(){
   (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){trackingFinished=false;currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
   loadCatalog();loadReviews();
   setInterval(()=>{if(!document.hidden)loadReviews();},60000);
-  setInterval(()=>{if(!document.hidden)loadCatalog();},8000);
+  setInterval(()=>{if(!document.hidden)loadCatalog();},3000);
   setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden)loadTracking();},3000);
   window.addEventListener('focus',()=>{loadCatalog();if(currentOrder&&!trackingFinished)loadTracking();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadCatalog();if(currentOrder&&!trackingFinished)loadTracking();}});
