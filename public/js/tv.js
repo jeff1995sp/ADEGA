@@ -7,13 +7,41 @@ let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
 let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!=='off';}catch{}
 function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
+let voiceMode='auto',localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
+try{voiceMode=localStorage.getItem('adega_tv_voice_mode_v1')||'auto';}catch{}
+if(!['auto','audio','native'].includes(voiceMode))voiceMode='auto';
+const nativeSpeech=()=>('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
+const useLocalAudio=()=>voiceMode==='audio'||(voiceMode==='auto'&&(!nativeSpeech()||!voiceList.some(v=>/^pt(?:-|_)/i.test(v.lang))));
+function loadLocalVoice(){
+ if(localVoicePromise)return localVoicePromise;
+ localVoicePromise=(async()=>{
+  if(!window.meSpeak)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/vendor/mespeak/mespeak.js';script.onload=resolve;script.onerror=()=>reject(Error('Motor de voz indisponível.'));document.head.appendChild(script);});
+  const engine=window.meSpeak;if(!engine)throw Error('Motor de voz não iniciou.');
+  const [cfg,voice]=await Promise.all(['/vendor/mespeak/mespeak_config.json','/vendor/mespeak/voices/pt.json'].map(async path=>{const r=await fetch(path);if(!r.ok)throw Error('Arquivo de voz indisponível.');return r.json();}));
+  engine.loadConfig(cfg);engine.loadVoice(voice);
+  if(!engine.isConfigLoaded()||!engine.isVoiceLoaded('pt'))throw Error('Voz em português indisponível.');
+  localVoiceReady=true;
+ })().catch(e=>{localVoicePromise=null;localVoiceReady=false;throw e;});
+ return localVoicePromise;
+}
+function clearAudio(){
+ const a=$('tvVoiceAudio');a.onended=null;a.onerror=null;a.pause();a.removeAttribute('src');if(localAudioUrl){URL.revokeObjectURL(localAudioUrl);localAudioUrl='';}
+}
+function stopSpeech(){speechGeneration++;clearTimeout(finishTimer);if(nativeSpeech())speechSynthesis.cancel();clearAudio();queue=[];speaking=false;}
+function updateSoundUI(message){
+ $('activateSound').setAttribute('aria-label',soundEnabled?'Desativar chamadas por voz':'Ativar chamadas por voz');
+ $('activateSound').classList.toggle('sound-on',soundEnabled);
+ const label=$('activateSound').querySelector('.hora-tv-sound-label');if(label)label.textContent=soundEnabled?'🔊 Voz ativada':'🔊 Ativar voz';
+ $('soundStatus').textContent=message||(soundEnabled?(useLocalAudio()?'🔊 Chamadas por áudio ativadas':'🔊 Chamadas por voz ativadas'):'🔇 Chamadas por voz desativadas');
+}
+function preloadLocalVoice(){if(useLocalAudio())loadLocalVoice().catch(()=>{if(!soundEnabled)updateSoundUI('⚠ Áudio local indisponível. Toque em Ativar voz para tentar novamente.');});}
 const DEMAND_INTERVAL=5*60*1000;
 const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o normal. Obrigado pela compreensão.';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);updateIdle();}
+function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);updateIdle();}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -32,10 +60,25 @@ function chooseVoice(type){
   return voiceList.find(v=>re.test(v.name))||voiceList[0]||null;
 }
 function say(text,type){
-  if(!('speechSynthesis' in window))return;
-  const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';u.rate=.91;u.pitch=type==='male'?.95:1.08;u.volume=1;
-  const voice=chooseVoice(type);if(voice)u.voice=voice;
-  u.onend=()=>{speaking=false;nextSpeech();};u.onerror=()=>{speaking=false;nextSpeech();};speaking=true;speechSynthesis.speak(u);
+ const generation=++speechGeneration;speaking=true;
+ const finish=(error)=>{if(generation!==speechGeneration)return;speechGeneration++;clearTimeout(finishTimer);clearAudio();speaking=false;
+  if(error){soundEnabled=false;queue=[];if(nativeSpeech())speechSynthesis.cancel();updateSoundUI('⚠ '+error);toast(error,true);return;}nextSpeech();};
+ finishTimer=setTimeout(()=>finish('A reprodução de voz não respondeu. Ative a voz novamente.'),30000);
+ if(useLocalAudio()){
+  try{
+   if(!localVoiceReady)throw Error('Áudio local ainda não carregado.');
+   const wav=window.meSpeak.speak(String(text).slice(0,350),{voice:'pt',variant:type==='male'?'m3':'f3',speed:150,pitch:type==='male'?44:56,amplitude:100,rawdata:true});
+   if(!wav||!wav.byteLength)throw Error('Não foi possível gerar o áudio.');
+   clearAudio();const a=$('tvVoiceAudio');localAudioUrl=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));a.src=localAudioUrl;a.volume=1;
+   a.onended=()=>finish();a.onerror=()=>finish('A TV não conseguiu reproduzir áudio WAV.');
+   const playback=a.play();if(playback&&playback.catch)playback.catch(()=>finish('A TV bloqueou o áudio. Toque novamente em Ativar voz.'));
+  }catch(e){finish(e.message||'Falha no áudio local.');}
+  return;
+ }
+ if(!nativeSpeech()){finish('Voz do navegador indisponível. Selecione Áudio compatível com TV.');return;}
+ try{const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';u.rate=.91;u.pitch=type==='male'?.95:1.08;u.volume=1;
+ const voice=chooseVoice(type);if(voice)u.voice=voice;
+ u.onend=()=>finish();u.onerror=()=>{if(generation!==speechGeneration)return;if(voiceMode==='auto'){voiceMode='audio';$('tvVoiceMode').value='audio';preloadLocalVoice();}finish('Voz do navegador falhou. Ative a voz novamente para testar o modo áudio.');};speechSynthesis.speak(u);}catch(e){finish('Voz do navegador indisponível.');}
 }
 function nextSpeech(){
   if(!soundEnabled || speaking || !queue.length)return;
@@ -109,19 +152,22 @@ function start(){
   $('tvIdleEnabled').checked=idleEnabled;$('tvIdleEnabled').onchange=()=>{idleEnabled=$('tvIdleEnabled').checked;try{localStorage.setItem('adega_tv_idle_v1',idleEnabled?'on':'off');}catch{}updateIdle();};
   $('changeKey').onclick=()=>{tvClearCode();retryAt=0;tvError('');showAuth();$('modeBanner').textContent='TV desconectada';};
   $('fullScreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{toast('A TV não permite tela cheia neste navegador.',true);}};
-  $('activateSound').onclick=()=>{
-    if(!('speechSynthesis' in window))return toast('Este navegador não suporta fala. Use um navegador Android TV compatível ou APK.',true);
-    soundEnabled=!soundEnabled;$('activateSound').setAttribute('aria-label',soundEnabled?'Desativar chamadas por voz':'Ativar chamadas por voz');$('activateSound').classList.toggle('sound-on',soundEnabled);$('soundStatus').textContent=soundEnabled?'🔊 Chamadas por voz ativadas':'🔇 Chamadas por voz desativadas';
-    if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');announceDemand();nextSpeech();}
-    else {speechSynthesis.cancel();queue=[];speaking=false;}
-  };
+  function activateVoice(){
+    if(!connected)return toast('Conecte o painel da TV primeiro.',true);
+    if(useLocalAudio()&&!localVoiceReady){updateSoundUI('Carregando áudio em português…');loadLocalVoice().then(()=>{if(!soundEnabled)updateSoundUI('Áudio preparado. Toque em Ativar voz.');}).catch(()=>updateSoundUI('⚠ Não foi possível carregar o áudio. Tente novamente.'));return;}
+    if(!useLocalAudio()&&!nativeSpeech())return toast('Selecione Áudio compatível com TV nas configurações.',true);
+    soundEnabled=true;updateSoundUI();say('Chamadas por voz ativadas. Hora Extra Drinks.','female');announceDemand();
+  }
+  $('activateSound').onclick=()=>{if(soundEnabled){soundEnabled=false;stopSpeech();updateSoundUI();}else activateVoice();};
+  $('tvVoiceMode').value=voiceMode;$('tvVoiceMode').onchange=()=>{soundEnabled=false;stopSpeech();voiceMode=$('tvVoiceMode').value;try{localStorage.setItem('adega_tv_voice_mode_v1',voiceMode);}catch{}updateSoundUI();preloadLocalVoice();};
+  $('tvTestVoice').onclick=()=>{if(!soundEnabled){activateVoice();return;}queue.push({text:'Atenção! Pedido de teste. Seu pedido está pronto. Pode retirar no portão.',voice:'female'});nextSpeech();};
 
   for(const type of ['female','male']){
     const select=$(type==='female'?'femaleVoice':'maleVoice');
     select.addEventListener('change',()=>{voicePrefs[type]=select.value;localStorage.setItem(VOICES,JSON.stringify(voicePrefs));});
 
   }
-  if('speechSynthesis' in window){updateVoices();speechSynthesis.onvoiceschanged=updateVoices;}
+  if(nativeSpeech()){updateVoices();speechSynthesis.onvoiceschanged=()=>{updateVoices();preloadLocalVoice();};}preloadLocalVoice();
   if(tvCode){showAuth();poll();}else{showAuth();$('modeBanner').textContent='TV desconectada';}
   setInterval(poll,3000);
   window.addEventListener('focus',poll);

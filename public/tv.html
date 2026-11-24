@@ -13,8 +13,9 @@
   <footer class="tv-concept-tools"><span class="sr-only">Desenvolvido por Jefferson Felix</span>
     <span id="soundStatus" role="status" aria-live="polite">🔇 Chamadas por voz desativadas</span>
     <button id="fullScreen" class="btn btn-outline btn-sm" type="button">⛶ Tela cheia</button>
-    <div class="tv-settings"><details><summary>⚙ Configurar voz e acesso à TV</summary><div class="grid-2"><div class="form-field"><label for="femaleVoice">Voz feminina</label><select id="femaleVoice"></select></div><div class="form-field"><label for="maleVoice">Voz masculina</label><select id="maleVoice"></select></div></div><label class="tv-idle-setting"><input id="tvIdleEnabled" type="checkbox" checked> Modo descanso automático</label><button id="changeKey" class="btn btn-outline btn-sm">Trocar código</button></details></div>
+    <div class="tv-settings"><details><summary>⚙ Configurar voz e acesso à TV</summary><div class="grid-2"><div class="form-field"><label for="femaleVoice">Voz feminina</label><select id="femaleVoice"></select></div><div class="form-field"><label for="maleVoice">Voz masculina</label><select id="maleVoice"></select></div></div><div class="form-field"><label for="tvVoiceMode">Sistema de voz</label><select id="tvVoiceMode"><option value="auto">Automático (voz local se necessário)</option><option value="audio">Áudio compatível com TV</option><option value="native">Voz do navegador</option></select></div><button type="button" id="tvTestVoice" class="btn btn-outline btn-sm">Testar voz</button><p class="small sub">O modo áudio gera voz em português no aparelho, sem API externa. A voz pode soar mais eletrônica.</p><label class="tv-idle-setting"><input id="tvIdleEnabled" type="checkbox" checked> Modo descanso automático</label><button id="changeKey" class="btn btn-outline btn-sm">Trocar código</button></details></div>
   </footer>
 </div>
-<script type="module" src="/js/tv.js?v=20261124-idle"></script>
+<audio id="tvVoiceAudio" preload="auto" playsinline hidden></audio>
+<script type="module" src="/js/tv.js?v=20261124-audio"></script>
 </body></html>
