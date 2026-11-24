@@ -29,7 +29,8 @@ const server=http.createServer((req,res)=>{
    await page.goto(origin);await page.locator('#productGrid .product').first().waitFor();
    const dimensions=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
    assert.ok(dimensions.actual<=dimensions.viewport+2,device+' catálogo '+JSON.stringify(dimensions));
-   await page.locator('#productGrid button[data-qty="1"]').first().click();await page.locator('#openCart').click();
+   await page.locator('#helpBtn').click();await page.locator('#helpModal.open').waitFor();assert.match(await page.locator('#helpModal').innerText(),/Pix/);assert.match(await page.locator('#helpModal').innerText(),/Cartão/);await page.locator('#closeHelp').click();
+   assert.equal(await page.locator('[data-pay-now]').count(),0);await page.locator('#productGrid button[data-qty="1"]').first().click();await page.locator('[data-pay-now]').first().click();await page.locator('#cartModal.payment-direct.open').waitFor();assert.match(await page.locator('#checkoutQuickTotal').innerText(),/2,50/);await page.locator('#closeCart').click();await page.locator('#openCart').click();
    await page.locator('#cartModal.open').waitFor();
    assert.equal(await page.locator('#paymentOptions input').count(),1);assert.equal(await page.locator('#paymentOptions input').inputValue(),'cash');
    await page.locator('#cash').fill('10,00');

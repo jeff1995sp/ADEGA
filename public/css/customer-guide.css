@@ -1,0 +1,18 @@
+/* Customer navigation, per-item checkout shortcut and help. */
+body.catalog-body .hora-catalog .product-pay-now{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:9px 6px;width:100%;margin-top:5px;border-radius:8px;font-size:clamp(.7rem,1vw,.85rem);line-height:1.2;text-align:center;white-space:normal}
+body.catalog-body .hora-cart-button.cart-has-items{border-radius:9px;background:#472028;color:#fff;box-shadow:0 0 0 1px #fa666b}
+body.catalog-body .hora-cart-button.cart-attention{animation:cart-guide-pulse 1.2s ease-in-out 4}
+@keyframes cart-guide-pulse{0%,100%{box-shadow:0 0 0 0 #ff596700;background-color:transparent}50%{box-shadow:0 0 0 5px #ff59674a;background-color:#65232e}}
+@media(prefers-reduced-motion:reduce){body.catalog-body .hora-cart-button.cart-attention{animation:none;outline:2px solid #fa666b;outline-offset:2px}}
+body.catalog-body #helpBtn{color:#ffd4aa}
+body.catalog-body #helpModal .modal{max-width:570px}
+.help-steps{list-style:none;counter-reset:helpstep;display:grid;gap:16px;padding:0;margin:22px 0}
+.help-steps li{counter-increment:helpstep;display:grid;grid-template-columns:34px minmax(0,1fr);align-items:start;gap:11px}
+.help-steps li:before{content:counter(helpstep);display:grid;place-items:center;width:32px;height:32px;border:1px solid #bd4854;border-radius:9px;background:#422027;color:#ffd9d9;font-weight:800}
+.help-steps li strong{font-size:.95rem;color:#fff}
+.help-steps li p{font-size:.83rem;line-height:1.55;color:#d3c8ce;margin:5px 0}
+.help-payments{display:grid;gap:7px;margin-top:10px}
+.help-payments>div{display:grid;gap:3px;border:1px solid #514049;background:#ffffff05;border-radius:9px;padding:10px}
+.help-payments b{font-size:.85rem;color:#ffce94}.help-payments span{font-size:.79rem;color:#ddd;line-height:1.45}
+.help-steps .help-payment-note{color:#f1c799;font-size:.75rem}
+@media(max-width:800px){body.catalog-body .hora-nav .hora-nav-links{gap:2px;min-width:0}body.catalog-body .hora-nav-links a,body.catalog-body .hora-nav-links button{font-size:clamp(.66rem,2.65vw,.81rem);padding:4px 2px;gap:0}body.catalog-body .hora-nav-links .hora-icon{display:none}body.catalog-body .hora-nav-links .nav-home{display:none}body.catalog-body .hora-catalog .product-pay-now{font-size:.72rem;min-height:44px}body.catalog-body .hora-catalog .product-pay-now span{display:none}}

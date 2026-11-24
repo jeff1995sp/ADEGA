@@ -43,7 +43,7 @@ const productCard=(p,featured=false)=>{
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
     <div class="product-footer"><span class="price">${p.price_cents?(isHouseGin(p)?'A partir de '+fmt(p.price_cents):fmt(p.price_cents)):'Preço em breve'}</span>
-    ${isShake(p)?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-shake="${esc(p.id)}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>Com ou sem álcool</button></div>`:customizable?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo e energético'}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div></div></article>`;
+    ${isShake(p)?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-shake="${esc(p.id)}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>Com ou sem álcool</button></div>`:customizable?`<div class="qty dose-qty"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo e energético'}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>`}</div>${q>0&&available(p)&&p.category!=='Tabacaria'?`<button type="button" class="btn btn-primary product-pay-now" data-pay-now aria-label="Ir para pagamento com todos os itens do carrinho">Ir para pagamento <span aria-hidden="true">→</span></button>`:''}</div></article>`;
 };
 const categoryIcons={"Todos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/></svg>","Batidas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 8h14l-2 13H7L5 8ZM4 8h16M13 8l3-6h4M8 13h8\"/></svg>","Whisky":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Vodka":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Gin":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Cervejas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 7h12v14H5zM17 9h3v8h-3M5 7V5a2 2 0 0 1 4-1 3 3 0 0 1 5 0 2 2 0 0 1 3 2v1M9 11v6M13 11v6\"/></svg>","Caipirinhas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Bebidas prontas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\"/><path d=\"M8 6h8M8 18h8m5-9-3 4h4l-3 4\"/></svg>","Águas e Refrigerantes":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v4l2 2v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9l2-2V3ZM8 13h8M8 17h8\"/></svg>","Doces e Salgadinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"3\" transform=\"rotate(-30 12 12)\"/><path d=\"m6 10-4-3 1 7 4-1m11 1 4 3-1-7-4 1\"/></svg>","Diversos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7 5l10 4\"/></svg>","Vinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3h8l2 6a6 6 0 0 1-12 0l2-6ZM7 10h10M12 15v6M8 21h8\"/></svg>","Tabacaria":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3c.5 3.5-3 5-3 9a5 5 0 0 0 10 0c0-3-2-5.5-3-7-1 2-2.5 2.5-3 1 .5-1 0-2.5-1-3Z\"/></svg>"};
 const categoryLabel=c=>c==='Todos'?'Todos os Produtos':c==='Batidas'?'Batidas (700 ml)':c;
@@ -74,6 +74,8 @@ function tabacariaGroup(p){
  if(/isqueiro|bic|tesoura|cuia/.test(n))return 'Isqueiros e Acessórios';
  return 'Essências e Narguilé';
 }
+let lastCartCount=0;
+function pulseCart(){const el=$('headerCart');if(!el)return;el.classList.remove('cart-attention');void el.offsetWidth;el.classList.add('cart-attention');}
 function renderProducts(){
  showCategories();
  const general=products.filter(p=>visibleInCatalog(p));
@@ -104,6 +106,8 @@ function renderProducts(){
  $('endCategory').innerHTML='';
  $('cartCount').textContent=`${count()} ${count()===1?'item':'itens'}`;
  $('headerCartCount').textContent=count();
+ $('headerCart').classList.toggle('cart-has-items',count()>0);
+ if(count()>lastCartCount)pulseCart();lastCartCount=count();
  $('cartTotal').textContent=fmt(total());
  $('openCart').disabled=count()===0||!shop.accepting_orders;
  $('goPayment').disabled=$('openCart').disabled;
@@ -402,11 +406,19 @@ async function loadTracking(){
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){
+  $('helpBtn').onclick=()=>{open('helpModal');$('closeHelp').focus();};
+  const closeHelp=()=>{close('helpModal');$('helpBtn').focus();};
+  $('closeHelp').onclick=closeHelp;
+  $('helpToCatalog').onclick=()=>{closeHelp();$('catalogo').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});};
+  $('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))closeHelp();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('helpModal').classList.contains('open'))closeHelp();});
+  $('headerCart').addEventListener('animationend',()=> $('headerCart').classList.remove('cart-attention'));
   $('moreReviews').onclick=()=>{reviewExpanded=!reviewExpanded;renderPublicReviews();};
   $('trackingContent').addEventListener('submit',e=>{if(e.target.id==='storeReviewForm')sendReview(e);});
   $('trackingContent').addEventListener('change',e=>{if(e.target.name==='rating'){const n=Number(e.target.value);$('ratingLabel').textContent=n+' de 5 estrelas';e.target.closest('.review-rating').querySelectorAll('label').forEach((label,k)=>label.classList.toggle('selected',k<n));}});
   $('trackingContent').addEventListener('click',e=>{if(e.target.id==='reviewLater')close('trackingModal');});
   $('catalogo').addEventListener('click',e=>{
+    if(e.target.closest('button[data-pay-now]')){showCheckout(true);return;}
     const shake=e.target.closest('button[data-shake]');
     if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');}return;}
     const config=e.target.closest('button[data-configure]');
@@ -463,6 +475,7 @@ function start(){
     $('first').value=p.first;$('last').value=p.last;
     $('ageAck').checked=true;
     $('ageGate').classList.add('hidden');
+    pulseCart();
   };
   $('ageYes').onclick=()=>{
     sessionStorage.setItem('adega_age_ok','1');
