@@ -806,7 +806,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/gin-dose.webp",
       "age_restricted": true,
       "sort_order": 151
     },
@@ -819,7 +819,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/rocks-com-red-bull.webp",
       "age_restricted": true,
       "sort_order": 152
     },
@@ -832,7 +832,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/beefeater-com-red-bull.webp",
       "age_restricted": true,
       "sort_order": 153
     },
@@ -845,7 +845,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/bossa-nova-dose.webp",
       "age_restricted": true,
       "sort_order": 154
     },
@@ -858,7 +858,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/tanqueray-dose.webp",
       "age_restricted": true,
       "sort_order": 155
     },
@@ -871,7 +871,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/gelo-de-agua.webp",
       "age_restricted": false,
       "sort_order": 156
     },
@@ -912,7 +912,7 @@
       "unlimited": false,
       "active": false,
       "icon": "🍬",
-      "image_url": "/imagens/foto-pendente.webp",
+      "image_url": "/imagens/balas-sortidas.webp",
       "age_restricted": false,
       "sort_order": 870
     }

@@ -2,38 +2,11 @@
 // Imagens de IA e desenhos não são fotografias reais; não exibir como produto confirmado.
 // Não usar automaticamente links de imagens de outras lojas (possíveis bloqueios e embalagens diferentes).
 export const PHOTO_PENDING='/imagens/foto-pendente.webp';
-export const ILLUSTRATIVE_LOCAL_PATHS=new Set([
-  "/imagens/51-ice.webp",
-  "/imagens/abacaxi-com-vinho.webp",
-  "/imagens/acai-batido.webp",
-  "/imagens/ballantine-s-com-red-bull.webp",
-  "/imagens/ballantine-s-com-vibe.webp",
-  "/imagens/beefeater-com-red-bull.webp",
-  "/imagens/bell-s-com-red-bull.webp",
-  "/imagens/caipirinha-de-amora.webp",
-  "/imagens/caipirinha-de-cerveja.webp",
-  "/imagens/caipirinha-de-framboesa.webp",
-  "/imagens/caipirinha-de-maracuja.webp",
-  "/imagens/caipirinha.webp",
-  "/imagens/cavalo-com-red-bull.webp",
-  "/imagens/cavalo-com-vibe.webp",
-  "/imagens/ciroc-com-red-bull.webp",
-  "/imagens/draft.webp",
-  "/imagens/ferrero-rocher.webp",
-  "/imagens/kinder-ovo.webp",
-  "/imagens/morango-com-nutella.webp",
-  "/imagens/ninho-trufado.webp",
-  "/imagens/refrigerante-em-lata.webp",
-  "/imagens/rocks-com-red-bull.webp",
-  "/imagens/seda.webp",
-  "/imagens/smirnoff-ice.webp",
-  "/imagens/spaten.webp",
-  "/imagens/vinho.webp"
-]);
-export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp", "/imagens/corona.webp", "/imagens/budweiser.webp", "/imagens/caipirinha-de-morango.webp", "/imagens/caipirinha-de-limao.webp", "/imagens/agua.webp", "/imagens/ceu-azul.webp", "/imagens/maracuja.webp", "/imagens/frutas-vermelhas.webp", "/imagens/balas-sortidas.webp", "/imagens/jack-com-red-bull.webp", "/imagens/red-label-com-red-bull.webp", "/imagens/absolut-com-red-bull.webp"]);
+export const ILLUSTRATIVE_LOCAL_PATHS=new Set(["/imagens/51-ice.webp","/imagens/abacaxi-com-vinho.webp","/imagens/acai-batido.webp","/imagens/ballantine-s-com-red-bull.webp","/imagens/ballantine-s-com-vibe.webp","/imagens/beefeater-com-red-bull.webp","/imagens/bell-s-com-red-bull.webp","/imagens/caipirinha-de-amora.webp","/imagens/caipirinha-de-cerveja.webp","/imagens/caipirinha-de-framboesa.webp","/imagens/caipirinha-de-maracuja.webp","/imagens/caipirinha.webp","/imagens/cavalo-com-red-bull.webp","/imagens/cavalo-com-vibe.webp","/imagens/ciroc-com-red-bull.webp","/imagens/draft.webp","/imagens/ferrero-rocher.webp","/imagens/kinder-ovo.webp","/imagens/morango-com-nutella.webp","/imagens/ninho-trufado.webp","/imagens/refrigerante-em-lata.webp","/imagens/rocks-com-red-bull.webp","/imagens/seda.webp","/imagens/smirnoff-ice.webp","/imagens/spaten.webp","/imagens/vinho.webp","/imagens/ceu-azul.webp","/imagens/maracuja.webp","/imagens/frutas-vermelhas.webp","/imagens/jack-com-red-bull.webp","/imagens/red-label-com-red-bull.webp","/imagens/absolut-com-red-bull.webp","/imagens/gin-dose.webp","/imagens/bossa-nova-dose.webp","/imagens/tanqueray-dose.webp","/imagens/gelo-de-agua.webp"]);
+export const LICENSED_LOCAL_PATHS=new Set(["/imagens/heineken.webp","/imagens/corona.webp","/imagens/budweiser.webp","/imagens/caipirinha-de-morango.webp","/imagens/caipirinha-de-limao.webp","/imagens/agua.webp","/imagens/balas-sortidas.webp"]);
 export const photoSlug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const localPhotoFor=p=>'/imagens/'+photoSlug(p?.name||'foto-pendente')+'.webp';
-const PHOTO_ALIAS={"produto-063":"/imagens/rocks-com-red-bull.webp","produto-064":"/imagens/beefeater-com-red-bull.webp","interno-800":"/imagens/seda.webp","interno-803":"/imagens/isqueiro-bic.webp","interno-804":"/imagens/piteira.webp","interno-805":"/imagens/tesoura.webp","interno-806":"/imagens/carvao-fumax.webp","interno-807":"/imagens/isqueiros-sortidos.webp"};
+const PHOTO_ALIAS={"produto-063":"/imagens/rocks-com-red-bull.webp","produto-064":"/imagens/beefeater-com-red-bull.webp","interno-800":"/imagens/seda.webp","interno-803":"/imagens/isqueiro-bic.webp","interno-804":"/imagens/piteira.webp","interno-805":"/imagens/tesoura.webp","interno-806":"/imagens/carvao-fumax.webp","interno-807":"/imagens/isqueiros-sortidos.webp","produto-001":"/imagens/corona.webp","produto-002":"/imagens/heineken.webp","produto-003":"/imagens/spaten.webp","produto-004":"/imagens/budweiser.webp","produto-005":"/imagens/jack-com-red-bull.webp","produto-006":"/imagens/cavalo-com-red-bull.webp","produto-007":"/imagens/cavalo-com-vibe.webp","produto-008":"/imagens/ballantine-s-com-red-bull.webp","produto-009":"/imagens/ballantine-s-com-vibe.webp","produto-010":"/imagens/red-label-com-red-bull.webp","produto-011":"/imagens/beefeater-com-red-bull.webp","produto-012":"/imagens/bell-s-com-red-bull.webp","produto-013":"/imagens/absolut-com-red-bull.webp","produto-014":"/imagens/ciroc-com-red-bull.webp","produto-015":"/imagens/rocks-com-red-bull.webp","produto-016":"/imagens/acai-batido.webp","produto-017":"/imagens/abacaxi-com-vinho.webp","produto-018":"/imagens/ceu-azul.webp","produto-019":"/imagens/ferrero-rocher.webp","produto-020":"/imagens/kinder-ovo.webp","produto-021":"/imagens/maracuja.webp","produto-022":"/imagens/morango-com-nutella.webp","produto-023":"/imagens/frutas-vermelhas.webp","produto-024":"/imagens/ninho-trufado.webp","produto-025":"/imagens/caipirinha.webp","produto-026":"/imagens/caipirinha-de-cerveja.webp","produto-027":"/imagens/smirnoff-ice.webp","produto-028":"/imagens/51-ice.webp","produto-029":"/imagens/draft.webp","produto-030":"/imagens/refrigerante-em-lata.webp","produto-031":"/imagens/doritos.webp","produto-032":"/imagens/fofura.webp","produto-033":"/imagens/torcida.webp","produto-034":"/imagens/bubbaloo.webp","produto-035":"/imagens/trident.webp","produto-036":"/imagens/mentos.webp","produto-037":"/imagens/bala-felicidades.webp","produto-038":"/imagens/bala-te-adoro.webp","produto-039":"/imagens/balas-sortidas.webp","produto-040":"/imagens/gel-kids.webp","produto-041":"/imagens/pilhas-panasonic.webp","produto-042":"/imagens/caipirinha-de-limao.webp","produto-043":"/imagens/caipirinha-de-morango.webp","produto-044":"/imagens/caipirinha-de-maracuja.webp","produto-045":"/imagens/caipirinha-de-amora.webp","produto-046":"/imagens/caipirinha-de-framboesa.webp","produto-047":"/imagens/fandangos.webp","produto-048":"/imagens/lay-s-embalagem-preta.webp","produto-049":"/imagens/fofura-embalagem-azul.webp","produto-050":"/imagens/fofura-embalagem-vermelha.webp","produto-051":"/imagens/fofura-embalagem-roxa.webp","produto-052":"/imagens/torcida-bacon.webp","produto-053":"/imagens/torcida-embalagem-roxa.webp","produto-054":"/imagens/torcida-embalagem-verde.webp","produto-055":"/imagens/bubbaloo-embalagem-rosa.webp","produto-056":"/imagens/bubbaloo-embalagem-azul.webp","produto-057":"/imagens/trident-embalagem-verde.webp","produto-058":"/imagens/trident-embalagem-rosa.webp","produto-059":"/imagens/mentos-mint.webp","produto-060":"/imagens/mentos-wild.webp","produto-061":"/imagens/agua.webp","produto-062":"/imagens/gin-dose.webp","produto-065":"/imagens/bossa-nova-dose.webp","produto-066":"/imagens/tanqueray-dose.webp","produto-067":"/imagens/gelo-de-agua.webp","produto-070":"/imagens/balas-sortidas.webp","interno-801":"/imagens/carvao-fumax.webp"};
 const localPhotoPath=p=>{
  const stored=String(p?.image_url||'').trim();
  if(stored&&stored!==PHOTO_PENDING)return stored;

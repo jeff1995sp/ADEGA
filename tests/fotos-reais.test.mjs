@@ -18,7 +18,7 @@ test('fotos ilustrativas aparecem identificadas, sem esconder arquivos existente
   assert.equal(photoFor(p),p.image_url);
   assert.equal(photoStatusFor(p),'illustrative');
  }
- assert.equal(photoFor(products.find(p=>p.name==='Fandangos')),'/imagens/fandangos.webp');
+ assert.equal(photoFor(products.find(p=>p.id==='produto-047')),'/imagens/fandangos.webp');
  assert.equal(photoFor(products.find(p=>p.id==='produto-063')),'/imagens/rocks-com-red-bull.webp');
 });
 test('foto personalizada salva no admin tem prioridade',()=>{
