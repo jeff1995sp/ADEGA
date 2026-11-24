@@ -131,20 +131,21 @@ body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.
  body.catalog-body .hora-catalog .product-footer .dose-qty strong{font-size:.73rem;color:#bdb3bb}
  body.catalog-body .hora-catalog .product-pay-now{display:none!important}
  body.catalog-body .hora-product-group{border-color:#3c3039;font-size:.91rem;margin-top:4px;padding:8px 0}
- /* Single cart: bottom only when it contains items, desktop retains top. */
- body.catalog-body header.hora-nav #cartBar{display:none!important}
- body.catalog-body.mobile-cart-active header.hora-nav #cartBar{display:block!important;position:fixed!important;inset:auto 0 0 0!important;width:100%;z-index:25;padding:9px 0 calc(9px + env(safe-area-inset-bottom,0px));background:#171318;border-top:1px solid #49323b;box-shadow:0 -8px 26px #0007}
- body.catalog-body header.hora-nav #cartBar .cart-inner{padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));gap:10px}
- body.catalog-body header.hora-nav #cartBar .cart-meta-icon{display:none}
- body.catalog-body header.hora-nav #cartBar .cart-meta-copy{display:grid;gap:3px}
- body.catalog-body header.hora-nav #cartBar .cart-meta strong{font-size:1.15rem;color:#fff}
- body.catalog-body header.hora-nav #cartBar .cart-actions{flex:1;justify-content:flex-end;min-width:0}
- body.catalog-body header.hora-nav #cartBar #goPayment{display:none!important}
- body.catalog-body header.hora-nav #cartBar .desktop-cart-label{display:none}
- body.catalog-body header.hora-nav #cartBar .mobile-cart-label{display:inline}
- body.catalog-body header.hora-nav #cartBar .cart-actions #openCart{width:min(100%,220px);max-width:none;flex:none;min-height:48px;font-size:.9rem;background:#b42336!important;color:white;border:1px solid #e04c5b;box-shadow:none;border-radius:12px}
+ /* The same cart node is moved to body on mobile; desktop keeps it in header. */
+ body.catalog-body #cartBar{display:none!important}
+ body.catalog-body.mobile-cart-active>#cartBar{display:block!important;position:fixed!important;inset:auto 0 0 0!important;width:100%;z-index:25;padding:9px 0 calc(9px + env(safe-area-inset-bottom,0px));background:#171318;border-top:1px solid #49323b;box-shadow:0 -8px 26px #0007;backdrop-filter:none}
+ body.catalog-body>#cartBar .cart-inner{padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));gap:10px;display:flex;align-items:center}
+ body.catalog-body>#cartBar .cart-meta{min-width:0;flex:none}
+ body.catalog-body>#cartBar .cart-meta-icon{display:none}
+ body.catalog-body>#cartBar .cart-meta-copy{display:grid;gap:3px}
+ body.catalog-body>#cartBar .cart-meta strong{font-size:1.15rem;color:#fff}
+ body.catalog-body>#cartBar .cart-actions{flex:1;justify-content:flex-end;min-width:0}
+ body.catalog-body>#cartBar #goPayment{display:none!important}
+ body.catalog-body>#cartBar .desktop-cart-label{display:none}
+ body.catalog-body>#cartBar .mobile-cart-label{display:inline}
+ body.catalog-body>#cartBar .cart-actions #openCart{width:min(100%,220px);max-width:none;flex:none;min-height:48px;font-size:.9rem;background:#b42336!important;color:white;border:1px solid #e04c5b;box-shadow:none;border-radius:12px}
  body.catalog-body.mobile-cart-active .toast{bottom:calc(var(--mobile-cart-height) + 12px + env(safe-area-inset-bottom,0px))}
- body.catalog-body:has(.modal-backdrop.open) header.hora-nav #cartBar{display:none!important}
+ body.catalog-body:has(.modal-backdrop.open)>#cartBar,body.catalog-body:has(.age-overlay:not(.hidden))>#cartBar{display:none!important}
  body.catalog-body .modal .pay-options{gap:8px}
  body.catalog-body .modal .pay-option{min-height:65px;border-radius:12px;padding:12px}
 }
@@ -153,4 +154,33 @@ body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.
  body.catalog-body .hora-catalog .shell{padding:0 9px}
  body.catalog-body .hora-catalog .products{gap:8px}
  body.catalog-body .hora-catalog .product-content{padding:9px 8px}
+}
+
+/* Fix conflicting legacy grid order and vertical flex wrapping on narrow displays. */
+@media(max-width:800px){
+ body.catalog-body header.hora-nav .header-inner{display:grid!important;grid-template-rows:44px auto;grid-template-columns:44px 38px minmax(0,1fr) 44px;grid-auto-flow:row;align-items:center;justify-content:normal;min-width:0}
+ body.catalog-body header.hora-nav #menuToggle{grid-row:1;grid-column:1;order:0}
+ body.catalog-body header.hora-nav .hora-nav-logo{grid-row:1;grid-column:2;order:0;min-width:0}
+ body.catalog-body header.hora-nav .hora-nav-logo img{width:100%;height:38px}
+ body.catalog-body header.hora-nav .mobile-brand-name{grid-row:1;grid-column:3;order:0;min-width:0}
+ body.catalog-body header.hora-nav #headerCart{grid-row:1;grid-column:4;order:0;width:44px;height:44px;margin:0;justify-self:end}
+ body.catalog-body header.hora-nav .hora-search{grid-row:2;grid-column:1/-1;order:0;width:100%;min-width:0;max-width:100%;margin:0}
+ body.catalog-body header.hora-nav .mobile-brand-name strong{font-size:clamp(.83rem,3.7vw,1.15rem);line-height:1.2;white-space:normal}
+ body.catalog-body .hora-catalog .product{height:auto!important;min-height:0;max-width:100%;min-width:0}
+ body.catalog-body .hora-catalog .product-content{flex:1 0 auto;min-height:0!important;width:100%;min-width:0;padding:10px!important;gap:6px}
+ body.catalog-body .hora-catalog .product-content h3{font-size:.9rem!important}
+ body.catalog-body .hora-catalog .product-content p{font-size:.74rem!important;display:block;-webkit-line-clamp:unset;overflow:visible;min-height:0!important}
+ body.catalog-body .hora-catalog .product-footer{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;justify-content:flex-start!important;flex:0 0 auto;gap:8px;width:100%;min-width:0;max-width:100%;margin-top:auto;padding:8px 0 0}
+ body.catalog-body .hora-catalog .product-footer .price{display:block;max-width:100%;font-size:1.08rem!important;white-space:normal;overflow-wrap:anywhere;line-height:1.2}
+ body.catalog-body .hora-catalog .product-footer .qty{display:grid!important;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;justify-items:center;flex:0 0 auto!important;flex-wrap:nowrap!important;min-width:0;max-width:100%;width:100%;margin:0;gap:2px}
+ body.catalog-body .hora-catalog .product-footer .qty strong{min-width:0;max-width:100%;text-align:center;white-space:normal;overflow-wrap:anywhere}
+ body.catalog-body .hora-catalog .product-footer .qty button{width:44px;min-width:44px;max-width:44px;height:44px;min-height:44px;flex:none}
+ body.catalog-body .hora-catalog .product-footer .dose-qty{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;flex:0 0 auto!important;gap:6px;padding:0}
+ body.catalog-body .hora-catalog .product-footer .dose-qty button{display:block!important;flex:0 0 auto!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:44px;padding:8px 5px!important;font-size:.76rem;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+ body.catalog-body .hora-catalog .product-footer .qty button:disabled{background:#28242a!important;color:#bcb2b8!important;border-color:#494048!important;box-shadow:none!important;opacity:1}
+ body.catalog-body .hora-catalog .product-content .tiny{overflow-wrap:anywhere}
+}
+@media(max-width:360px){
+ body.catalog-body header.hora-nav .header-inner{grid-template-columns:44px 34px minmax(0,1fr) 44px;gap:4px}
+ body.catalog-body .hora-catalog .product-content{padding:8px!important}
 }
