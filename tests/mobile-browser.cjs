@@ -1,0 +1,42 @@
+const {chromium,webkit,devices}=require('playwright');
+const assert=require('node:assert/strict');
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'../public');
+const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png'};
+const product={id:'produto-061',name:'Água',category:'Águas e Refrigerantes',description:'Água mineral',price_cents:250,stock:10,active:true,unlimited:false,age_restricted:false,image_url:'/imagens/agua.webp'};
+const server=http.createServer((req,res)=>{
+ const url=new URL(req.url,'http://localhost');
+ if(url.pathname==='/api'){
+  if(url.searchParams.get('route')==='catalog'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({store:{name:'Hora Extra Drinks',accepting_orders:true},products:[product],drink_options:[],best_sellers:[]}));}
+  res.writeHead(403,{'Content-Type':'application/json'});return res.end('{}');
+ }
+ const filename=path.resolve(root,'.'+(url.pathname==='/'?'/index.html':url.pathname));
+ if(!filename.startsWith(root+path.sep)){res.writeHead(403);return res.end();}
+ try{const b=fs.readFileSync(filename);res.writeHead(200,{'Content-Type':types[path.extname(filename)]||'application/octet-stream'});res.end(b);}catch{res.writeHead(404);res.end();}
+});
+(async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;
+ try{
+ for(const [engine,device,width,height] of [[chromium,'Pixel 7',360,800],[webkit,'iPhone 13',390,844],[webkit,'iPhone SE',320,568]]){
+  const browser=await engine.launch({headless:true});
+  try{
+   const ctx=await browser.newContext({...devices[device],viewport:{width,height}});
+   const page=await ctx.newPage();await page.route('**/*',r=>r.request().url().startsWith(origin)?r.continue():r.abort());
+   await page.addInitScript(()=>{sessionStorage.setItem('adega_age_ok','1');sessionStorage.setItem('adega_customer_profile_v1',JSON.stringify({first:'Bruna',last:'Teste'}));});
+   await page.goto(origin);await page.locator('#productGrid .product').first().waitFor();
+   const dimensions=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
+   assert.ok(dimensions.actual<=dimensions.viewport+2,device+' catálogo '+JSON.stringify(dimensions));
+   await page.locator('#productGrid button[data-qty="1"]').first().click();await page.locator('#openCart').click();
+   await page.locator('#cartModal.open').waitFor();
+   assert.equal(await page.locator('#paymentOptions input').count(),1);assert.equal(await page.locator('#paymentOptions input').inputValue(),'cash');
+   await page.locator('#cash').fill('10,00');
+   assert.match(await page.locator('#cashChangePreview').innerText(),/7,50/);
+   const box=await page.locator('#cartModal .modal').boundingBox();assert.ok(box.width<=width&&box.height<=height);
+   await page.locator('#closeCart').click();
+   await page.goto(origin+'/admin.html');await page.locator('#loginScreen:not(.hidden)').waitFor();
+   const dim=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
+   assert.ok(dim.actual<=dim.viewport+2,device+' login '+JSON.stringify(dim));
+   console.log(device+' '+width+'x'+height+': catálogo, carrinho, dinheiro, troco e login OK');
+  }finally{await browser.close();}
+ }
+ }finally{server.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;server.close();});
