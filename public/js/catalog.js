@@ -284,15 +284,9 @@ function showCheckout(){
   extrasDismissed=false;
   renderCheckoutSummary();
   renderCheckoutExtras();
-  $('paymentOptions').innerHTML=[
-    ['cash','💵 Dinheiro','Pagamento no portão',true],
-    ['card','💳 Cartão','Maquininha no portão',true],
-    ['pix','▦ Pix','QR Code e Copia e Cola — aguardando API',false],
-    ['apple','◉ Apple Pay','Pagamento no iPhone — aguardando API',false],
-    ['google','◉ Google Pay','Pagamento no Android — aguardando API',false]
-  ].map(([v,label,sub,enabled])=>`<label class="pay-option"><input type="radio" name="payment" value="${v}" ${v==='cash'?'checked':''} ${enabled?'':'disabled'}><b>${label}</b><small>${sub}</small></label>`).join('');
+  $('paymentOptions').innerHTML=[['cash','💵 Dinheiro','Pagamento no portão',true]].map(([v,label,sub,enabled])=>`<label class="pay-option"><input type="radio" name="payment" value="${v}" checked><b>${label}</b><small>${sub}</small></label>`).join('');
   $('payWarning').classList.remove('hidden');
-  $('payWarning').textContent='Pix, Apple Pay e Google Pay serão habilitados quando a API do provedor estiver conectada. Não é gerado nenhum código de cobrança falso.';
+  $('payWarning').textContent='Pagamento somente em dinheiro na retirada. Informe o valor para calcular o troco.';
   $('cashField').classList.remove('hidden');
   refreshCash();
   open('cartModal');
@@ -321,7 +315,7 @@ async function submitOrder(event){
   const first=$('first').value.trim(),last=$('last').value.trim(),method=document.querySelector('input[name="payment"]:checked')?.value;
   if(first.length<2||last.length<2)return toast('Informe nome e sobrenome.',true);
   if(!$('ageAck').checked)return toast('Confirme ter pelo menos 18 anos.',true);
-  if(!['cash','card'].includes(method))return toast('Pagamento online ainda não integrado.',true);
+  if(method!=='cash')return toast('Pagamento somente em dinheiro na retirada.',true);
   const cash=$('cash').value.trim()?priceParse($('cash').value):null;
   if(method==='cash' && (cash===null||cash<total()))return toast('Em dinheiro, informe com quanto vai pagar. O valor deve cobrir o total e o troco será enviado ao admin.',true);
   const items=[...cart.values()].map(i=>({...i}));
@@ -349,6 +343,7 @@ async function submitOrder(event){
   }catch(e){toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
 }
 let trackingBusy=false,trackingFinished=false;
+function orderMessage(name,status){const messages={received:'recebemos seu pedido!',preparing:'seu pedido está sendo preparado.',ready:'seu pedido está pronto! Aguarde a entrega no portão.',delivered:'seu pedido foi entregue. Obrigado!',cancelled:'seu pedido foi cancelado.'};return name+', '+(messages[status]||'acompanhe seu pedido.');}
 async function loadTracking(){
   if(!currentOrder||trackingBusy)return;
   trackingBusy=true;
@@ -357,7 +352,7 @@ async function loadTracking(){
     trackingFinished=['delivered','cancelled'].includes(order.status);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado pelo estabelecimento.':order.payment_method==='cash'?'Pague em dinheiro quando o dono entregar no portão.':'Pague com cartão na maquininha, na retirada.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track" style="margin:12px 0"><div class="eyebrow">${esc(pad(order.order_no))} • Retirada no portão</div><h2 style="margin:10px 0">${esc(order.first_name)} ${esc(order.last_name)}</h2><div class="big-status">${esc(stageLabels[order.status]||order.status)}</div><div class="steps">${steps.slice(0,3).map((s,i)=>`<div class="step ${i===current?'current':i<current?'done':''}">${esc(stageLabels[s])}</div>`).join('')}</div><p class="sub small">${esc(instructions)}</p><p style="margin-top:12px">Valor do pedido: <b>${fmt(order.total_cents)}</b></p><p class="small sub" style="margin-top:12px">Acompanhe esta tela ou a TV da adega. Aguarde do lado de fora.</p></div>`;
+    $('trackingContent').innerHTML=`<div class="track" style="margin:12px 0"><div class="eyebrow">${esc(pad(order.order_no))} • Retirada no portão</div><h2 style="margin:10px 0">${esc(order.first_name)} ${esc(order.last_name)}</h2><div class="big-status">${esc(stageLabels[order.status]||order.status)}</div><p class="notice" style="margin:12px 0">${esc(orderMessage(order.first_name,order.status))}</p><div class="steps">${steps.slice(0,3).map((s,i)=>`<div class="step ${i===current?'current':i<current?'done':''}">${esc(stageLabels[s])}</div>`).join('')}</div><p class="sub small">${esc(instructions)}</p><p style="margin-top:12px">Valor do pedido: <b>${fmt(order.total_cents)}</b></p><p class="small sub" style="margin-top:12px">Acompanhe esta tela ou a TV da adega. Aguarde do lado de fora.</p></div>`;
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){

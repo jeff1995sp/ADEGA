@@ -35,7 +35,7 @@ function nextSpeech(){
   const item=queue.shift();say(item.text,item.voice);
 }
 function speakOrder(o){
-  queue.push({text:`Atenção! ${o.first_name}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
+  queue.push({text:o.status==='preparing'?`${o.first_name}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
   nextSpeech();
 }
 function renderTv(orders){
@@ -47,7 +47,7 @@ function renderTv(orders){
   $('readyList').innerHTML=ready.length?paged(ready).map(smallTicket).join(''):'<div class="tv-empty"><strong>Aguardando pedidos prontos.</strong></div>';
   $('preparingList').dataset.count=String(Math.min(3,working.length));
   $('readyList').dataset.count=String(Math.min(3,ready.length));
-  const readyNow=new Map(ready.map(o=>[o.id+':'+o.ready_at,o]));
+  const readyNow=new Map(orders.filter(o=>['preparing','ready'].includes(o.status)).map(o=>[o.id+':'+o.status+(o.status==='ready'?':'+o.ready_at:''),o]));
   if(!started){for(const key of readyNow.keys())seen.add(key);started=true;}
   else for(const [key,o] of readyNow){if(!seen.has(key)){seen.add(key);if(soundEnabled)speakOrder(o);}}
   if(seen.size>1500)seen=new Set([...seen].slice(-300));
@@ -74,6 +74,7 @@ function start(){
     if(soundEnabled){updateVoices();say('Chamadas por voz ativadas.','female');nextSpeech();}
     else {speechSynthesis.cancel();queue=[];speaking=false;}
   };
+  $('testPreparing').onclick=()=>{if(!('speechSynthesis' in window))return toast('Sem suporte a voz.',true);say('Bruna, seu pedido está sendo preparado.','female');};
   for(const type of ['female','male']){
     const select=$(type==='female'?'femaleVoice':'maleVoice');
     select.addEventListener('change',()=>{voicePrefs[type]=select.value;localStorage.setItem(VOICES,JSON.stringify(voicePrefs));});

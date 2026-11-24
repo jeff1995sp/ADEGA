@@ -1,0 +1,76 @@
+/* Mobile-only improvements for Android Chrome and iOS Safari/Chrome. */
+@media(max-width:800px){
+body.catalog-body,body.admin-body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body.catalog-body{padding-bottom:86px;padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+.catalog-body .hora-nav{padding-top:env(safe-area-inset-top,0px)}
+.catalog-body .hora-nav .header-inner{display:grid;grid-template-columns:44px 40px minmax(0,1fr) 52px;gap:4px;padding:6px max(10px,env(safe-area-inset-right,0px)) 8px max(10px,env(safe-area-inset-left,0px));min-height:0!important}
+.catalog-body .hora-menu-button,.catalog-body .hora-cart-button{min-width:44px;min-height:44px;padding:4px;gap:3px;border-radius:10px;background:#21191c}
+.catalog-body .hora-nav-logo img{width:40px;height:40px}
+.catalog-body .hora-nav-links{margin:0;min-width:0;gap:2px;justify-content:center}
+.catalog-body .hora-nav-links a,.catalog-body .hora-nav-links button{min-height:44px;padding:4px 2px;gap:3px;font-size:clamp(.69rem,2.8vw,.87rem);white-space:nowrap}
+.catalog-body .hora-nav-links .hora-icon{width:15px;height:15px}
+.catalog-body .hora-search{grid-column:1/-1;order:0;margin:0;width:100%;max-width:none;min-height:44px}
+.catalog-body .hora-search input{font-size:16px;min-height:44px;padding:8px 0}
+.catalog-body .hora-banner{grid-template-columns:minmax(0,1fr) minmax(0,1.8fr);padding:10px;gap:8px;min-height:0}
+.catalog-body .hora-banner-brand img{height:clamp(84px,25vw,160px)}
+.catalog-body .hora-banner-drinks{height:clamp(100px,31vw,190px);gap:4px;padding:0}
+.catalog-body .hora-banner-drinks img{padding:2px;border-radius:10px}
+.catalog-body .hora-banner-copy{gap:8px;padding:6px 2px;line-height:1.35}
+.catalog-body .hora-banner-copy strong{font-size:clamp(.73rem,3.1vw,.98rem)}
+.catalog-body .hora-banner-copy em{font-size:clamp(.68rem,2.9vw,.9rem);margin:0}
+.catalog-body .hora-address{font-size:.67rem;line-height:1.25;gap:4px}
+.catalog-body .hora-catalog{padding-top:16px!important;scroll-margin-top:125px}
+.catalog-body .hora-catalog-layout{display:block;min-width:0}
+.catalog-body .hora-catalog-main{min-width:0}
+.catalog-body .hora-sidebar.mobile-open{max-height:55vh;max-height:55dvh;overflow:auto;overscroll-behavior:contain}
+.catalog-body .hora-side-link{min-height:48px}
+.catalog-body .hora-category-cards{margin:0 -2px 10px;padding:4px 2px 10px;gap:8px;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+.catalog-body .hora-category-cards .tab{flex:0 0 110px;height:122px;transform:none}
+.catalog-body .hora-category-cards .tab:hover{transform:none}
+.catalog-body .hora-catalog-heading{flex-wrap:wrap;gap:7px}
+.catalog-body .hora-catalog-heading h2{font-size:.98rem;line-height:1.2;white-space:normal}
+.catalog-body .hora-catalog .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:stretch}
+.catalog-body .hora-catalog .product{min-width:0;height:100%;display:flex;flex-direction:column}
+.catalog-body .hora-catalog .product-visual{height:clamp(138px,44vw,216px)!important;flex:none}
+.catalog-body .hora-catalog .product-visual .product-photo{width:100%;height:100%;object-fit:contain!important;padding:6px 6px 17px!important}
+.catalog-body .hora-catalog .product-content{flex:1;min-width:0;padding:10px;display:flex;flex-direction:column;gap:6px}
+.catalog-body .hora-catalog .product-content h3{font-size:.91rem;line-height:1.25;overflow-wrap:anywhere}
+.catalog-body .hora-catalog .product-content p{font-size:.77rem;line-height:1.4;overflow-wrap:anywhere}
+.catalog-body .hora-catalog .product-footer{margin-top:auto;padding-top:8px;min-width:0;flex-direction:column;align-items:stretch}
+.catalog-body .hora-catalog .price{font-size:1.13rem;line-height:1.15;overflow-wrap:anywhere}
+.catalog-body .hora-catalog .qty{gap:4px;min-width:0;justify-content:space-between}
+.catalog-body .hora-catalog .qty button{min-width:44px;min-height:44px;width:44px;height:44px;font-size:1.15rem}
+.catalog-body .hora-catalog .dose-qty{flex-direction:column;align-items:stretch;gap:5px}
+.catalog-body .hora-catalog .dose-qty button{width:100%;height:auto;min-height:44px;white-space:normal;line-height:1.25;font-size:.76rem;padding:8px 6px!important}
+.catalog-body .cart-bar{position:fixed;bottom:0;left:0;right:0;width:100%;padding:9px 12px;padding:9px max(12px,env(safe-area-inset-right,0px)) calc(9px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));z-index:30}
+.catalog-body .cart-inner{gap:10px;min-width:0}.catalog-body .cart-meta strong{font-size:1.15rem;white-space:nowrap}
+.catalog-body #openCart{min-height:46px;padding:10px 12px;font-size:.86rem;white-space:normal}
+.catalog-body .footer{padding:20px 12px}.catalog-body .end-cta{padding:24px 0}.catalog-body .end-cta-inner{gap:12px}
+.catalog-body .toast{left:12px;right:12px;bottom:96px;bottom:calc(96px + env(safe-area-inset-bottom,0px));max-width:none}
+body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.open){overflow:hidden}
+.catalog-body .modal-backdrop,.admin-body .modal-backdrop,.catalog-body .age-overlay{padding:12px;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto;overscroll-behavior:contain;align-items:flex-start}
+.catalog-body .modal,.admin-body .modal,.catalog-body .age-box{width:100%;max-width:550px;margin:auto;min-width:0;max-height:calc(100vh - 24px);max-height:calc(100dvh - max(12px,env(safe-area-inset-top,0px)) - max(12px,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.catalog-body .modal,.admin-body .modal{padding:16px}
+.catalog-body .modal-head,.admin-body .modal-head{gap:8px;align-items:flex-start}
+.catalog-body .modal-head h2,.admin-body .modal-head h2{font-size:1.2rem;overflow-wrap:anywhere}
+.catalog-body .modal-head .close,.admin-body .modal-head .close{min-width:44px;min-height:44px;flex:none}
+.catalog-body .modal .btn,.admin-body .modal .btn,.catalog-body .age-box .btn{min-height:44px;white-space:normal}
+.catalog-body .modal input:not([type=checkbox]):not([type=radio]),.catalog-body .modal select,.catalog-body .age-box input,.admin-body input:not([type=checkbox]):not([type=radio]),.admin-body select,.admin-body textarea{font-size:16px!important}
+.catalog-body .modal .grid-2,.admin-body .modal .grid-2,.catalog-body .modal .pay-options{grid-template-columns:minmax(0,1fr)}
+.catalog-body .modal .order-line>span{min-width:0;overflow-wrap:anywhere}.catalog-body .modal .order-line>strong{flex:none}
+.catalog-body .modal .age-ack{display:flex;align-items:flex-start;gap:10px;min-height:44px}
+.catalog-body .modal .age-ack input{width:22px;height:22px;flex:none}
+.admin-body .admin-layout{grid-template-columns:minmax(0,1fr)}
+.admin-body .sidebar{max-width:100%;overflow-x:auto;padding:8px}
+.admin-body .side-link,.admin-body .btn{min-height:44px}
+.admin-body .admin-main{padding:12px;min-width:0}
+.admin-body .admin-top,.admin-body .panel-head{flex-wrap:wrap;gap:10px}
+.admin-body .inventory-group .inventory-row{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:8px}
+.admin-body .inventory-product-info,.admin-body .inventory-group .controls{grid-column:1/-1;min-width:0}
+.admin-body .inventory-group .controls{display:flex;flex-wrap:wrap;gap:8px}
+.admin-body .inventory-group .price-inline{width:100%;flex-wrap:wrap;min-width:0}
+.admin-body .panel{min-width:0;padding:12px;overflow-wrap:anywhere}
+.admin-body #productPreviewModal{max-height:90dvh}
+}
+@media(max-width:360px){.catalog-body .hora-nav-links .hora-icon{display:none}.catalog-body .hora-nav .header-inner{grid-template-columns:44px 36px minmax(0,1fr) 48px}.catalog-body .hora-nav-logo img{width:36px;height:36px}.catalog-body .hora-catalog .product-content{padding:8px}.catalog-body .hora-banner-copy{flex-wrap:wrap}.catalog-body .hora-banner-copy em{white-space:normal}}
+@media(max-width:800px) and (orientation:landscape) and (max-height:450px){.catalog-body .hora-nav{position:relative}.catalog-body .hora-catalog{scroll-margin-top:8px}}

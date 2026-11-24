@@ -6,7 +6,16 @@ let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'Ho
 const button=(label,action,id,value='',type='secondary',disabled=false)=>`<button class="btn btn-${type} btn-sm" data-action="${action}" data-id="${id}" data-value="${value}" ${disabled?'disabled':''}>${label}</button>`;
 const statusBadge=o=>`<span class="pill ${o.payment_status==='paid'?'good':'warn'}">${o.payment_status==='paid'?'● Pago':'◷ Pagamento pendente'}</span>`;
 function tone(){if(!sounds)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();const t=audioContext.currentTime;[780,1040].forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(.0001,t+i*.17);g.gain.exponentialRampToValueAtTime(.11,t+i*.17+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.17+.15);o.connect(g);g.connect(audioContext.destination);o.start(t+i*.17);o.stop(t+i*.17+.16);});}catch{}}
-let refreshBusy=false,lastCatalogAt=0;
+let refreshBusy=false,lastCatalogAt=0,ordersInitialized=false,knownOrders=new Set();
+function adminAnnounce(message){
+ if(!sounds)return;
+ tone();
+ if('speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(message);u.lang='pt-BR';u.rate=.95;window.speechSynthesis.speak(u);}catch{}}
+}
+let demoStep=0;
+const demoMessages=['Novo pedido recebido de Bruna.','Bruna, seu pedido está sendo preparado.','Bruna, seu pedido está pronto! Aguarde a entrega no portão.'];
+function renderOrderDemo(){const status=['Novo pedido · Bruna','Em preparação · Bruna','Pronto para retirada · Bruna'][demoStep];$('orderDemoStatus').textContent=status;$('orderDemoMessage').textContent=demoMessages[demoStep];$('orderDemoNext').disabled=demoStep===2;adminAnnounce(demoMessages[demoStep]);}
+
 async function refreshData(quiet=false,forceCatalog=true){
   if(busy||refreshBusy)return;
   refreshBusy=true;
@@ -14,9 +23,11 @@ async function refreshData(quiet=false,forceCatalog=true){
     const shouldCatalog=forceCatalog||!lastCatalogAt||Date.now()-lastCatalogAt>=30000;
     const [o,c]=await Promise.all([api('admin-orders',null,{method:'GET',admin:true}),shouldCatalog?api('admin-catalog',null,{method:'GET',admin:true}):null]);
     if(c)lastCatalogAt=Date.now();
-    const newFirst=o.orders?.[0]?.id;
-    if(lastFirst && newFirst && lastFirst!==newFirst){tone();if(!quiet)toast('🔔 Novo pedido recebido!');}
-    lastFirst=newFirst||lastFirst;orders=o.orders||[];if(c){products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);}
+    const incoming=o.orders||[];
+    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('🔔 Novo pedido recebido: '+order.first_name);}}}
+    for(const order of incoming)knownOrders.add(order.id);
+    if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
+    ordersInitialized=true;orders=incoming;if(c){products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);}
     render();$('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }catch(e){if(/sessão|login|autorizada|expirada/i.test(e.message)){authClear();showLogin();return;}if(!quiet)toast(e.message,true);}finally{refreshBusy=false;}
 }
@@ -289,9 +300,13 @@ async function performAction(btn){
   try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ ordersInitialized=false;knownOrders.clear();$('orderDemo').classList.add('hidden');closeProductPreview();$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
+ $('testNewOrder').onclick=()=>{if(!sounds){sounds=true;$('soundToggle').textContent='🔔 Alertas ligados';}demoStep=0;$('orderDemo').classList.remove('hidden');renderOrderDemo();};
+ $('orderDemoNext').onclick=()=>{if(demoStep<2){demoStep++;renderOrderDemo();}};
+ $('orderDemoClose').onclick=()=>{$('orderDemo').classList.add('hidden');};
+
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});

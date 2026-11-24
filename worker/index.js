@@ -136,7 +136,7 @@ async function createOrder(db,body){
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
  const first=text(body.first_name,60),last=text(body.last_name,80),method=body.payment_method;
  if(first.length<2||last.length<2)reject('Informe nome e sobrenome.');
- if(!['cash','card'].includes(method))reject('Pagamento online ainda não integrado.',409);
+ if(method!=='cash')reject('Pagamento somente em dinheiro na retirada.',409);
  const cash=method==='cash'?body.cash_given_cents:null;
  if(method==='cash'&&!int(cash,1,MAX_MONEY))reject('Informe quanto vai pagar em dinheiro.');
  if(!uuid(body.request_id)||!int(body.expected_total_cents,1,MAX_MONEY))reject('Atualize o cardápio antes de confirmar.');

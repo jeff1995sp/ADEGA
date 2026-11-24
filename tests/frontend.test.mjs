@@ -27,7 +27,7 @@ test('all three production screens load their corresponding modules',()=>{
 });
 test('server does not manually approve pix or wallets',()=>{
   const source=readFileSync(new URL('../netlify/functions/api.mjs',import.meta.url),'utf8');
-  assert.match(source,/\['cash','card'\]\.includes\(body\.payment_method\)/);
+  assert.match(source,/body\.payment_method!=='cash'/);
   assert.ok(!source.includes("payment_status:'paid'"));
 });
 
