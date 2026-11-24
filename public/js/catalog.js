@@ -448,7 +448,7 @@ async function submitOrder(event){
     $('trackBtn')?.classList.remove('hidden');
   }catch(e){if(shop.location_required||/localização|proximidade|GPS|área de retirada/i.test(e.message))updatePickupNotice(e.message);toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';void loadCatalog();}
 }
-let trackingBusy=false,trackingFinished=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
+let trackingBusy=false,trackingFinished=false,customerCancelBusy=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
 const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
 function reviewPanel(order){
  if(order.status!=='delivered'||order.payment_status!=='paid')return '';
@@ -484,7 +484,7 @@ function maybePromptReview(order){
 }
 function orderMessage(name,status){const messages={received:'recebemos seu pedido!',preparing:'seu pedido está sendo preparado.',ready:'seu pedido está pronto! Aguarde a entrega no portão.',delivered:'seu pedido foi entregue. Obrigado!',cancelled:'seu pedido foi cancelado.'};return name+', '+(messages[status]||'acompanhe seu pedido.');}
 async function loadTracking(){
-  if(!currentOrder||trackingBusy||reviewSubmitting)return;
+  if(!currentOrder||trackingBusy||reviewSubmitting||customerCancelBusy)return;
   const trackingId=currentOrder.id;
   trackingBusy=true;
   try{
@@ -494,7 +494,7 @@ async function loadTracking(){
     $('trackBtn').classList.toggle('review-pending',order.status==='delivered'&&order.payment_status==='paid'&&!order.reviewed);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${reviewPanel(order)}</div>`;
+    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${order.status==='received'&&order.payment_status==='pending'?'<div class="notice"><p class="small">Você pode cancelar enquanto a adega ainda não iniciou o preparo.</p><button type="button" class="btn btn-danger btn-wide" id="customerCancelOrder">Cancelar meu pedido</button></div>':order.status==='preparing'||order.status==='ready'?'<p class="small sub">O preparo já começou. Se precisar cancelar, fale com o atendente.</p>':''}${reviewPanel(order)}</div>`;
     void bindNotifications();maybePromptReview(order);
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
@@ -533,6 +533,14 @@ function start(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('helpModal').classList.contains('open'))closeHelp();});
   $('headerCart').addEventListener('animationend',()=> $('headerCart').classList.remove('cart-attention'));
   $('moreReviews').onclick=()=>{reviewExpanded=!reviewExpanded;renderPublicReviews();};
+  $('trackingContent').addEventListener('click',async e=>{
+   const btn=e.target.closest('#customerCancelOrder');if(!btn||!currentOrder||customerCancelBusy)return;
+   if(!confirm('Cancelar este pedido? Os itens serão liberados para outros clientes.'))return;
+   const order=currentOrder;customerCancelBusy=true;btn.disabled=true;
+   try{await api('cancel-order',{id:order.id,token:order.token});toast('Pedido cancelado.');}
+   catch(err){toast(err.message,true);}
+   finally{customerCancelBusy=false;await loadTracking();void loadCatalog();}
+  });
   $('trackingContent').addEventListener('submit',e=>{if(e.target.id==='storeReviewForm')sendReview(e);});
   $('trackingContent').addEventListener('change',e=>{if(e.target.name==='rating'){const n=Number(e.target.value);$('ratingLabel').textContent=n+' de 5 estrelas';e.target.closest('.review-rating').querySelectorAll('label').forEach((label,k)=>label.classList.toggle('selected',k<n));}});
   $('trackingContent').addEventListener('click',e=>{if(e.target.id==='reviewLater')close('trackingModal');});

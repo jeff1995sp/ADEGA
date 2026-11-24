@@ -226,14 +226,17 @@ async function createOrder(db,body){
  const saved=await one(db,'SELECT * FROM orders WHERE id=?',oid);if(!saved)throw Error('order missing');
  return orderResult(saved);
 }
-async function cancel(db,id,restoreStock=true){
+async function cancel(db,id,restoreStock=true,customerToken=null){
  if(!uuid(id))reject('Pedido inválido.');
- const eligible="EXISTS(SELECT 1 FROM orders WHERE id=? AND status IN ('received','preparing','ready') AND payment_status<>'paid')";
- const a=stmt(db,"UPDATE products SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='product' AND item_id=products.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='product') AND "+eligible,id,id,id);
- const b=stmt(db,"UPDATE drink_options SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='option' AND item_id=drink_options.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='option') AND "+eligible,id,id,id);
- const c=stmt(db,"UPDATE orders SET status='cancelled',updated_at=? WHERE id=? AND status IN ('received','preparing','ready') AND payment_status<>'paid'",now(),id);
+ const customer=customerToken!==null;
+ const condition=customer?"id=? AND public_token=? AND status='received' AND payment_status='pending'":"id=? AND status IN ('received','preparing','ready') AND payment_status<>'paid'";
+ const args=customer?[id,customerToken]:[id];
+ const eligible="EXISTS(SELECT 1 FROM orders WHERE "+condition+")";
+ const a=stmt(db,"UPDATE products SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='product' AND item_id=products.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='product') AND "+eligible,id,id,...args);
+ const b=stmt(db,"UPDATE drink_options SET stock=stock+(SELECT quantity FROM stock_reservations WHERE order_id=? AND kind='option' AND item_id=drink_options.id) WHERE id IN (SELECT item_id FROM stock_reservations WHERE order_id=? AND kind='option') AND "+eligible,id,id,...args);
+ const c=stmt(db,"UPDATE orders SET status='cancelled',updated_at=? WHERE "+condition,now(),...args);
  const result=await db.batch(restoreStock?[a,b,c]:[c]);
- if(!result[result.length-1].meta.changes)reject('Pedido encerrado ou pago. Pedido pago exige estorno.',409);
+ if(!result[result.length-1].meta.changes)reject(customer?'O pedido já começou a ser preparado, foi pago ou encerrado. Fale com o atendente.':'Pedido encerrado ou pago. Pedido pago exige estorno.',409);
  return json({ok:true});
 }
 async function orderAction(db,body){
@@ -471,6 +474,17 @@ async function handler(request,env,ctx){
   await ensureReviews(db);
   const review=await one(db,'UPDATE store_reviews SET comment_hidden=? WHERE id=? RETURNING id',body.comment_hidden,body.id);
   if(!review)missing();return json({ok:true});
+ }
+ if(route==='cancel-order'&&method==='POST'){
+ if(!uuid(body.id)||!uuid(body.token))reject('Pedido inválido.');
+ await rate(db,request,'customer-cancel',30,300);
+ const o=await one(db,'SELECT id,status FROM orders WHERE id=? AND public_token=?',body.id,body.token);
+ if(!o)missing();
+ if(o.status==='cancelled')return json({ok:true});
+ await ensureAudit(db);
+ const r=await cancel(db,body.id,true,body.token);
+ const task=removePush(db,body.id).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
+ return r;
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
