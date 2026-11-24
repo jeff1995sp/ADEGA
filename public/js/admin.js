@@ -57,7 +57,7 @@ async function refreshData(quiet=false,forceCatalog=true){
  }catch(e){handleRefreshError(e,quiet);}finally{refreshBusy=false;await orderPromise;}
 }
 const paid=o=>o.payment_status==='paid';
-const allItems=o=>(o.order_items||[]).map(i=>`<strong>${i.quantity}x</strong> ${esc(i.product_name)}`).join(' · ');
+const allItems=o=>(o.order_items||[]).map(i=>`<li><strong>${esc(i.quantity)}×</strong><span>${esc(i.product_name)}</span><b>${fmt(Number(i.quantity)*Number(i.unit_price_cents))}</b></li>`).join('');
 function renderStats(){
   const pending=orders.filter(o=>o.status!=='delivered'&&o.status!=='cancelled');
   const p=[['Aguardando',pending.filter(o=>o.status==='received').length],['Preparando',pending.filter(o=>o.status==='preparing').length],['Prontos',pending.filter(o=>o.status==='ready').length],['Pagos em andamento',orders.filter(o=>paid(o)).length]];
@@ -72,17 +72,19 @@ function renderOrders(){
         :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
       :'';
     const voice=o.voice||'';
+    const stageIndex=['received','preparing','ready'].indexOf(o.status);
+    const timeline=['Recebido','Preparando','Pronto'].map((label,i)=>`<span class="order-flow-step ${i<stageIndex?'done':i===stageIndex?'current':''}" ${i===stageIndex?'aria-current="step"':''}><b>${i<stageIndex?'✓':i+1}</b>${label}</span>`).join('');
     const cardAtPickup=o.payment_method==='card';
-    const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
+    const steps=o.status==='received'?button('Iniciar preparo','status',o.id,'preparing','primary')+button('Marcar pronto','status',o.id,'ready','secondary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card premium-order order-${esc(o.status)}"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
-    <div class="order-details"><span>${allItems(o)}</span><span>${fmt(o.total_cents)}</span><span>Pagamento: ${esc(labels[o.payment_method]||o.payment_method)}</span></div>${cash}
+    <div class="order-flow" aria-label="Etapas do pedido">${timeline}</div><section class="order-items-panel"><div class="order-items-caption">ITENS DO PEDIDO</div><ul class="order-item-lines">${allItems(o)||'<li>Sem itens registrados</li>'}</ul><div class="order-payment-line"><div><small>Forma de pagamento</small><strong>${esc(labels[o.payment_method]||o.payment_method)}</strong></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div></div></section>${cash}
     ${proof}<div class="muted-separator"></div>
-    <div class="order-voice-row"><span class="small sub">Voz da TV</span><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}♀ Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}♂ Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div></div>
     <div class="order-bottom order-actions">${cardAtPickup?'<span class="small sub">Cobrar na maquininha antes de finalizar.</span>':''}
       
       ${o.payment_method==='pix'&&paid(o)&&!o.receipt_checked?button('📑 Comprovante conferido','receipt',o.id,'','secondary'):''}
       ${steps}${!paid(o)?button('Cancelar pedido','cancel',o.id,'','danger'):''}</div>
+    <details class="order-voice-optional"><summary>Voz da TV (opcional) <small>${voice==='male'?'Masculina':voice==='female'?'Feminina':'Padrão · feminina'}</small></summary><p class="tiny sub">Não é necessário escolher uma voz para avançar. A chamada depende do áudio ativado na TV.</p><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div></details>
     </article>`;
   }).join(''):'<div class="empty">Nenhum pedido aguardando. Os novos pedidos aparecerão aqui automaticamente.</div>';
 }

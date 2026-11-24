@@ -42,3 +42,25 @@ body.tv-body .tv-concept-canvas{background:radial-gradient(ellipse at 12% 3%,#38
 .tv-body .tv-concept-list .tv-empty{height:31.3%;border:1px dashed #ffffff2b;background:#ffffff04;border-radius:14px}.tv-body .tv-concept-list .tv-empty strong{font-weight:500;color:#a8a2aa;font-size:clamp(12px,1.4vw,24px)}
 @media(max-width:600px){.admin-body .premium-order{padding:14px}.order-status-stack{gap:4px}.order-stage{font-size:.7rem;padding:4px 6px}.order-cash-summary{grid-template-columns:1fr 1fr;padding:12px}.order-cash-summary>div:first-child{grid-column:1/-1}.premium-order .order-actions .btn{flex:1 1 140px}.catalog-body #trackingModal .modal{padding:16px}.track-stage{font-size:.66rem}.track-payment strong{font-size:1.1rem}}
 @media(prefers-reduced-motion:no-preference){.premium-order,.tv-ticket{animation:order-enter .22s ease-out}@keyframes order-enter{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}}
+
+/* Owner order flow: optional voice, item breakdown and clearly separated steps. */
+.admin-body .order-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:17px 0}
+.admin-body .order-flow-step{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:9px 5px;border:1px solid #413943;border-radius:9px;background:#17151a;color:#b7adb7;font-size:.74rem;font-weight:700}
+.admin-body .order-flow-step b{display:grid;place-items:center;flex:none;width:21px;height:21px;border-radius:50%;background:#342d36;color:#d1c8d0;font-size:.68rem}
+.admin-body .order-flow-step.done{border-color:#315f4c;color:#a1dfbf}.admin-body .order-flow-step.done b{background:#244a37;color:#b9f0d2}
+.admin-body .order-flow-step.current{border-color:var(--accent);color:var(--accent);background:#ffffff08}.admin-body .order-flow-step.current b{background:var(--accent);color:#171318}
+.admin-body .order-items-panel{padding:13px;border:1px solid #453842;border-radius:12px;background:#17151a;margin-bottom:12px}
+.admin-body .order-items-caption{font-size:.68rem;font-weight:800;letter-spacing:.12em;color:#c6b2bf}
+.admin-body .order-item-lines{list-style:none;margin:8px 0;padding:0;display:grid;gap:0}
+.admin-body .order-item-lines li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:9px;padding:11px 0;border-bottom:1px solid #ffffff12;font-size:.85rem;line-height:1.4}
+.admin-body .order-item-lines li strong{color:var(--accent)}.admin-body .order-item-lines li span{overflow-wrap:anywhere}.admin-body .order-item-lines li b{font-size:.82rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.admin-body .order-payment-line{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-top:5px;flex-wrap:wrap}
+.admin-body .order-payment-line>div{display:grid;gap:4px}.admin-body .order-payment-line small{font-size:.7rem;color:#bcb1bd}.admin-body .order-payment-line strong{font-size:.86rem}.admin-body .order-payment-line b{font-size:1.45rem;color:#fff;font-variant-numeric:tabular-nums}
+.admin-body .order-voice-optional{margin-top:14px;border-top:1px solid #453842;padding:10px 0 0}
+.admin-body .order-voice-optional summary{cursor:pointer;color:#d7c8d3;font-size:.8rem;min-height:36px;padding:7px 0;line-height:1.4}
+.admin-body .order-voice-optional summary small{margin-left:8px;color:#a9a0ac;font-size:.7rem}
+.admin-body .order-voice-optional p{margin:5px 0 9px}
+.admin-body .order-voice-optional .order-bottom{margin:0;gap:7px}
+.admin-body .order-voice-optional button{min-height:44px}
+.admin-body .premium-order .order-actions .btn{min-height:48px}
+@media(max-width:600px){.admin-body .order-flow-step{flex-direction:column;gap:4px;font-size:.68rem}.admin-body .order-items-panel{padding:10px}.admin-body .order-item-lines li{gap:6px;font-size:.78rem}.admin-body .order-item-lines li b{font-size:.73rem}.admin-body .order-voice-optional summary{min-height:44px}.admin-body .order-actions>span{flex-basis:100%}}

@@ -248,13 +248,13 @@ async function orderAction(db,body){
  args=[date,body.age_confirmed===true,date,body.id,body.action==='finishcard'?'card':'cash',body.age_confirmed===true];break;
  case 'status':
  if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";args=[date,body.id];}
- else if(body.value==='ready'){sql="status='ready',ready_at=?,updated_at=? WHERE id=? AND status IN ('received','preparing') AND voice IN ('female','male')";args=[date,date,body.id];}
+ else if(body.value==='ready'){sql="status='ready',ready_at=?,updated_at=? WHERE id=? AND status IN ('received','preparing')";args=[date,date,body.id];}
  else if(body.value==='delivered'){sql="status='delivered',updated_at=? WHERE id=? AND status='ready' AND payment_status='paid' AND (age_required=0 OR age_checked=1) AND (payment_method<>'pix' OR receipt_checked=1)";args=[date,body.id];}
  else reject('Status inválido.');break;
  default:reject('Ação inválida.');
  }
  const order=await one(db,'UPDATE orders SET '+sql+' RETURNING *',...args);
- if(!order)reject('Ação bloqueada. Confira pagamento, documento, voz e situação do pedido.',409);
+ if(!order)reject('Ação bloqueada. Confira pagamento, documento e situação do pedido.',409);
  return json({order});
 }
 async function orders(db){

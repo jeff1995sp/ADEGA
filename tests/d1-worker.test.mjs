@@ -86,11 +86,10 @@ test('D1: TV protegida, entrega exige pagamento e maioridade, caixa soma venda r
  const f=setup(),t=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');
  const a=await f.call('create-order',payload());assert.equal(a.status,201);const id=a.data.order.id;
  const action=(action,value)=>f.call('admin-order-action',{id,action,value},t);
- assert.equal((await action('status','ready')).status,409);
- assert.equal((await action('voice','male')).status,200);
  assert.equal((await action('status','ready')).status,200);
+ assert.equal((await action('status','ready')).status,409);
  assert.equal((await f.call('tv')).status,403);
- const tv=await f.call('tv',undefined,null,'GET',{'X-TV-Code':f.env.TV_PASSCODE});assert.equal(tv.data.orders[0].status,'ready');
+ const tv=await f.call('tv',undefined,null,'GET',{'X-TV-Code':f.env.TV_PASSCODE});assert.equal(tv.data.orders[0].status,'ready');assert.ok(!tv.data.orders[0].voice);
  assert.equal((await action('status','delivered')).status,409);
  assert.equal((await action('paid')).status,200);
  assert.equal((await action('status','delivered')).status,409);
@@ -232,3 +231,5 @@ test('D1: auditoria persistente de preços, estoque e cancelamentos, protegida p
  assert.ok(audit.data.events.some(e=>e.kind==='cancel'&&e.new_value==='cancelled'));
  const filtered=await f.call('admin-audit',{kind:'price'},token);assert.ok(filtered.data.events.length&&filtered.data.events.every(e=>e.kind==='price'));
 });
+
+test('D1: voz masculina opcional preservada ao avançar pedido',async()=>{const f=setup(),t=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');const r=await f.call('create-order',payload());assert.equal(r.status,201);const id=r.data.order.id;const act=(action,value)=>f.call('admin-order-action',{id,action,value},t);assert.equal((await act('status','preparing')).status,200);assert.equal((await act('voice','male')).status,200);assert.equal((await act('status','ready')).status,200);const tv=await f.call('tv',undefined,null,'GET',{'X-TV-Code':f.env.TV_PASSCODE});assert.equal(tv.data.orders[0].voice,'male');assert.equal(tv.data.orders[0].status,'ready');});
