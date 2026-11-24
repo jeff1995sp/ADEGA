@@ -1,0 +1,29 @@
+/* Owner central: isolated styles, no payment or stock mutations. */
+.admin-body .admin-nav-caption{font-size:.61rem;color:#b9a6b1;font-weight:800;letter-spacing:.12em;padding:12px 10px 3px}
+.admin-body .admin-central-hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:clamp(18px,3vw,32px);border:1px solid #763341;border-radius:16px;background:linear-gradient(115deg,#1b1319f5,#401722e8),url('/img/comunidade-urbana.svg') center/cover;margin-bottom:14px}
+.admin-central-hero h2{font-family:Outfit,system-ui,sans-serif;font-size:clamp(1.55rem,4vw,2.4rem);line-height:1.1;margin:8px 0;color:#fff;letter-spacing:-.035em}
+.admin-central-hero p,.admin-sync-panel p{color:#c8b9c2;font-size:.82rem;line-height:1.5;margin:4px 0}
+.admin-central-kicker{color:#ff7989;font-size:.68rem;font-weight:800;letter-spacing:.11em}
+.admin-central-hero img{width:clamp(54px,16vw,86px);height:auto;flex:none;object-fit:contain}
+.admin-sync-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#19171c;border:1px solid #40353f;border-radius:12px;padding:13px;margin-bottom:14px}
+.admin-central-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.admin-central-metric{min-width:0;display:grid;align-content:start;gap:9px;padding:15px;background:#211b22;border:1px solid #47363f;border-radius:12px}
+.admin-central-metric small{color:#dfc8d2;font-size:.75rem;font-weight:700}
+.admin-central-metric b{font-size:clamp(1.4rem,3vw,2rem);color:#ff7889;font-variant-numeric:tabular-nums}
+.admin-central-metric span{font-size:.68rem;color:#bfb3bf;line-height:1.35}
+.admin-task-list{display:grid;gap:7px;margin-top:14px}
+.admin-task{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;min-height:48px;text-align:left;padding:10px 13px;background:#211d24;color:#f6eaf1;border:1px solid #3f3540;border-radius:10px;font:inherit;font-size:.85rem;cursor:pointer}
+.admin-task strong{font-variant-numeric:tabular-nums;min-width:28px;text-align:center}
+.admin-task strong.attention{color:#ffd092}.admin-task strong.clear{color:#a0dbb8}.admin-task strong.unknown{color:#b0a4b0}
+.admin-quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+.admin-quick-grid button{display:grid;text-align:left;align-content:center;gap:6px;padding:13px;min-height:72px;min-width:0;border:1px solid #573a47;border-radius:12px;background:#291c24;color:white;cursor:pointer;font:inherit}
+.admin-quick-grid small{color:#c7b7c3;font-size:.72rem;line-height:1.35}
+.admin-guide{margin:0 0 14px;border:1px solid #4b3844;border-radius:12px;background:#201a21;overflow:hidden}
+.admin-guide summary{padding:13px 15px;cursor:pointer;font-size:.87rem;font-weight:750;color:#ffc3cb;min-height:44px;line-height:1.35}
+.admin-guide-body{padding:0 15px 15px;display:grid;gap:12px}
+.admin-guide-body>div{border-top:1px solid #44343f;padding-top:10px}
+.admin-guide-body strong{font-size:.83rem;color:#fff}.admin-guide-body p{margin:4px 0 0;font-size:.79rem;line-height:1.55;color:#c9bdc8}
+.admin-body .admin-task:focus-visible,.admin-body .admin-quick-grid button:focus-visible,.admin-body .admin-guide summary:focus-visible{outline:2px solid #ff9ca9;outline-offset:-3px}
+.admin-body .admin-central-panel{margin-bottom:14px}
+@media(max-width:980px){.admin-body .admin-nav-caption{display:none}.admin-body .admin-central-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-body .admin-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-body .admin-central-hero{padding:16px}.admin-body .admin-central-metric{padding:12px}}
+@media(max-width:800px){body.admin-body #drinkOptionsList .inventory-row{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:10px;padding:12px;border-bottom:1px solid #44343f}body.admin-body #drinkOptionsList .controls{display:flex;gap:8px;flex-wrap:wrap}body.admin-body #drinkOptionsList .stock-set{min-width:0;max-width:100%}body.admin-body #drinkOptionsList .btn{flex:1;white-space:normal}}

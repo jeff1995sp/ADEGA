@@ -1,3 +1,4 @@
+import {managementMetrics} from './admin-central.js?v=1';
 import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-auth';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -7,6 +8,7 @@ const button=(label,action,id,value='',type='secondary',disabled=false)=>`<butto
 const statusBadge=o=>`<span class="pill ${o.payment_status==='paid'?'good':'warn'}">${o.payment_status==='paid'?'● Pago':'◷ Pagamento pendente'}</span>`;
 function tone(){if(!sounds)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();const t=audioContext.currentTime;[780,1040].forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(.0001,t+i*.17);g.gain.exponentialRampToValueAtTime(.11,t+i*.17+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.17+.15);o.connect(g);g.connect(audioContext.destination);o.start(t+i*.17);o.stop(t+i*.17+.16);});}catch{}}
 let shopToggleReady=false,shopToggleBusy=false,shopToggleRevision=0;
+let lastOrdersAt=0,ordersConnectionFailed=false;
 let refreshBusy=false,lastCatalogAt=0,ordersInitialized=false,knownOrders=new Set(),ordersRequest=null,ordersSnapshot='',orderRefreshPending=false;
 function adminAnnounce(message){
  if(!sounds)return;
@@ -29,13 +31,13 @@ async function refreshOrders(quiet=true){
    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('Novo pedido: '+order.first_name);}}}
    for(const order of incoming)knownOrders.add(order.id);
    if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
-   ordersInitialized=true;orders=incoming;
+   ordersInitialized=true;orders=incoming;lastOrdersAt=Date.now();ordersConnectionFailed=false;renderOverview();
    if(snapshot!==ordersSnapshot){ordersSnapshot=snapshot;renderStats();renderOrders();}
    const pending=incoming.filter(o=>o.status==='received').length;
    $('pendingOrderBadge').textContent=String(pending);$('pendingOrderBadge').classList.toggle('hidden',!pending);
    $('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
    $('orderHeartbeat').className='pill good';
-  }catch(e){$('orderHeartbeat').textContent='Reconectando…';$('orderHeartbeat').className='pill warn';handleRefreshError(e,quiet);}
+  }catch(e){ordersConnectionFailed=true;renderOverview();$('orderHeartbeat').textContent='Reconectando…';$('orderHeartbeat').className='pill warn';handleRefreshError(e,quiet);}
  };
  ordersRequest=request();
  try{await ordersRequest;}finally{ordersRequest=null;if(orderRefreshPending){orderRefreshPending=false;void refreshOrders(true);}}
@@ -91,7 +93,7 @@ function renderInventory(){
   const all=products.filter(p=>!isStandaloneIce(p)).sort((x,y)=>(order.indexOf(catalogCategory(x))<0?999:order.indexOf(catalogCategory(x)))-(order.indexOf(catalogCategory(y))<0?999:order.indexOf(catalogCategory(y)))||x.name.localeCompare(y.name,'pt-BR'));
   const filtered=all.filter(p=>{
     const cat=catalogCategory(p);
-    return (inventoryFilter==='Todos'||cat===inventoryFilter)&&(!inventorySearch||norm(p.name+' '+cat).includes(norm(inventorySearch)))&&(inventoryStatus==='all'||(inventoryStatus==='unpriced'&&!p.price_cents)||(inventoryStatus==='paused'&&!p.active)||(inventoryStatus==='out'&&!p.unlimited&&p.stock===0)||(inventoryStatus==='active'&&p.active)||(inventoryStatus==='no-photo'&&photoStatusFor(p)==='pending'));
+    return (inventoryFilter==='Todos'||cat===inventoryFilter)&&(!inventorySearch||norm(p.name+' '+cat).includes(norm(inventorySearch)))&&(inventoryStatus==='all'||(inventoryStatus==='unpriced'&&!p.price_cents)||(inventoryStatus==='paused'&&!p.active)||(inventoryStatus==='out'&&!p.unlimited&&p.stock===0)||(inventoryStatus==='low'&&p.active&&!p.unlimited&&p.stock>0&&p.stock<=threshold)||(inventoryStatus==='active'&&p.active)||(inventoryStatus==='no-photo'&&photoStatusFor(p)==='pending'));
   });
   const optionsMode=inventoryFilter==='Sabores';
   $('drinkOptionsPanel').classList.toggle('hidden',!optionsMode);
@@ -211,7 +213,7 @@ function render(){renderStats();renderOrders();
   // O polling não pode sobrescrever preço/estoque enquanto o dono digita.
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
   if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
-  renderCash();renderSettings();}
+  renderCash();renderSettings();renderOverview();}
 let auditCursor=null,auditLoading=false,auditVersion=0;
 const auditLabels={price:'Alteração de preço',stock:'Movimento de estoque',cancel:'Pedido cancelado',cash:'Movimento do caixa',product:'Cadastro / disponibilidade',store:'Funcionamento da loja'};
 function auditValue(row,value){if(value===null||value===undefined)return '—';if(row.kind==='price'||row.field==='total_cents')return fmt(Number(value));if(['active','accepting_orders','unlimited'].includes(row.field))return Number(value)?'Ativado':'Desativado';return ({pending:'Pendente',paid:'Pago',closed:'Caixa fechado',test:'Vendas de teste arquivadas',received:'Recebido',preparing:'Preparando',ready:'Pronto',cancelled:'Cancelado',delivered:'Entregue'})[value]||String(value);}
@@ -230,7 +232,17 @@ async function loadAudit(append=false){
  }catch(e){if(version===auditVersion){if(!append)$('auditList').textContent='Não foi possível carregar a auditoria. '+e.message;toast(e.message,true);}}
  finally{if(version===auditVersion){auditLoading=false;$('auditMore').disabled=false;}}
 }
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['orders','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['overview','orders','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={overview:'Central de gestão',orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();if(activeTab==='overview')renderOverview();document.querySelectorAll('.side-link').forEach(el=>{if(el.dataset.tab===tab)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});}
+function renderOverview(){
+ const m=managementMetrics(products.filter(p=>!isStandaloneIce(p)),drinkOptions,orders,shop.low_stock_threshold??5);
+ const catReady=Boolean(lastCatalogAt),ordReady=Boolean(lastOrdersAt);
+ const stamp=x=>x?new Date(x).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'aguardando';
+ $('overviewFreshness').textContent='Pedidos: '+(ordersConnectionFailed?'reconectando (último: '+stamp(lastOrdersAt)+')':stamp(lastOrdersAt))+' · Catálogo: '+stamp(lastCatalogAt)+' · Horários da última resposta recebida.';
+ const metric=[['Pedidos em andamento',ordReady?m.pending:'—','Fila aberta'],['Produtos ativos',catReady?m.active:'—','Cadastro, não disponibilidade garantida'],['Estoque baixo',catReady?m.low:'—','Produtos ativos com estoque positivo'],['Opções de dose disponíveis',catReady&&drinkOptionsReady?m.options:'—','Gelos e energéticos ativos com estoque']];
+ $('overviewMetrics').innerHTML=metric.map(([label,value,desc])=>'<article class="admin-central-metric"><small>'+esc(label)+'</small><b>'+esc(value)+'</b><span>'+esc(desc)+'</span></article>').join('');
+ const tasks=[['Pedidos aguardando',ordReady?m.received:null,'orders','all'],['Produtos sem preço',catReady?m.unpriced:null,'inventory','unpriced'],['Produtos sem estoque',catReady?m.out:null,'inventory','out'],['Produtos pausados',catReady?m.paused:null,'inventory','paused'],['Estoque baixo em produtos ativos',catReady?m.low:null,'inventory','low'],['Fotos pendentes',catReady?m.noPhoto:null,'inventory','no-photo'],['Opções de dose indisponíveis',catReady&&drinkOptionsReady?m.optionsBlocked:null,'inventory','options']];
+ $('overviewTasks').innerHTML=tasks.map(([label,n,tab,filter])=>'<button type="button" class="admin-task" data-admin-jump="'+tab+'" data-admin-filter="'+filter+'"><span>'+esc(label)+'</span><strong class="'+(n===null?'unknown':n>0?'attention':'clear')+'">'+(n===null?'—':n)+'</strong><span aria-hidden="true">›</span></button>').join('');
+}
 let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
@@ -402,7 +414,7 @@ async function performAction(btn){
   try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 let reviewsBusy=false;
 async function loadAdminReviews(){
@@ -424,6 +436,8 @@ function openCashAction(kind){
  $('cashActionModal').classList.add('open');
 }
 async function start(){
+ $('overviewRefresh').onclick=async()=>{const b=$('overviewRefresh');b.disabled=true;try{await refreshData(false,true);}finally{b.disabled=false;renderOverview();}};
+ $('tab-overview').addEventListener('click',e=>{const b=e.target.closest('[data-admin-jump]');if(!b)return;setTab(b.dataset.adminJump);if(b.dataset.adminJump==='inventory'){const filter=b.dataset.adminFilter||'all';if(filter==='options'){inventoryFilter='Sabores';}else{inventoryStatus=filter;$('inventoryStatus').value=filter;}renderInventory();}window.scrollTo({top:0,behavior:'instant'});});
  $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso manual enviado à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
  $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
  $('cashActionClose').onclick=()=>{if(!cashActionBusy)$('cashActionModal').classList.remove('open');};
