@@ -6,6 +6,7 @@ let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'Ho
 const button=(label,action,id,value='',type='secondary',disabled=false)=>`<button class="btn btn-${type} btn-sm" data-action="${action}" data-id="${id}" data-value="${value}" ${disabled?'disabled':''}>${label}</button>`;
 const statusBadge=o=>`<span class="pill ${o.payment_status==='paid'?'good':'warn'}">${o.payment_status==='paid'?'● Pago':'◷ Pagamento pendente'}</span>`;
 function tone(){if(!sounds)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();const t=audioContext.currentTime;[780,1040].forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(.0001,t+i*.17);g.gain.exponentialRampToValueAtTime(.11,t+i*.17+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.17+.15);o.connect(g);g.connect(audioContext.destination);o.start(t+i*.17);o.stop(t+i*.17+.16);});}catch{}}
+let shopToggleReady=false,shopToggleBusy=false,shopToggleRevision=0;
 let refreshBusy=false,lastCatalogAt=0,ordersInitialized=false,knownOrders=new Set(),ordersRequest=null,ordersSnapshot='',orderRefreshPending=false;
 function adminAnnounce(message){
  if(!sounds)return;
@@ -45,9 +46,10 @@ async function refreshData(quiet=false,forceCatalog=true){
  refreshBusy=true;
  try{
   if(forceCatalog||!lastCatalogAt||Date.now()-lastCatalogAt>=30000){
+   const shopRevisionAtRequest=shopToggleRevision;
    const c=await api('admin-catalog',null,{method:'GET',admin:true});
    if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
-   lastCatalogAt=Date.now();products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);
+   lastCatalogAt=Date.now();products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;if(c.store){const confirmed=typeof c.store.accepting_orders==='boolean'||c.store.accepting_orders===0||c.store.accepting_orders===1;const preserve=shopToggleBusy||shopRevisionAtRequest!==shopToggleRevision;shop={...shop,...c.store,...(preserve?{accepting_orders:shop.accepting_orders}:{})};if(confirmed&&!preserve)shopToggleReady=true;}setBrand(shop.name);
    render();
   }
  }catch(e){handleRefreshError(e,quiet);}finally{refreshBusy=false;await orderPromise;}
@@ -187,12 +189,21 @@ function renderPickupSettings(){
  $('pickupLat').value=loc?.latitude??'';$('pickupLng').value=loc?.longitude??'';
  $('pickupRadius').value=loc?.radius??50;$('pickupEnabled').checked=Boolean(loc?.enabled);renderPickupPreview();
 }
+function renderShopControl(){
+ const open=Boolean(shop.accepting_orders),ready=shopToggleReady,pending=shopToggleBusy;
+ const state=$('adminShopState');state.classList.toggle('is-open',ready&&open);state.querySelector('span').textContent=!ready?'Consultando loja…':open?'Loja aberta':'Pedidos pausados';
+ $('orderShopPaused').classList.toggle('hidden',!ready||open);
+ $('shopControl').dataset.state=!ready?'loading':open?'open':'closed';
+ const toggle=$('shopToggle');toggle.disabled=!ready||pending;toggle.setAttribute('aria-checked',String(ready&&open));toggle.setAttribute('aria-busy',String(pending));
+ $('orderShopReopen').disabled=!ready||pending;
+ $('shopControlTitle').textContent=!ready?'CONSULTANDO STATUS':open?'LOJA ABERTA':'LOJA FECHADA';
+ $('shopControlDescription').textContent=!ready?'Aguardando a confirmação do servidor.':open?'Recebendo novos pedidos normalmente.':'Novos pedidos estão bloqueados.';
+ $('shopSwitchWord').textContent=!ready?'—':open?'ON':'OFF';
+ $('shopControlAction').textContent=pending?'Salvando…':!ready?'Consultando…':open?'Toque para fechar':'Toque para abrir';
+}
 function renderSettings(){
  renderPickupSettings();
- const state=$('adminShopState');state.classList.toggle('is-open',Boolean(shop.accepting_orders));state.querySelector('span').textContent=shop.accepting_orders?'Loja aberta':'Pedidos pausados';
- $('orderShopPaused').classList.toggle('hidden',Boolean(shop.accepting_orders));
-  $('shopToggle').textContent=shop.accepting_orders?'● Aceitando pedidos — Pausar loja':'⏸ Pedidos pausados — Reabrir loja';
-  $('shopToggle').className='btn '+(shop.accepting_orders?'btn-danger':'btn-primary');
+ renderShopControl();
   if($('storeName'))$('storeName').value=shop.name;
   if($('stockAlert'))$('stockAlert').value=shop.low_stock_threshold??5;
 }
@@ -468,7 +479,21 @@ async function start(){
     else setProductPhotoPreview($('editImage').value||'/imagens/'+photoSlug($('editName').value)+'.webp');
   });
   $('editImage').addEventListener('change',()=>{if(!$('editPhotoFile').files?.length)setProductPhotoPreview($('editImage').value||'/imagens/foto-pendente.webp');});
-  $('shopToggle').onclick=async()=>{if(!confirm(shop.accepting_orders?'Pausar novos pedidos?':'Reabrir pedidos?'))return;try{await api('admin-settings',{accepting_orders:!shop.accepting_orders},{admin:true,method:'PATCH'});await refreshData(true);}catch(e){toast(e.message,true);}};
+  $('shopToggle').onclick=async()=>{
+   if(!shopToggleReady||shopToggleBusy)return;
+   const next=!shop.accepting_orders;
+   if(!confirm(next?'Abrir a loja e voltar a receber pedidos?':'Fechar a loja para novos pedidos? Os pedidos já recebidos continuam na fila.'))return;
+   shopToggleBusy=true;shopToggleRevision++;renderShopControl();
+   try{
+    const result=await api('admin-settings',{accepting_orders:next},{admin:true,method:'PATCH'});
+    const saved=result?.store?.accepting_orders;
+    if(saved!==true&&saved!==false&&saved!==0&&saved!==1)throw Error('Não foi possível confirmar o status da loja.');
+    shop={...shop,accepting_orders:Boolean(saved)};
+    toast(shop.accepting_orders?'Loja aberta. Novos pedidos liberados.':'Loja fechada. Novos pedidos pausados.');
+   }catch(e){toast(e.message,true);lastCatalogAt=0;}
+   finally{shopToggleRevision++;shopToggleBusy=false;renderShopControl();}
+   await refreshData(true);
+  };
   $('settingsForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await api('admin-settings',{name:$('storeName').value.trim(),low_stock_threshold:Number($('stockAlert').value)},{admin:true,method:'PATCH'});toast('Configurações salvas.');await refreshData(true);}catch(err){toast(err.message,true);}});
   $('soundToggle').onclick=()=>{sounds=!sounds;$('soundToggle').textContent=sounds?'🔔 Alertas ligados':'🔕 Ativar alertas';if(sounds)tone();};
   $('logoutBtn').onclick=async()=>{try{await api('admin-logout',{}, {admin:true});}catch{}finally{authClear();showLogin();lastCatalogAt=0;}};
