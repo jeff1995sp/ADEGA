@@ -171,7 +171,7 @@ async function createOrder(db,body){
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
  const first=text(body.first_name,60),last=text(body.last_name,80),method=body.payment_method;
  if(first.length<2||last.length<2)reject('Informe nome e sobrenome.');
- if(method!=='cash')reject('Pagamento somente em dinheiro na retirada.',409);
+ if(!['cash','card'].includes(method))reject('Pagamento em dinheiro ou cartão na retirada.',409);
  const cash=method==='cash'?body.cash_given_cents:null;
  if(method==='cash'&&!int(cash,1,MAX_MONEY))reject('Informe quanto vai pagar em dinheiro.');
  if(!uuid(body.request_id)||!int(body.expected_total_cents,1,MAX_MONEY))reject('Atualize o cardápio antes de confirmar.');
@@ -242,9 +242,10 @@ async function orderAction(db,body){
  case 'receipt':sql="receipt_checked=1,updated_at=? WHERE id=? AND payment_method='pix' AND payment_status='paid'"+open;args=[date,body.id];break;
  case 'paid':sql="payment_status='paid',paid_at=COALESCE(paid_at,?),updated_at=? WHERE id=? AND payment_method IN ('cash','card')"+open;args=[date,date,body.id];break;
  case 'finishcash':
- if(body.received!==true)reject('Confirme o recebimento do dinheiro e a entrega.');
- sql="status='delivered',payment_status='paid',paid_at=COALESCE(paid_at,?),age_checked=CASE WHEN age_required=1 AND ?=1 THEN 1 ELSE age_checked END,updated_at=? WHERE id=? AND status='ready' AND payment_method='cash' AND payment_status IN ('pending','paid') AND (age_required=0 OR age_checked=1 OR ?=1)";
- args=[date,body.age_confirmed===true,date,body.id,body.age_confirmed===true];break;
+ case 'finishcard':
+ if(body.received!==true)reject('Confirme o recebimento do pagamento e a entrega.');
+ sql="status='delivered',payment_status='paid',paid_at=COALESCE(paid_at,?),age_checked=CASE WHEN age_required=1 AND ?=1 THEN 1 ELSE age_checked END,updated_at=? WHERE id=? AND status='ready' AND payment_method=? AND payment_status IN ('pending','paid') AND (age_required=0 OR age_checked=1 OR ?=1)";
+ args=[date,body.age_confirmed===true,date,body.id,body.action==='finishcard'?'card':'cash',body.age_confirmed===true];break;
  case 'status':
  if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";args=[date,body.id];}
  else if(body.value==='ready'){sql="status='ready',ready_at=?,updated_at=? WHERE id=? AND status IN ('received','preparing') AND voice IN ('female','male')";args=[date,date,body.id];}

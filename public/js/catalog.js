@@ -308,9 +308,9 @@ function showCheckout(direct=false){
   extrasDismissed=false;
   renderCheckoutSummary();
   renderCheckoutExtras();
-  $('paymentOptions').innerHTML=[['cash','💵 Dinheiro','Pagamento no portão',true]].map(([v,label,sub,enabled])=>`<label class="pay-option"><input type="radio" name="payment" value="${v}" checked><b>${label}</b><small>${sub}</small></label>`).join('');
+  $('paymentOptions').innerHTML=[['cash','💵 Dinheiro','Pagamento no portão'],['card','💳 Cartão','Crédito ou débito na maquininha']].map(([v,label,sub])=>`<label class="pay-option"><input type="radio" name="payment" value="${v}" ${v==='cash'?'checked':''}><b>${label}</b><small>${sub}</small></label>`).join('');
   $('payWarning').classList.remove('hidden');
-  $('payWarning').textContent='Pagamento somente em dinheiro na retirada. Informe o valor para calcular o troco.';
+  $('payWarning').textContent='Pagamento na retirada.';
   $('cashField').classList.remove('hidden');
   refreshCash();updatePickupNotice();
   open('cartModal');checkoutMode(direct===true);
@@ -331,6 +331,7 @@ function refreshCash(){
  const method=document.querySelector('input[name="payment"]:checked')?.value;
  $('cashField').classList.toggle('hidden',method!=='cash');
  $('cash').required=method==='cash';
+ $('payWarning').textContent=method==='card'?'Pague com cartão de crédito ou débito na maquininha, ao retirar. Nenhum dado de cartão será solicitado no site.':'Pagamento em dinheiro na retirada. Informe o valor para calcular o troco.';
  updateCashPreview();
 }
 async function submitOrder(event){
@@ -339,7 +340,7 @@ async function submitOrder(event){
   const first=$('first').value.trim(),last=$('last').value.trim(),method=document.querySelector('input[name="payment"]:checked')?.value;
   if(first.length<2||last.length<2)return toast('Informe nome e sobrenome.',true);
   if(!$('ageAck').checked)return toast('Confirme ter pelo menos 18 anos.',true);
-  if(method!=='cash')return toast('Pagamento somente em dinheiro na retirada.',true);
+  if(!['cash','card'].includes(method))return toast('Escolha dinheiro ou cartão na retirada.',true);
   const cash=$('cash').value.trim()?priceParse($('cash').value):null;
   if(method==='cash' && (cash===null||cash<total()))return toast('Em dinheiro, informe com quanto vai pagar. O valor deve cobrir o total e o troco será enviado ao admin.',true);
   const items=[...cart.values()].map(i=>({...i}));
