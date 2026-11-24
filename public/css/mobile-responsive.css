@@ -214,3 +214,7 @@ body.catalog-body:has(.modal-backdrop.open),body.admin-body:has(.modal-backdrop.
  body.catalog-body .hora-catalog .product-content{padding:8px!important}
  body.catalog-body .hora-catalog .product-visual .photo-note{font-size:.53rem;padding:3px 4px}
 }
+
+/* Catalog sections and automatic location indicator, mobile only. */
+.mobile-scroll-section{display:none}
+@media(max-width:800px){body.catalog-body #productGrid .mobile-scroll-section{display:block;grid-column:1/-1;margin:9px 0 1px;padding:6px 0;border-bottom:1px solid #49323b;color:#f5edf1;font-size:.9rem;font-weight:800;line-height:1.35;}body.catalog-body #mobileCategoryTabs .mobile-category-chip.active{background:#b42336;border-color:#e84b5b;color:#fff}}

@@ -8,10 +8,11 @@ const dose={id:'test-dose',name:'Dose teste',category:'Whisky',description:'Dose
 const paused={...dose,id:'test-paused',name:'Dose pausada',active:false};
 const missing={...dose,id:'test-missing',name:'Dose com Vibe'};
 const options=[{id:'test-ice',option_group:'ice',name:'Gelo de água',active:true,stock:10},{id:'test-energy',option_group:'energy',name:'Red Bull Original',active:true,stock:10}];
+const snacks=Array.from({length:4},(_,i)=>({...product,id:'test-snack-'+i,name:'Salgadinho teste '+i,category:'Salgadinhos'}));
 const server=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://localhost');
  if(url.pathname==='/api'||url.pathname==='/api/admin-login'){
-  if(url.searchParams.get('route')==='catalog'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({store:{name:'Hora Extra Drinks',accepting_orders:true},products:[product,dose,paused,missing],drink_options:options,best_sellers:[]}));}
+  if(url.searchParams.get('route')==='catalog'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({store:{name:'Hora Extra Drinks',accepting_orders:true},products:[product,dose,paused,missing,...snacks],drink_options:options,best_sellers:[]}));}
   if(url.searchParams.get('route')==='tv'){const ok=req.headers['x-tv-code']==='local-tv-valid-code';res.writeHead(ok?200:403,{'Content-Type':'application/json'});return res.end(JSON.stringify(ok?{orders:[]}:{error:'Código da TV incorreto.'}));}
   if(url.pathname==='/api/admin-login'||url.searchParams.get('route')==='login'){let data='';req.on('data',chunk=>data+=chunk);req.on('end',()=>{const body=JSON.parse(data);const ok=body.password==='local-admin-valid-code';res.writeHead(ok?200:401,{'Content-Type':'application/json'});res.end(JSON.stringify(ok?{token:'local-session',expires_at:Math.floor(Date.now()/1000)+3600}:{error:'Usuário ou senha incorretos.'}));});return;}
   if(url.searchParams.get('route')==='admin-orders'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({orders:[]}));}
@@ -34,6 +35,15 @@ const server=http.createServer((req,res)=>{
    const dimensions=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
    assert.ok(dimensions.actual<=dimensions.viewport+2,device+' catálogo '+JSON.stringify(dimensions));
    assert.equal(await page.locator('body > #cartBar').count(),1);const menuRect=await page.locator('#menuToggle').boundingBox(),cartRect=await page.locator('#headerCart').boundingBox(),searchRect=await page.locator('#productSearch').boundingBox();assert.ok(Math.abs(menuRect.y-cartRect.y)<4&&cartRect.x>width/2&&searchRect.y>menuRect.y+menuRect.height-2,device+' cabeçalho '+JSON.stringify({menuRect,cartRect,searchRect}));assert.equal(await page.locator('#cartBar').isVisible(),false);assert.equal(await page.locator('.hora-nav-links').isVisible(),false);assert.equal(await page.locator('#mobileCategoryTabs').isVisible(),true);await page.locator('#menuToggle').click();await page.locator('#mobileHelpBtn').click();await page.locator('#helpModal.open').waitFor();assert.match(await page.locator('#helpModal').innerText(),/Pix/);assert.match(await page.locator('#helpModal').innerText(),/Cartão de crédito ou débito/);assert.match(await page.locator('#helpModal').innerText(),/Apple Pay/);assert.doesNotMatch(await page.locator('#helpModal').innerText(),/Google Pay/);assert.match(await page.locator('#helpModal').innerText(),/QR Code ou copia e cola/);await page.locator('#closeHelp').click();await page.locator('#categorySideLinks [data-category="Todos"]').click();
+   const allCount=await page.locator('#productGrid article.product').count();
+   assert.equal(allCount,8);
+   await page.evaluate(()=>{const heading=document.querySelector('[data-scroll-section="Doces e Salgadinhos"]');const header=document.querySelector('.hora-nav');window.scrollTo({top:window.scrollY+heading.getBoundingClientRect().top-header.getBoundingClientRect().height+8,behavior:'instant'});});
+   await page.locator('#mobileCategoryTabs [data-category="Doces e Salgadinhos"].active').waitFor();
+   assert.equal(await page.locator('#mobileCategoryTabs [data-category="Todos"]').getAttribute('aria-pressed'),'true');
+   assert.equal(await page.locator('#productGrid article.product').count(),allCount);
+   await page.evaluate(()=>{const heading=document.querySelector('[data-scroll-section="Whisky"]');const header=document.querySelector('.hora-nav');window.scrollTo({top:window.scrollY+heading.getBoundingClientRect().top-header.getBoundingClientRect().height+8,behavior:'instant'});});
+   await page.locator('#mobileCategoryTabs [data-category="Whisky"].active').waitFor();
+   assert.equal(await page.locator('#productGrid article.product').count(),allCount);
    await page.locator('#mobileCategoryTabs [data-category="Whisky"]').click();
    const doseButton=page.locator('[data-configure="test-dose"]'),pausedButton=page.locator('[data-configure="test-paused"]'),missingButton=page.locator('[data-configure="test-missing"]');
    assert.equal(await doseButton.isEnabled(),true);assert.equal(await pausedButton.isDisabled(),true);assert.equal(await missingButton.isDisabled(),true);
