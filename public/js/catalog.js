@@ -270,7 +270,7 @@ async function loadCatalog(){
     showStoreClosed(d.store?.accepting_orders===false||d.store?.accepting_orders===0);
     if(snapshot===lastSnapshot)return;
     lastSnapshot=snapshot;bestSellers=Array.isArray(d.best_sellers)?d.best_sellers:[];products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
-    setBrand(shop.name);
+    setBrand(shop.name);updateLocationPanel();
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
     if($('cartModal').classList.contains('open')){
@@ -354,6 +354,16 @@ function checkoutMode(direct){
   $('checkoutQuickTotal').textContent=fmt(total());
   const content=modal.querySelector('.modal');content.scrollTop=0;
 }
+let permissionPanelShown=false,locationBusy=false;
+function updateLocationPanel(){
+ const el=$('entryLocationBox');if(!el)return;el.classList.toggle('hidden',!shop.location_required);
+ $('entryLocationRadius').textContent='Raio permitido: '+(shop.location_radius||50)+' m. Permita a localização precisa para fazer pedidos.';
+}
+async function checkEntryLocation(){
+ if(locationBusy)return;locationBusy=true;const btn=$('entryLocation');btn.disabled=true;$('entryLocationResult').textContent='Consultando GPS…';
+ try{const position=await readCurrentPosition();const r=await api('check-location',{position});$('entryLocationResult').textContent=r.message+(Number.isFinite(r.distance)?' Distância aproximada: '+r.distance+' m · precisão: '+r.accuracy+' m.':'');btn.textContent='Verificar novamente';}catch(e){$('entryLocationResult').textContent=e.message;}finally{locationBusy=false;btn.disabled=false;}
+}
+function showEntryPermissions(){if(permissionPanelShown)return;permissionPanelShown=true;$('entryPermissions').classList.remove('hidden');updateLocationPanel();void initNotifications();}
 function updatePickupNotice(message=''){
  const el=$('pickupLocationNotice');
  el.classList.toggle('hidden',!shop.location_required&&!message);
@@ -431,7 +441,7 @@ async function submitOrder(event){
     const d=await api('create-order',{...payload,request_id,...(position?{position}:{})});
     sessionStorage.removeItem(key);
     trackingFinished=false;
-    currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};
+    currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};pushLast=0;void bindNotifications();
     localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));
     cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');toast('Pedido recebido pela adega!');
     $('trackBtn')?.classList.remove('hidden');
@@ -484,11 +494,23 @@ async function loadTracking(){
     $('trackBtn').classList.toggle('review-pending',order.status==='delivered'&&order.payment_status==='paid'&&!order.reviewed);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão. Se houver nomes iguais, basta informar o número do pedido.</p>${reviewPanel(order)}</div>`;
-    maybePromptReview(order);
+    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${reviewPanel(order)}</div>`;
+    void bindNotifications();maybePromptReview(order);
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
+let pushRegistration=null,pushKey=null,pushSubscription=null,pushBound='',pushBinding=false,pushLast=0;
+const supportsPush=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const notificationText=s=>{$('entryNotifyText').textContent=s;};
+async function initNotifications(){
+ const b=$('entryNotify');if(!supportsPush()){notificationText('No iPhone, adicione o site à Tela de Início e abra por lá. Se não for compatível, acompanhe pela TV.');return;}
+ try{const [k]=await Promise.all([api('push-key',null,{method:'GET'}),navigator.serviceWorker.register('/pedido-sw.js',{scope:'/'})]);pushRegistration=await navigator.serviceWorker.ready;const s=k.public_key;pushKey=Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4)),c=>c.charCodeAt(0));pushSubscription=await pushRegistration.pushManager.getSubscription();if(pushSubscription&&Notification.permission==='granted'){notificationText('Avisos ativados neste celular.');b.classList.add('hidden');void bindNotifications();}else if(Notification.permission==='denied')notificationText('Notificações bloqueadas. Altere nas permissões do navegador ou acompanhe pela TV.');else b.disabled=false;}catch{notificationText('Não foi possível preparar avisos. Acompanhe pela TV.');}
+}
+async function enableNotifications(){const b=$('entryNotify');b.disabled=true;try{pushSubscription=await pushRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushKey});notificationText('Avisos ativados neste celular.');b.classList.add('hidden');pushLast=0;void bindNotifications();}catch{notificationText('Aviso não autorizado. Você pode acompanhar pela TV.');b.disabled=Notification.permission==='denied';}}
+async function bindNotifications(){if(!currentOrder||trackingFinished||!pushSubscription||Notification.permission!=='granted'||pushBinding||pushBound===currentOrder.id||Date.now()-pushLast<10000)return;const o=currentOrder;pushBinding=true;pushLast=Date.now();try{const r=await api('order-push',{id:o.id,token:o.token,subscription:pushSubscription.toJSON()});if(r.registered)pushBound=o.id;}catch{notificationText('Não foi possível vincular aviso. Acompanhe pela TV.');}finally{pushBinding=false;}}
+
 function start(){
+  $('entryLocation').onclick=checkEntryLocation;$('entryPermissionsDismiss').onclick=()=>$('entryPermissions').classList.add('hidden');
+  $('entryNotify').onclick=enableNotifications;
   const header=document.querySelector('.hora-nav');
   // Keep one cart node; a fixed element must not inherit the sticky header's containing block.
   const cartBar=$('cartBar'),cartAnchor=document.createComment('cart desktop position'),mobileQuery=matchMedia('(max-width:800px)');
@@ -571,7 +593,7 @@ function start(){
     $('first').value=p.first;$('last').value=p.last;
     $('ageAck').checked=true;
     $('ageGate').classList.add('hidden');
-    pulseCart();
+    showEntryPermissions();pulseCart();
   };
   $('ageYes').onclick=()=>{
     sessionStorage.setItem('adega_age_ok','1');
@@ -602,7 +624,7 @@ function start(){
     $('entryNameStep').classList.add('hidden');
   }
   try{currentOrder=JSON.parse(localStorage.getItem('adega_my_order_v1')||'null');}catch{}
-  if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();}
+  if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();if(new URLSearchParams(location.search).get('pedido')==='1')open('trackingModal');}
   $('trackBtn')?.addEventListener('click',()=>{if(!currentOrder)return toast('Você ainda não possui pedido neste dispositivo.');loadTracking();open('trackingModal');});
   (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){trackingFinished=false;currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
   loadCatalog();loadReviews();

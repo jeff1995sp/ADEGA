@@ -1,3 +1,4 @@
+import {keysFor,validSubscription,bindPush,notifyReady,removePush} from './order-push.js';
 import {pickupNameKey,duplicateNames} from '../public/js/pickup-code.js';
 import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice } from '../public/js/shared.js';
 
@@ -138,15 +139,17 @@ function distanceMeters(a,b){
  const k=Math.sin(dlat/2)**2+Math.cos(a.latitude*rad)*Math.cos(b.latitude*rad)*Math.sin(dlon/2)**2;
  return 6371000*2*Math.asin(Math.sqrt(Math.max(0,Math.min(1,k))));
 }
-async function requireNearby(db,position){
+async function nearbyResult(db,position){
  const location=await readPickupLocation(db);
- if(!location?.enabled)return;
- if(!position||!coordinate(position.latitude,-90,90)||!coordinate(position.longitude,-180,180)||!coordinate(position.accuracy,0,100000)||!Number.isFinite(position.timestamp)||position.timestamp<Date.now()-120000||position.timestamp>Date.now()+10000)reject('Autorize a localização atual do celular para confirmar o pedido.',409);
- if(position.accuracy>location.radius)reject('GPS impreciso. Ative a localização precisa, aproxime-se do portão e tente novamente.',409);
- const distance=distanceMeters(location,position);
- if(distance>location.radius)reject('Você está fora da área de retirada. Aproxime-se da adega para confirmar o pedido.',409);
- if(distance+position.accuracy>location.radius)reject('Não foi possível confirmar sua proximidade com precisão. Aproxime-se do portão e tente novamente.',409);
+ if(!location?.enabled)return {allowed:true,required:false,radius:location?.radius??50,message:'Regra de proximidade desativada.'};
+ const radius=location.radius,result=(allowed,message,extra={})=>({allowed,required:true,radius,message,...extra});
+ if(!position||!coordinate(position.latitude,-90,90)||!coordinate(position.longitude,-180,180)||!coordinate(position.accuracy,0,100000)||!Number.isFinite(position.timestamp)||position.timestamp<Date.now()-120000||position.timestamp>Date.now()+10000)return result(false,'Autorize a localização atual do celular para confirmar o pedido.');
+ const distance=distanceMeters(location,position),details={distance:Math.round(distance),accuracy:Math.ceil(position.accuracy)};
+ if(position.accuracy>Math.min(radius,50))return result(false,'GPS impreciso. Ative a localização precisa e tente novamente em local aberto.',details);
+ if(distance>radius)return result(false,'Você está fora da área de retirada. Aproxime-se da adega.',details);
+ return result(true,'Você está dentro da área de atendimento.',details);
 }
+async function requireNearby(db,position){const r=await nearbyResult(db,position);if(!r.allowed)reject(r.message,409);}
 async function catalog(db,admin){
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
@@ -424,7 +427,7 @@ async function auditList(db,body){
  return json({events:rows,next_cursor:more?rows[rows.length-1].id:null});
 }
 
-async function handler(request,env){
+async function handler(request,env,ctx){
  const url=new URL(request.url),method=request.method.toUpperCase(),db=env.DB;
  if(url.pathname.startsWith('/media/')){
  if(method!=='GET'||!uuid(url.pathname.slice(7))||!db)return new Response('Not found',{status:404});
@@ -456,6 +459,9 @@ async function handler(request,env){
  if(route==='admin-logout'&&method==='POST'){await run(db,'DELETE FROM admin_sessions WHERE token_hash=?',session);return json({ok:true});}
  if(route==='health'&&method==='GET'){const row=await one(db,'SELECT id FROM store_settings WHERE id=1');if(!row)reject('Banco não inicializado.',503);await one(db,'SELECT COUNT(*) AS n FROM sqlite_master WHERE type=\'table\' AND name IN (\'order_requests\',\'stock_reservations\',\'rate_limits\',\'product_photos\')').then(x=>{if(x.n!==4)reject('Complete a instalação do banco D1.',503);});return json({ok:true,database:'D1',online_enabled:false});}
  if(route==='catalog'&&method==='GET')return catalog(db,false);
+ if(route==='check-location'&&method==='POST'){await rate(db,request,'location',60,300);return json(await nearbyResult(db,body.position));}
+ if(route==='push-key'&&method==='GET'){await rate(db,request,'push-key',60,300);return json({public_key:(await keysFor(db)).publicKey});}
+ if(route==='order-push'&&method==='POST'){if(!uuid(body.id)||!uuid(body.token)||!validSubscription(body.subscription))reject('Permissão inválida.');await rate(db,request,'order-push',60,300);const o=await one(db,"SELECT id,status FROM orders WHERE id=? AND public_token=?",body.id,body.token);if(!o)missing();if(!['received','preparing','ready'].includes(o.status))return json({registered:false});await bindPush(db,o.id,body.subscription);const task=notifyReady(db,o.id,new URL(request.url).origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;return json({registered:true});}
  if(route==='admin-catalog'&&method==='GET')return catalog(db,true);
  if(route==='reviews'&&method==='GET')return publicReviews(db);
  if(route==='review'&&method==='POST'){await rate(db,request,'review',20,300);return submitReview(db,body);}
@@ -468,7 +474,7 @@ async function handler(request,env){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}return json({order:{...order,reviewed}});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}return json({order:{...order,reviewed}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
@@ -502,8 +508,8 @@ async function handler(request,env){
  if(body.low_stock_threshold!==undefined){if(!int(body.low_stock_threshold,0,1000))reject('Limite inválido.');p.low_stock_threshold=body.low_stock_threshold;}
  return json({store:await patchRow(db,'store_settings',1,p)});
  }
- if(route==='admin-order-action'&&method==='POST')return orderAction(db,body);
- if(route==='admin-cancel'&&method==='POST')return cancel(db,body.id);
+ if(route==='admin-order-action'&&method==='POST'){const r=await orderAction(db,body);const ready=body.action==='status'&&body.value==='ready',done=['finishcash','finishcard'].includes(body.action)||(body.action==='status'&&body.value==='delivered');if(ready||done){const task=(ready?notifyReady(db,body.id,new URL(request.url).origin):removePush(db,body.id)).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}return r;}
+ if(route==='admin-cancel'&&method==='POST'){const r=await cancel(db,body.id);const task=removePush(db,body.id).catch(()=>{});if(ctx?.waitUntil)ctx.waitUntil(task);else await task;return r;}
  return json({error:'Rota não encontrada.'},404);
 }
-export default {async fetch(request,env){try{return await handler(request,env);}catch(e){if(e instanceof ApiError)return json({error:e.message},e.status);console.error('ADEGA D1:',String(e?.message||e));return json({error:'Falha no servidor. Tente novamente sem repetir o pedido.'},503);}}};
+export default {async fetch(request,env,ctx){try{return await handler(request,env,ctx);}catch(e){if(e instanceof ApiError)return json({error:e.message},e.status);console.error('ADEGA D1:',String(e?.message||e));return json({error:'Falha no servidor. Tente novamente sem repetir o pedido.'},503);}}};
