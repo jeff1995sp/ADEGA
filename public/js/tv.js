@@ -110,7 +110,7 @@ function announceDemand(){
   nextSpeech();
 }
 function speakOrder(o){
-  queue.push({text:o.status==='preparing'?`${o.first_name}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
+  queue.push({text:o.status==='preparing'?`${o.first_name}, pedido número ${o.number}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, pedido número ${o.number}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
   nextSpeech();
 }
 function renderTv(orders){

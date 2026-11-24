@@ -1,3 +1,4 @@
+import {pickupCode,pickupNameKey,duplicateNames} from '../public/js/pickup-code.js';
 import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice } from '../public/js/shared.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'}});
@@ -163,7 +164,7 @@ async function catalog(db,admin){
  const location=await readPickupLocation(db);
  return json({store:{...store,location_required:Boolean(location?.enabled),location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
-const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
+const orderResult=async o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status,pickup_code:await pickupCode(o)}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
  await applyCatalogPricePatch(db);
@@ -235,6 +236,17 @@ async function cancel(db,id){
 async function orderAction(db,body){
  if(!uuid(body.id))reject('Pedido inválido.');
  const date=now(),open=" AND status IN ('received','preparing','ready')";
+ const delivering=['finishcash','finishcard'].includes(body.action)||(body.action==='status'&&body.value==='delivered');
+ if(delivering){
+  const target=await one(db,"SELECT id,order_no,public_token,first_name,last_name,status FROM orders WHERE id=?",body.id);
+  if(target?.status==='ready'){
+   const pending=await many(db,"SELECT first_name,last_name,status FROM orders WHERE status IN ('received','preparing','ready')");
+   const duplicate=duplicateNames(pending).has(pickupNameKey(target));
+   if(duplicate||body.pickup_code!==undefined){
+    if(typeof body.pickup_code!=='string'||!await equal(body.pickup_code.trim(),await pickupCode(target)))reject('Código de retirada incorreto ou obrigatório para clientes com nomes iguais. Confira no celular do cliente.',409);
+   }
+  }
+ }
  let sql,args;
  switch(body.action){
  case 'voice':if(!['female','male'].includes(body.value))reject('Voz inválida.');sql='voice=?,updated_at=? WHERE id=?'+open;args=[body.value,date,body.id];break;
@@ -264,7 +276,7 @@ async function orders(db){
  const ids=JSON.stringify(list.map(o=>o.id));
  const lines=await many(db,'SELECT order_id,product_name,quantity,unit_price_cents FROM order_items WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
- return json({orders:list.map(({public_token,...o})=>({...o,order_items:groups.get(o.id)||[]})),...demand});
+ const same=duplicateNames(list);return json({orders:list.map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand});
 }
 async function ensureCashArchive(db){
  await run(db,"CREATE TABLE IF NOT EXISTS cash_batches (id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('closed','test')),created_at TEXT NOT NULL)");
@@ -467,7 +479,7 @@ async function handler(request,env){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}return json({order:{...order,reviewed}});
+ const order=await one(db,'SELECT id,order_no,public_token,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}const {public_token,...safe}=order;return json({order:{...safe,reviewed,pickup_code:await pickupCode(order)}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
