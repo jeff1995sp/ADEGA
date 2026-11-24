@@ -85,3 +85,5 @@ test('Gin comum permite energético sem marca e Red Bull com acréscimo',()=>{
 });
 
 test('Vodka e categoria legada Doses usam personalização de gelo e Red Bull',()=>{for(const category of ['Vodka','Doses']){const p={name:'Absolut com Red Bull',category};assert.equal(isDoseProduct(p),true);assert.equal(energyMatchesDose(p,{name:'Red Bull Original'}),true);assert.equal(energyMatchesDose(p,{name:'Vibe Original'}),false);}assert.equal(isDoseProduct({category:'Cervejas'}),false);assert.equal(isDoseProduct({category:'Batidas'}),false);});
+
+test('Energético incluído é pré-selecionado; Vibe não exige escolha e gelo não apaga energético',()=>{assert.ok(catalog.includes("preferredEnergy(energies,vibe?'Vibe Original':'Red Bull Original')"));assert.ok(catalog.includes("$('doseEnergy').disabled=vibe"));assert.ok(catalog.includes("energyField.classList.toggle('hidden',vibe&&!house)"));assert.ok(catalog.includes("Vibe Original incluído no preço"));assert.ok(!catalog.includes("$('doseEnergy').disabled=!$('doseIce').value"));});

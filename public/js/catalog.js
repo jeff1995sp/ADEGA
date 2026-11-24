@@ -26,6 +26,8 @@ const iceSummary=item=>{
 };
 const getAvailableOption=id=>{const o=optionById(id);return optionAvailable(o)?o:null;};
 const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce((s,i)=>s+i.quantity,0);
+const remainingOption=o=>optionAvailable(o)&&(o.unlimited||amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')<o.stock);
+const preferredEnergy=(choices,name)=>choices.find(o=>o.name===name&&remainingOption(o))||choices.find(remainingOption);
 
 const productCard=(p,featured=false)=>{
   const left=p.unlimited?'Disponível':p.stock>0?`${p.stock} em estoque`:'Esgotado';
@@ -46,7 +48,7 @@ const productCard=(p,featured=false)=>{
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p>
     <span class="tiny product-availability ${!p.unlimited&&p.stock<=5?'warn':''}"><span class="desktop-availability">${availabilityText}</span><span class="mobile-availability">${availabilityText.replace(/^Indisponível — /,'')}</span></span>
     <div class="product-footer"><span class="price">${p.price_cents?(isHouseGin(p)?'A partir de '+fmt(p.price_cents):fmt(p.price_cents)):'Preço em breve'}</span>
-    ${isShake(p)?`<div class="qty dose-qty" data-count="${q}"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-shake="${esc(p.id)}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>${available(p)&&(p.unlimited||q<p.stock)?'Com ou sem álcool':'Indisponível'}${q>0?`<span class="mobile-dose-count"> · ${q}</span>`:''}</button></div>`:customizable?`<div class="qty dose-qty" data-count="${q}"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${!canConfigure?'Indisponível':isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo e energético'}${q>0?`<span class="mobile-dose-count"> · ${q}</span>`:''}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>${simpleBlocked?'<button type="button" class="mobile-unavailable-button" disabled>Indisponível</button>':''}`}</div>${q>0&&available(p)&&p.category!=='Tabacaria'?`<button type="button" class="btn btn-primary product-pay-now" data-pay-now aria-label="Ir para pagamento com todos os itens do carrinho">Ir para pagamento <span aria-hidden="true">→</span></button>`:''}</div></article>`;
+    ${isShake(p)?`<div class="qty dose-qty" data-count="${q}"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-shake="${esc(p.id)}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>${available(p)&&(p.unlimited||q<p.stock)?'Com ou sem álcool':'Indisponível'}${q>0?`<span class="mobile-dose-count"> · ${q}</span>`:''}</button></div>`:customizable?`<div class="qty dose-qty" data-count="${q}"><strong>${q} no carrinho</strong><button type="button" class="btn btn-primary btn-sm" data-configure="${esc(p.id)}" ${!canConfigure?'disabled':''}>${!canConfigure?'Indisponível':isHouseGin(p)?'Escolher energético e gelo':'Escolher gelo'}${q>0?`<span class="mobile-dose-count"> · ${q}</span>`:''}</button></div>`:`<div class="qty"><button type="button" aria-label="Diminuir ${esc(p.name)}" data-qty="-1" data-id="${p.id}" ${q<1?'disabled':''}>−</button><strong>${q}</strong><button type="button" aria-label="Adicionar ${esc(p.name)}" data-qty="1" data-id="${p.id}" ${!available(p)||(!p.unlimited&&q>=p.stock)?'disabled':''}>+</button></div>${simpleBlocked?'<button type="button" class="mobile-unavailable-button" disabled>Indisponível</button>':''}`}</div>${q>0&&available(p)&&p.category!=='Tabacaria'?`<button type="button" class="btn btn-primary product-pay-now" data-pay-now aria-label="Ir para pagamento com todos os itens do carrinho">Ir para pagamento <span aria-hidden="true">→</span></button>`:''}</div></article>`;
 };
 const categoryIcons={"Todos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.4\"/></svg>","Batidas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 8h14l-2 13H7L5 8ZM4 8h16M13 8l3-6h4M8 13h8\"/></svg>","Whisky":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Vodka":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v5l3 3v9H7v-9l3-3V3ZM9 3h6M7 13h10M7 17h10\"/></svg>","Gin":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Cervejas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 7h12v14H5zM17 9h3v8h-3M5 7V5a2 2 0 0 1 4-1 3 3 0 0 1 5 0 2 2 0 0 1 3 2v1M9 11v6M13 11v6\"/></svg>","Caipirinhas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 4h18l-9 10L3 4ZM12 14v7M7 21h10M16 4l3-3M7 8h10\"/></svg>","Bebidas prontas":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\"/><path d=\"M8 6h8M8 18h8m5-9-3 4h4l-3 4\"/></svg>","Águas e Refrigerantes":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 3h4v4l2 2v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9l2-2V3ZM8 13h8M8 17h8\"/></svg>","Doces e Salgadinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"3\" transform=\"rotate(-30 12 12)\"/><path d=\"m6 10-4-3 1 7 4-1m11 1 4 3-1-7-4 1\"/></svg>","Diversos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7 5l10 4\"/></svg>","Vinhos":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 3h8l2 6a6 6 0 0 1-12 0l2-6ZM7 10h10M12 15v6M8 21h8\"/></svg>","Tabacaria":"<svg class=\"hora-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3c.5 3.5-3 5-3 9a5 5 0 0 0 10 0c0-3-2-5.5-3-7-1 2-2.5 2.5-3 1 .5-1 0-2.5-1-3Z\"/></svg>"};
 const categoryLabel=c=>c==='Todos'?'Todos os Produtos':c==='Batidas'?'Batidas (700 ml)':c;
@@ -150,8 +152,11 @@ function refreshHouseGinEnergy(){
  const p=doseSelected;if(!isHouseGin(p))return;
  const kind=$('doseEnergyKind').value,choices=drinkChoiceList('energy',p).filter(o=>kind==='common'?isCommonEnergy(o):kind==='redbull'&&String(o.name).startsWith('Red Bull'));
  $('doseEnergy').innerHTML='<option value="">Escolha o sabor</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
- $('doseEnergy').disabled=!kind;$('doseIce').value='';$('doseIce').disabled=true;
- if(kind==='common'&&choices.filter(optionAvailable).length===1&&choices.find(optionAvailable).name==='Energético'){$('doseEnergy').value=choices.find(optionAvailable).id;$('doseIce').disabled=false;}
+ $('doseEnergy').disabled=!kind;
+ const choice=kind?preferredEnergy(choices,kind==='redbull'?'Red Bull Original':'Energético'):null;
+ $('doseEnergy').value=choice?.id||'';
+ $('doseIce').disabled=!choice;
+ if(!$('doseIce').value||!remainingOption(optionById($('doseIce').value)))$('doseIce').value='';
  $('dosePrice').textContent=(kind?fmt(doseUnitPrice(p,{name:kind==='redbull'?'Red Bull':''})):fmt(p.price_cents)+' / '+fmt(p.price_cents+1000))+' • Copo de 700 ml • Gelo e energético inclusos';
 }
 function showDoseConfigurator(p){
@@ -163,19 +168,31 @@ function showDoseConfigurator(p){
  const energies=drinkChoiceList('energy',p);
  $('doseIce').innerHTML='<option value="">Escolha o gelo</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
  $('doseEnergy').innerHTML='<option value="">Escolha o energético</option>'+energies.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
- $('doseEnergyLabel').textContent=p.name.toLowerCase().includes('com vibe')?'3. Escolha o Vibe incluído':'3. Escolha o sabor do Red Bull incluído';
+ const vibe=p.name.toLowerCase().includes('com vibe');
+ $('doseEnergyLabel').textContent=vibe?'Vibe incluído':'Red Bull incluído — sabor';
  const house=isHouseGin(p),form=$('doseForm'),iceField=$('doseIce').closest('.form-field'),energyField=$('doseEnergy').closest('.form-field');
  $('doseEnergyKindField').classList.toggle('hidden',!house);
+ energyField.classList.toggle('hidden',vibe&&!house);
+ $('doseIncludedEnergy').classList.toggle('hidden',!vibe||house);
+ $('doseIncludedEnergy').textContent='✓ Vibe Original incluído no preço';
  $('doseEnergyKind').required=house;$('doseEnergyKind').disabled=!house;
  $('doseIce').disabled=house;$('doseEnergy').disabled=true;$('doseEnergyKind').value='';
- $('doseInstructions').textContent=house?'Escolha Energético ou Red Bull, depois o sabor disponível e o gelo. O valor muda conforme a escolha.':'Escolha o gelo e depois o energético. Sabores esgotados ou pausados não podem ser pedidos.';
+ $('doseInstructions').textContent=house?'Escolha Energético ou Red Bull e o gelo. O valor muda conforme a escolha.':vibe?'Escolha apenas o sabor do gelo. O Vibe já está incluído no valor.':'Escolha o gelo. O Red Bull já está incluído; se quiser, altere o sabor entre os disponíveis.';
  if(house){
   form.insertBefore(energyField,iceField);
   $('doseEnergyLabel').textContent='2. Escolha o sabor do energético';$('doseIceLabel').textContent='3. Escolha o sabor do gelo';
   const common=energies.some(o=>isCommonEnergy(o)&&optionAvailable(o)),redbull=energies.some(o=>String(o.name).startsWith('Red Bull')&&optionAvailable(o));
   $('doseEnergyKind').innerHTML='<option value="">Escolha o energético</option>'+[['common','Energético',p.price_cents,common],['redbull','Red Bull',p.price_cents+1000,redbull]].map(([v,n,price,ok])=>`<option value="${v}" ${ok?'':'disabled'}>${n} — ${fmt(price)}${ok?'':' (indisponível)'}</option>`).join('');
   refreshHouseGinEnergy();
- }else{form.insertBefore(iceField,energyField);$('doseIceLabel').textContent='2. Escolha o sabor do gelo';}
+ }else{
+  form.insertBefore(iceField,energyField);
+  $('doseIceLabel').textContent='Escolha o sabor do gelo';
+  const choice=preferredEnergy(energies,vibe?'Vibe Original':'Red Bull Original');
+  if(!choice)return toast('Energético sem estoque disponível. Confira o carrinho.',true);
+  $('doseEnergy').value=choice.id;
+  $('doseEnergy').disabled=vibe;
+  $('doseIce').disabled=false;
+ }
  open('doseModal');
 }
 function addConfiguredDose(event){
@@ -467,12 +484,8 @@ function start(){
     qty?cart.set(p.id,{id:p.id,quantity:qty}):cart.delete(p.id);renderProducts();
   });
   $('doseEnergyKind').addEventListener('change',refreshHouseGinEnergy);
-  $('doseEnergy').addEventListener('change',()=>{if(isHouseGin(doseSelected)){$('doseIce').disabled=!$('doseEnergy').value;$('doseIce').value='';}});
-  $('doseIce').addEventListener('change',()=>{
-   if(isHouseGin(doseSelected))return;
-   $('doseEnergy').disabled=!$('doseIce').value;
-   $('doseEnergy').value='';
-  });
+  $('doseEnergy').addEventListener('change',()=>{if(isHouseGin(doseSelected)){$('doseIce').disabled=!$('doseEnergy').value;}});
+  // Changing ice never clears the already included energy drink.
   $('shakeForm').addEventListener('submit',e=>{e.preventDefault();const p=products.find(x=>x.id===shakeSelected),v=$('shakeAlcohol').value;if(!p||!isShake(p)||!validShake(v)||!available(p)||(!p.unlimited&&desiredQty(p)>=p.stock))return toast('Confira o preparo e a disponibilidade.',true);const key=p.id+':shake:'+v;const item=cart.get(key)||{id:p.id,quantity:0,shake_alcohol:v};item.quantity++;cart.set(key,item);close('shakeModal');renderProducts();toast('Batida adicionada: '+(v==='com'?'com álcool':'sem álcool'));});
   $('closeShake').addEventListener('click',()=>close('shakeModal'));
   $('doseForm').addEventListener('submit',addConfiguredDose);
