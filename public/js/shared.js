@@ -32,10 +32,11 @@ export const photoFallbackFor=p=>{
  const local=localPhotoPath(p);
  return local.startsWith('/imagens/')?local:(PHOTO_ALIAS[p?.id]||localPhotoFor(p));
 };
-export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Doses","Tabacaria"];
+export const CATEGORIES=["Todos","Cervejas","Whisky","Gin","Vodka","Batidas","Caipirinhas","Vinhos","Bebidas prontas","Águas e Refrigerantes","Doces e Salgadinhos","Diversos","Bebidas","Águas","Combos","Doces e Balas","Salgadinhos","Doces e Snacks","Complementos","Doses","Headshop","Tabacaria"];
 export const catalogCategory=p=>p?.category==='Doses'?'Vodka':['Doces e Balas','Salgadinhos','Doces e Snacks','Doces e Salgadinhos'].includes(p?.category)?'Doces e Salgadinhos':p?.category;
 export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complementos'&&photoSlug(p?.name)==='gelo-de-agua';
-export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
+export const headshopAllowed=p=>/^(?:isqueiro(?:s)?(?: bic(?: mini)?| coloridos| sortidos)?|bic mini \(isqueiros\)|tesoura(?: comum| dobrável)?)$/i.test(String(p?.name||'').trim());
+export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&(p?.category!=='Headshop'||headshopAllowed(p))&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
 // Preserve inventory and old orders. Prefer the stocked record when two known entries describe the same dose.
 export const dedupeCatalog=rows=>{
  const ids=new Map(rows.map(p=>[p.id,p])),hidden=new Set();

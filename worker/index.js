@@ -1,4 +1,4 @@
-import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice, dedupeCatalog } from '../public/js/shared.js';
+import { isDoseProduct, energyMatchesDose, CATEGORIES, publicCatalogProduct, doseUnitPrice, dedupeCatalog, headshopAllowed } from '../public/js/shared.js';
 
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'}});
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -206,13 +206,17 @@ async function productsAdmin(db,body,method){
  if(method==='POST'){
  if(!int(body.stock,0,MAX_STOCK))reject('Estoque inválido.');
  if(internalName.test(p.name)&&p.category!=='Tabacaria')reject('Produto de inventário interno.');
+ if(p.category==='Headshop'&&!headshopAllowed(p))reject('Headshop público aceita somente acessórios comuns permitidos.');
  const data={...p,id:crypto.randomUUID(),stock:body.stock,active:false,created_at:now()};
  const keys=Object.keys(data),saved=await one(db,'INSERT INTO products('+keys.join(',')+') VALUES('+keys.map(()=>'?').join(',')+') RETURNING *',...keys.map(k=>data[k]));
  return json({product:saved},201);
  }
  if(!idOk(body.id))reject('Produto inválido.');
  const old=await one(db,'SELECT name,category FROM products WHERE id=?',body.id);if(!old)missing();
- if((old.category==='Tabacaria'||internalName.test(p.name??old.name))&&(p.category??old.category)!=='Tabacaria')reject('Produto interno não pode entrar no cardápio.');
+ const next={name:p.name??old.name,category:p.category??old.category};
+ if(next.category==='Headshop'&&!headshopAllowed(next))reject('Headshop público aceita somente acessórios comuns permitidos.');
+ if(old.category==='Tabacaria'&&next.category!=='Tabacaria'&&!(next.category==='Headshop'&&headshopAllowed(old)&&headshopAllowed(next)))reject('Produto interno não pode entrar no cardápio.');
+ if(internalName.test(next.name)&&next.category!=='Tabacaria')reject('Produto interno não pode entrar no cardápio.');
  return json({product:await patchRow(db,'products',body.id,p)});
 }
 async function photo(db,body){

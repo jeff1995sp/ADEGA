@@ -1,5 +1,6 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct,legacyCatalogEntry} from './shared.js?v=20261124-8';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct,legacyCatalogEntry,headshopAllowed} from './shared.js?v=20261124-9';
 const $=id=>document.getElementById(id);
+const categoryDisplay=c=>c==='Tabacaria'?'Headshop — interno':c;
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
 let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'Hora Extra Drinks',accepting_orders:true,low_stock_threshold:5},activeTab='orders',inventoryFilter='Todos',inventorySearch='',inventoryStatus='all',busy=false,lastFirst=null,sounds=false,audioContext;
@@ -68,14 +69,14 @@ function renderInventory(){
   $('inventoryCount').textContent=filtered.length+' de '+all.length+' produtos';
   const row=p=>{
     const stock=p.unlimited?'Ilimitado':p.stock===0?'<span class="stock-badge out">Esgotado</span>':p.stock<=threshold?`<span class="stock-badge low">⚠ Só ${p.stock} restantes</span>`:`<span class="stock-badge">${p.stock} unidades</span>`;
-    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b>${legacyCatalogEntry(p)?'<div class="tiny warn">Cadastro antigo/genérico — confira antes de reativar</div>':''}<div class="tiny">${esc(catalogCategory(p))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
+    return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b>${legacyCatalogEntry(p)?'<div class="tiny warn">Cadastro antigo/genérico — confira antes de reativar</div>':''}<div class="tiny">${esc(categoryDisplay(catalogCategory(p)))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
       <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
       ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar / foto','edit',p.id)}</div></div>`;
   };
   const groups=new Map();for(const p of filtered){const cat=catalogCategory(p);if(!groups.has(cat))groups.set(cat,[]);groups.get(cat).push(p);}
-  $('inventoryList').innerHTML=filtered.length?[...groups].map(([cat,items])=>`<section class="inventory-group"><header class="inventory-group-heading"><h3>${esc(cat)}</h3><span>${items.length} itens${cat==='Tabacaria'?' · controle interno':''}</span></header>${items.map(row).join('')}</section>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
+  $('inventoryList').innerHTML=filtered.length?[...groups].map(([cat,items])=>`<section class="inventory-group"><header class="inventory-group-heading"><h3>${esc(categoryDisplay(cat))}</h3><span>${items.length} itens${cat==='Tabacaria'?' · controle interno':''}</span></header>${items.map(row).join('')}</section>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
 }
 function renderDrinkOptions(){
  const element=$('drinkOptionsList');
@@ -136,7 +137,7 @@ function render(){renderStats();renderOrders();
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
   if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
   renderCash();renderSettings();}
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria — estoque interno',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Headshop — estoque interno',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
 let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
@@ -174,7 +175,7 @@ function clearBulkPhotos(){
 }
 function renderBulkPhotos(){
  const eligible=products.filter(p=>!isStandaloneIce(p)).sort((a,b)=>catalogCategory(a).localeCompare(catalogCategory(b),'pt-BR')||a.name.localeCompare(b.name,'pt-BR'));
- $('bulkPhotoList').innerHTML=bulkPhotos.map((row,i)=>`<div class="bulk-photo-row"><img src="${esc(row.preview)}" alt="Prévia"><div><b>${esc(row.file.name)}</b><select data-bulk-index="${i}" ${busy||row.done?'disabled':''} aria-label="Produto correspondente"><option value="">Selecione o produto correto</option>${eligible.map(p=>`<option value="${esc(p.id)}" ${p.id===row.id?'selected':''}>${esc(catalogCategory(p)+' · '+p.name)}</option>`).join('')}</select><small>${esc(row.status||'Confira a foto e o produto antes de salvar.')}</small></div></div>`).join('');
+ $('bulkPhotoList').innerHTML=bulkPhotos.map((row,i)=>`<div class="bulk-photo-row"><img src="${esc(row.preview)}" alt="Prévia"><div><b>${esc(row.file.name)}</b><select data-bulk-index="${i}" ${busy||row.done?'disabled':''} aria-label="Produto correspondente"><option value="">Selecione o produto correto</option>${eligible.map(p=>`<option value="${esc(p.id)}" ${p.id===row.id?'selected':''}>${esc(categoryDisplay(catalogCategory(p))+' · '+p.name)}</option>`).join('')}</select><small>${esc(row.status||'Confira a foto e o produto antes de salvar.')}</small></div></div>`).join('');
  $('bulkPhotoSave').disabled=busy||!bulkPhotos.some(row=>row.id&&!row.done);
 }
 function loadBulkFiles(files){
@@ -278,11 +279,11 @@ async function performAction(btn){
 function showLogin(){ $('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
-  $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
+  $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option value="${esc(c)}">${esc(categoryDisplay(c))}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
-  $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===(inventoryFilter==='Tabacaria'?'tabacaria':'inventory')));$('pageTitle').textContent=inventoryFilter==='Tabacaria'?'Tabacaria — estoque interno':'Produtos e estoque';renderInventory();});
+  $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===(inventoryFilter==='Tabacaria'?'tabacaria':'inventory')));$('pageTitle').textContent=inventoryFilter==='Tabacaria'?'Headshop — estoque interno':'Produtos e estoque';renderInventory();});
   $('newProduct').onclick=()=>productModal(null);
   $('openBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.add('open');renderBulkPhotos();};
   $('closeBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.remove('open');};
