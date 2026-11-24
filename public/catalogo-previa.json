@@ -65,7 +65,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/jack-com-red-bull.webp",
+      "image_url": "/imagens/jack-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 4
     },
@@ -78,7 +78,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/cavalo-com-red-bull-v4.webp",
+      "image_url": "/imagens/cavalo-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 5
     },
@@ -91,7 +91,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/cavalo-com-vibe.webp",
+      "image_url": "/imagens/cavalo-com-vibe-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 6
     },
@@ -104,7 +104,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/ballantine-s-com-red-bull.webp",
+      "image_url": "/imagens/ballantine-s-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 7
     },
@@ -117,7 +117,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/ballantine-s-com-vibe.webp",
+      "image_url": "/imagens/ballantine-s-com-vibe-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 8
     },
@@ -130,7 +130,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/red-label-com-red-bull.webp",
+      "image_url": "/imagens/red-label-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 9
     },
@@ -143,7 +143,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/beefeater-com-red-bull.webp",
+      "image_url": "/imagens/beefeater-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 10
     },
@@ -156,7 +156,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/bell-s-com-red-bull.webp",
+      "image_url": "/imagens/bell-s-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 11
     },
@@ -169,7 +169,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/absolut-com-red-bull.webp",
+      "image_url": "/imagens/absolut-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 12
     },
@@ -182,7 +182,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/ciroc-com-red-bull.webp",
+      "image_url": "/imagens/ciroc-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 13
     },
@@ -195,7 +195,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/rocks-com-red-bull.webp",
+      "image_url": "/imagens/rocks-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 14
     },
@@ -806,7 +806,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/gin-dose.webp",
+      "image_url": "/imagens/gin-dose-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 151
     },
@@ -819,7 +819,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/rocks-com-red-bull.webp",
+      "image_url": "/imagens/rocks-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 152
     },
@@ -832,7 +832,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/beefeater-com-red-bull.webp",
+      "image_url": "/imagens/beefeater-com-red-bull-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 153
     },
@@ -845,7 +845,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/bossa-nova-dose.webp",
+      "image_url": "/imagens/bossa-nova-dose-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 154
     },
@@ -858,7 +858,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/tanqueray-dose.webp",
+      "image_url": "/imagens/tanqueray-dose-natural-v5.webp",
       "age_restricted": true,
       "sort_order": 155
     },
