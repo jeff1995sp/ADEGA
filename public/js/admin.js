@@ -6,30 +6,50 @@ let orders=[],products=[],drinkOptions=[],drinkOptionsReady=false,shop={name:'Ho
 const button=(label,action,id,value='',type='secondary',disabled=false)=>`<button class="btn btn-${type} btn-sm" data-action="${action}" data-id="${id}" data-value="${value}" ${disabled?'disabled':''}>${label}</button>`;
 const statusBadge=o=>`<span class="pill ${o.payment_status==='paid'?'good':'warn'}">${o.payment_status==='paid'?'● Pago':'◷ Pagamento pendente'}</span>`;
 function tone(){if(!sounds)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();audioContext.resume();const t=audioContext.currentTime;[780,1040].forEach((hz,i)=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(.0001,t+i*.17);g.gain.exponentialRampToValueAtTime(.11,t+i*.17+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.17+.15);o.connect(g);g.connect(audioContext.destination);o.start(t+i*.17);o.stop(t+i*.17+.16);});}catch{}}
-let refreshBusy=false,lastCatalogAt=0,ordersInitialized=false,knownOrders=new Set();
+let refreshBusy=false,lastCatalogAt=0,ordersInitialized=false,knownOrders=new Set(),ordersRequest=null,ordersSnapshot='',orderRefreshPending=false;
 function adminAnnounce(message){
  if(!sounds)return;
  tone();
  if('speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(message);u.lang='pt-BR';u.rate=.95;window.speechSynthesis.speak(u);}catch{}}
 }
-let demoStep=0,demoRunId='',demoBusy=false;
-const demoMessages=['Novo pedido recebido de Bruna.','Bruna, seu pedido está sendo preparado.','Bruna, seu pedido está pronto! Aguarde a entrega no portão.'];
-function renderOrderDemo(){const status=['Novo pedido · Bruna','Em preparação · Bruna','Pronto para retirada · Bruna'][demoStep];$('orderDemoStatus').textContent=status;$('orderDemoMessage').textContent=demoMessages[demoStep];$('orderDemoNext').disabled=demoStep===2;adminAnnounce(demoMessages[demoStep]);}
-
-async function refreshData(quiet=false,forceCatalog=true){
-  if(busy||refreshBusy)return;
-  refreshBusy=true;
+function handleRefreshError(e,quiet){
+ if(/sessão|login|autorizada|expirada/i.test(e.message)){authClear();showLogin();return;}
+ if(!quiet)toast(e.message,true);
+}
+async function refreshOrders(quiet=true){
+ if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
+ if(ordersRequest){orderRefreshPending=true;return ordersRequest;}
+ const request=async()=>{
   try{
-    const shouldCatalog=forceCatalog||!lastCatalogAt||Date.now()-lastCatalogAt>=30000;
-    const [o,c]=await Promise.all([api('admin-orders',null,{method:'GET',admin:true}),shouldCatalog?api('admin-catalog',null,{method:'GET',admin:true}):null]);
-    if(c)lastCatalogAt=Date.now();
-    const incoming=o.orders||[];
-    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('🔔 Novo pedido recebido: '+order.first_name);}}}
-    for(const order of incoming)knownOrders.add(order.id);
-    if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
-    ordersInitialized=true;orders=incoming;if(c){products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);}
-    render();$('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  }catch(e){if(/sessão|login|autorizada|expirada/i.test(e.message)){authClear();showLogin();return;}if(!quiet)toast(e.message,true);}finally{refreshBusy=false;}
+   const {orders:incoming=[]}=await api('admin-orders',null,{method:'GET',admin:true});
+   if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
+   const snapshot=JSON.stringify(incoming);
+   if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('Novo pedido: '+order.first_name);}}}
+   for(const order of incoming)knownOrders.add(order.id);
+   if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
+   ordersInitialized=true;orders=incoming;
+   if(snapshot!==ordersSnapshot){ordersSnapshot=snapshot;renderStats();renderOrders();}
+   const pending=incoming.filter(o=>o.status==='received').length;
+   $('pendingOrderBadge').textContent=String(pending);$('pendingOrderBadge').classList.toggle('hidden',!pending);
+   $('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+   $('orderHeartbeat').className='pill good';
+  }catch(e){$('orderHeartbeat').textContent='Reconectando…';$('orderHeartbeat').className='pill warn';handleRefreshError(e,quiet);}
+ };
+ ordersRequest=request();
+ try{await ordersRequest;}finally{ordersRequest=null;if(orderRefreshPending){orderRefreshPending=false;void refreshOrders(true);}}
+}
+async function refreshData(quiet=false,forceCatalog=true){
+ const orderPromise=refreshOrders(quiet);
+ if(busy||refreshBusy){await orderPromise;return;}
+ refreshBusy=true;
+ try{
+  if(forceCatalog||!lastCatalogAt||Date.now()-lastCatalogAt>=30000){
+   const c=await api('admin-catalog',null,{method:'GET',admin:true});
+   if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
+   lastCatalogAt=Date.now();products=(c.products||[]).map(normalizeProduct);drinkOptions=c.drink_options||[];drinkOptionsReady=c.drink_options_ready===true;shop=c.store||shop;setBrand(shop.name);
+   render();
+  }
+ }catch(e){handleRefreshError(e,quiet);}finally{refreshBusy=false;await orderPromise;}
 }
 const paid=o=>o.payment_status==='paid';
 const allItems=o=>(o.order_items||[]).map(i=>`<strong>${i.quantity}x</strong> ${esc(i.product_name)}`).join(' · ');
@@ -39,23 +59,23 @@ function renderStats(){
   $('stats').innerHTML=p.map(([l,v])=>`<div class="stat"><span>${l}</span><b>${v}</b></div>`).join('');
 }
 function renderOrders(){
-  const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status));
+  const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).sort((x,y)=>({received:0,preparing:1,ready:2}[x.status]-{received:0,preparing:1,ready:2}[y.status])||new Date(x.created_at)-new Date(y.created_at));
   $('ordersList').innerHTML=visible.length?visible.map(o=>{
     const cash=o.payment_method==='cash'
       ?o.cash_given_cents!==null
-        ?`<div class="notice ok" style="margin:12px 0"><strong>💵 PREPARAR TROCO: ${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong><div>Cliente entrega: ${fmt(o.cash_given_cents)} · Total do pedido: ${fmt(o.total_cents)}</div><small>Pagamento em dinheiro na retirada. Marque como pago somente após receber.</small></div>`
+        ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Marque como pago somente após receber.</span></div>`
         :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
       :'';
     const voice=o.voice||'';
     const showPay=!paid(o)&&['cash','card'].includes(o.payment_method);
-    const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):button('📦 Entregar','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked)||(o.age_required&&!o.age_checked));
+    const steps=o.status==='received'?button('▶ Preparando','status',o.id,'preparing','primary')+button('✓ Pronto','status',o.id,'ready','secondary',!voice):o.status==='preparing'?button('✓ Pedido pronto','status',o.id,'ready','primary',!voice):button('Entregar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
-    return `<article class="order-card"><div class="order-top"><div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)} <span class="tiny">${pad(o.order_no)}</span></div><div class="tiny">${minutesAgo(o.created_at)} · ${esc(stageLabels[o.status])}</div></div>${statusBadge(o)}</div>
+    return `<article class="order-card premium-order order-${esc(o.status)}"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
     <div class="order-details"><span>${allItems(o)}</span><span>${fmt(o.total_cents)}</span><span>Pagamento: ${esc(labels[o.payment_method]||o.payment_method)}</span></div>${cash}
     ${proof}<div class="muted-separator"></div>
-    <div class="small sub">Voz que a TV usará ao chamar:</div><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}♀ Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}♂ Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div>
-    <div class="order-bottom">${showPay?button('💰 Confirmar pagamento recebido','paid',o.id,'','secondary'):''}
-      ${o.age_required&&!o.age_checked?button('🪪 Documento 18+ conferido','age',o.id,'','secondary'):o.age_required?'<span class="pill good">✓ Maioridade conferida</span>':''}
+    <div class="order-voice-row"><span class="small sub">Voz da TV</span><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}♀ Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}♂ Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div></div>
+    <div class="order-bottom order-actions">${showPay?button('Confirmar pagamento recebido','paid',o.id,'','secondary'):''}
+      
       ${o.payment_method==='pix'&&paid(o)&&!o.receipt_checked?button('📑 Comprovante conferido','receipt',o.id,'','secondary'):''}
       ${steps}${!paid(o)?button('Cancelar pedido','cancel',o.id,'','danger'):''}</div>
     </article>`;
@@ -311,27 +331,16 @@ async function performAction(btn){
     route='admin-stock';body={id,mode:'set',quantity:Number(raw)};
   } else if(!route)return;
   busy=true;
-  try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
+  try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();$('orderDemo').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
-async function syncOrderDemo(action){
- if(demoBusy)return;
- demoBusy=true;
- for(const id of ['testNewOrder','orderDemoNext','orderDemoClose'])$(id).disabled=true;
- try{
-  const {demo}=await api('admin-tv-demo',{action,run_id:demoRunId,step:demoStep},{admin:true});
-  if(demo){demoRunId=demo.run_id;demoStep=demo.step;$('orderDemo').classList.remove('hidden');renderOrderDemo();toast('Teste enviado à TV.');}
-  else{demoRunId='';$('orderDemo').classList.add('hidden');toast('Teste encerrado.');}
- }catch(e){toast(e.message,true);}
- finally{demoBusy=false;$('testNewOrder').disabled=false;$('orderDemoClose').disabled=false;$('orderDemoNext').disabled=demoStep===2;}
-}
 async function start(){
  $('orderShopReopen').onclick=()=>{if(!shop.accepting_orders)$('shopToggle').click();};
- $('testNewOrder').onclick=()=>{if(!sounds){sounds=true;$('soundToggle').textContent='🔔 Alertas ligados';tone();}syncOrderDemo('start');};
- $('orderDemoNext').onclick=()=>{if(demoStep<2)syncOrderDemo('next');};
- $('orderDemoClose').onclick=()=>syncOrderDemo('close');
+
+
+
 
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option>${esc(c)}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
@@ -379,7 +388,10 @@ async function start(){
     catch(err){$('loginError').textContent=err.message;}
   });
   if(authRead()?.token){showAdmin();await refreshData();}else showLogin();
-  setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden')){refreshData(true,false);}},8000);
+  setInterval(()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);},3000);
+  setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshData(true,false);},30000);
+  window.addEventListener('focus',()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
   setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden')&&activeTab==='cash')loadReport();},30000);
 }
 start();

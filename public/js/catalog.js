@@ -350,9 +350,9 @@ async function loadTracking(){
   try{
     const {order}=await api('track',{id:currentOrder.id,token:currentOrder.token});
     trackingFinished=['delivered','cancelled'].includes(order.status);
-    const instructions=order.payment_status==='paid'?'Pagamento confirmado pelo estabelecimento.':order.payment_method==='cash'?'Pague em dinheiro quando o dono entregar no portão.':'Pague com cartão na maquininha, na retirada.';
+    const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track" style="margin:12px 0"><div class="eyebrow">${esc(pad(order.order_no))} • Retirada no portão</div><h2 style="margin:10px 0">${esc(order.first_name)} ${esc(order.last_name)}</h2><div class="big-status">${esc(stageLabels[order.status]||order.status)}</div><p class="notice" style="margin:12px 0">${esc(orderMessage(order.first_name,order.status))}</p><div class="steps">${steps.slice(0,3).map((s,i)=>`<div class="step ${i===current?'current':i<current?'done':''}">${esc(stageLabels[s])}</div>`).join('')}</div><p class="sub small">${esc(instructions)}</p><p style="margin-top:12px">Valor do pedido: <b>${fmt(order.total_cents)}</b></p><p class="small sub" style="margin-top:12px">Acompanhe esta tela ou a TV da adega. Aguarde do lado de fora.</p></div>`;
+    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>RETIRADA NO PORTÃO</span><b>${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Acompanhe por aqui ou pela TV da adega.</p></div>`;
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){
@@ -445,7 +445,7 @@ function start(){
   (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
   loadCatalog();
   setInterval(()=>{if(!document.hidden)loadCatalog();},8000);
-  setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden&&$('trackingModal').classList.contains('open'))loadTracking();},8000);
+  setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden&&$('trackingModal').classList.contains('open'))loadTracking();},3000);
   window.addEventListener('focus',()=>loadCatalog());
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadCatalog();});
 }

@@ -280,29 +280,6 @@ async function photo(db,body){
  ]);}catch(e){if(/constraint/i.test(e.message))reject('Limite de fotos do banco atingido. Use imagens locais do GitHub.',409);throw e;}
  return json({image_url:url,product:{id:body.id,image_url:url}});
 }
-async function ensureOrderDemo(db){
- await run(db,"CREATE TABLE IF NOT EXISTS tv_order_demo (id INTEGER PRIMARY KEY CHECK(id=1),run_id TEXT NOT NULL,step INTEGER NOT NULL CHECK(step BETWEEN 0 AND 2),expires_at INTEGER NOT NULL)");
-}
-async function readOrderDemo(db){
- await ensureOrderDemo(db);
- return await one(db,'SELECT run_id,step,expires_at FROM tv_order_demo WHERE id=1 AND expires_at>?',epoch());
-}
-async function changeOrderDemo(db,body){
- await ensureOrderDemo(db);
- if(body.action==='start'){
-  const id=crypto.randomUUID();
-  await run(db,'INSERT INTO tv_order_demo(id,run_id,step,expires_at) VALUES(1,?,0,?) ON CONFLICT(id) DO UPDATE SET run_id=excluded.run_id,step=0,expires_at=excluded.expires_at',id,epoch()+300);
- }else{
-  if(!uuid(body.run_id))reject('Teste inválido.');
-  if(body.action==='next'){
-   if(!int(body.step,0,1))reject('Etapa inválida.');
-   const result=await run(db,'UPDATE tv_order_demo SET step=step+1,expires_at=? WHERE id=1 AND run_id=? AND step=? AND expires_at>?',epoch()+300,body.run_id,body.step,epoch());
-   if(!result.meta.changes)reject('Teste encerrado ou desatualizado. Inicie novamente.',409);
-  }else if(body.action==='close'){await run(db,'DELETE FROM tv_order_demo WHERE id=1 AND run_id=?',body.run_id);return json({demo:null});}
-  else reject('Ação de teste inválida.');
- }
- return json({demo:await readOrderDemo(db)});
-}
 async function handler(request,env){
  const url=new URL(request.url),method=request.method.toUpperCase(),db=env.DB;
  if(url.pathname.startsWith('/media/')){
@@ -342,11 +319,10 @@ async function handler(request,env){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
  if(!await equal(request.headers.get('X-TV-Code'),env.TV_PASSCODE)){await rate(db,request,'tv',10,300);reject('Código da TV incorreto.',403);}
  const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 60");
- return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),demo:await readOrderDemo(db)});
+ return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name}))});
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(order);}
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);return createOrder(db,body);}
- if(route==='admin-tv-demo'&&method==='POST')return changeOrderDemo(db,body);
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
  if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);await ensureInternalInventory(db);return productsAdmin(db,body,method);}

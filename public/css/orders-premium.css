@@ -1,0 +1,44 @@
+/* Premium dark order surfaces — independent from catalog and inventory. */
+.pending-order-badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:auto;border-radius:20px;background:#d92a40;color:#fff;font-weight:800;font-size:11px}
+.pending-order-badge.hidden{display:none}
+.admin-body #ordersList{gap:14px}
+.admin-body .premium-order{--accent:#e9b66e;background:linear-gradient(135deg,#221e24,#18181c 65%);border:1px solid #55434b;border-left:3px solid var(--accent);border-radius:18px;padding:22px;box-shadow:0 10px 30px #0003}
+.admin-body .premium-order.order-preparing{--accent:#75c5e2}.admin-body .premium-order.order-ready{--accent:#69d8a6}
+.premium-order .order-kicker{font-size:.7rem;letter-spacing:.13em;font-weight:800;color:#b4a7af;text-transform:uppercase;margin-bottom:8px}
+.premium-order .order-name{font-family:Outfit,sans-serif;font-size:clamp(1.2rem,2vw,1.65rem);font-weight:750;color:#fff;overflow-wrap:anywhere}
+.order-status-stack{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex:none}.order-stage{font-size:.78rem;color:var(--accent);font-weight:800;padding:6px 10px;border:1px solid #ffffff24;border-radius:7px}
+.premium-order .order-details{gap:9px;margin:15px 0}.premium-order .order-details span{background:#ffffff09;border:1px solid #ffffff0c;border-radius:8px;padding:8px 10px;font-size:.84rem}
+.order-cash-summary{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;padding:15px;border:1px solid #3c6052;border-radius:12px;background:linear-gradient(115deg,#18362c,#1b2724);align-items:center}
+.order-cash-summary>div{display:grid;gap:4px}.order-cash-summary small{font-size:.7rem;color:#b4c8bd;letter-spacing:.04em}.order-cash-summary strong{font-family:Outfit,sans-serif;font-size:1.7rem;color:#9deac4}.order-cash-summary b{font-size:1rem;color:#f0f7f4}.cash-order-note{grid-column:1/-1;font-size:.72rem;color:#a9bdb4}
+.order-voice-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.order-voice-row .order-bottom{margin:0}.order-voice-row .btn{font-size:.74rem;padding:7px 12px}
+.premium-order .order-actions{gap:9px;margin-top:16px}.premium-order .order-actions .btn{min-height:42px;font-weight:750;border-radius:10px}
+.catalog-body #trackingModal .modal{background:linear-gradient(145deg,#242028,#141316)!important;border:1px solid #62414d!important;padding:22px;border-radius:24px}
+.catalog-body #trackingModal .modal-head h2{font-family:Outfit,sans-serif;font-size:1.3rem;letter-spacing:-.02em}
+.catalog-body .premium-track{--track-accent:#e6bd7f;border:0;background:transparent;padding:0;margin:0;display:grid;gap:14px}
+.catalog-body .track-preparing{--track-accent:#83cce8}.catalog-body .track-ready,.catalog-body .track-delivered{--track-accent:#7be0ac}.catalog-body .track-cancelled{--track-accent:#ff8f96}
+.track-reference{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#b6a8b1;font-size:.7rem;letter-spacing:.12em}.track-reference b{font-size:.86rem;letter-spacing:.03em;color:#fff;border:1px solid #ffffff28;padding:6px 10px;border-radius:8px}
+.track-person{font-family:Outfit,sans-serif;font-size:1.25rem;font-weight:700;overflow-wrap:anywhere}
+.track-status{width:max-content;max-width:100%;display:flex;align-items:center;gap:8px;color:var(--track-accent);font-size:.82rem;font-weight:800;border:1px solid #ffffff24;border-radius:30px;padding:8px 12px}
+.track-status-dot{width:8px;height:8px;border-radius:100%;background:var(--track-accent);box-shadow:0 0 12px var(--track-accent)}
+.track-message{font-family:Outfit,sans-serif;font-size:clamp(1.3rem,5vw,1.95rem);line-height:1.2;color:#fff;font-weight:700;letter-spacing:-.02em}
+.track-timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin:12px 0 4px}
+.track-stage{display:flex;flex-direction:column;align-items:center;position:relative;gap:8px;text-align:center;color:#a39ca2;font-size:.73rem;min-width:0;overflow-wrap:anywhere}
+.track-stage:not(:last-child)::after{content:'';position:absolute;top:14px;left:calc(50% + 17px);width:calc(100% - 31px);height:2px;background:#464049}
+.track-stage.done::after{background:#6fb98f}.track-stage-point{width:30px;height:30px;display:grid;place-items:center;border:1px solid #504a53;border-radius:50%;font-weight:800;background:#211f24;color:#b1a8b0}
+.track-stage.done .track-stage-point{color:#a3e5c0;border-color:#649d7e;background:#20382d}.track-stage.current{color:var(--track-accent);font-weight:800}.track-stage.current .track-stage-point{color:#171719;background:var(--track-accent);border-color:var(--track-accent)}
+.track-payment{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid #ffffff15;border-bottom:1px solid #ffffff15}.track-payment span{font-size:.85rem;color:#c2bac0}.track-payment strong{white-space:nowrap;font-family:Outfit,sans-serif;font-size:1.35rem;color:#fff}
+body.tv-body .tv-concept-canvas{background:radial-gradient(ellipse at 12% 3%,#38232b 0,transparent 44%),radial-gradient(ellipse at 94% 90%,#12312655 0,transparent 50%),#0c0d10;min-height:420px}
+.tv-body .hora-tv-intro h1{font-weight:700;text-transform:none;letter-spacing:-.04em}
+.tv-body .hora-tv-label{font-size:clamp(16px,2.2vw,36px);font-family:Outfit,sans-serif;font-weight:650;letter-spacing:-.02em;color:#ebc38b}
+.tv-body .hora-tv-label-ready{color:#88dfb3}
+.tv-body .tv-concept-list{gap:3%;height:38%;top:47%}
+.tv-body .tv-concept-list .tv-ticket{--tv-accent:#e4ba7d;position:relative;flex:0 0 auto;height:31.3%;min-height:0;padding:0 4%;border:1px solid #6a5144;border-left:4px solid var(--tv-accent);border-radius:14px;background:linear-gradient(110deg,#282229,#1a1a20);box-shadow:0 5px 18px #0003}
+.tv-body .tv-concept-ready .tv-ticket{--tv-accent:#7ad4a5;border-color:#315d4b;border-left-color:var(--tv-accent);background:linear-gradient(110deg,#1c342d,#16211e)}
+.tv-body .tv-concept-list .tv-ticket-body{height:auto;display:grid;gap:3px;align-content:center;justify-content:stretch;width:100%}
+.tv-body .tv-concept-list .tv-ticket strong{font-family:Outfit,sans-serif;font-size:clamp(16px,2.5vw,44px);font-weight:700;line-height:1.08;text-shadow:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-body .tv-concept-list .tv-ticket small{font-size:clamp(9px,.9vw,15px);letter-spacing:.1em;gap:9px;color:#bcb4b8;justify-content:flex-start;line-height:1.1}
+.tv-body .tv-concept-list .tv-ticket small b{border:0;color:var(--tv-accent);font-size:1em;padding:0;font-weight:800}
+.tv-ticket-status{font-size:clamp(9px,1vw,16px);color:var(--tv-accent);font-weight:650;line-height:1.1}
+.tv-body .tv-concept-list .tv-empty{height:31.3%;border:1px dashed #ffffff2b;background:#ffffff04;border-radius:14px}.tv-body .tv-concept-list .tv-empty strong{font-weight:500;color:#a8a2aa;font-size:clamp(12px,1.4vw,24px)}
+@media(max-width:600px){.admin-body .premium-order{padding:14px}.order-status-stack{gap:4px}.order-stage{font-size:.7rem;padding:4px 6px}.order-cash-summary{grid-template-columns:1fr 1fr;padding:12px}.order-cash-summary>div:first-child{grid-column:1/-1}.premium-order .order-actions .btn{flex:1 1 140px}.catalog-body #trackingModal .modal{padding:16px}.track-stage{font-size:.66rem}.track-payment strong{font-size:1.1rem}}
+@media(prefers-reduced-motion:no-preference){.premium-order,.tv-ticket{animation:order-enter .22s ease-out}@keyframes order-enter{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}}
