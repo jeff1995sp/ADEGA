@@ -12,8 +12,9 @@ def fetch(row):
             raw=resp.read(12000001)
         if not 1000<len(raw)<=12000000: raise ValueError('arquivo vazio ou excessivo')
         with Image.open(io.BytesIO(raw)) as im:
-            if min(im.size)<160: raise ValueError('imagem pequena')
-            im=ImageOps.exif_transpose(im).convert('RGB')
+            if min(im.size)<90: raise ValueError('imagem pequena')
+            im=ImageOps.exif_transpose(im).convert('RGBA')
+            bg=Image.new('RGBA',im.size,'#f8f8f8');bg.alpha_composite(im);im=bg.convert('RGB')
             im.thumbnail((900,900),Image.Resampling.LANCZOS)
             out=io.BytesIO();im.save(out,'WEBP',quality=86,method=4)
         return row,out.getvalue(),None

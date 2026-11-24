@@ -78,7 +78,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/cavalo-com-red-bull.webp",
+      "image_url": "/imagens/cavalo-com-red-bull-v4.webp",
       "age_restricted": true,
       "sort_order": 5
     },
@@ -546,7 +546,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/caipirinha-de-limao.webp",
+      "image_url": "/imagens/caipirinha-de-limao-v4.webp",
       "age_restricted": true,
       "sort_order": 41
     },
@@ -559,7 +559,7 @@
       "stock": 0,
       "unlimited": false,
       "active": false,
-      "image_url": "/imagens/caipirinha-de-morango.webp",
+      "image_url": "/imagens/caipirinha-de-morango-v4.webp",
       "age_restricted": true,
       "sort_order": 42
     },

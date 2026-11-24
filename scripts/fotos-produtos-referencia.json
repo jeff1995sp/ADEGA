@@ -1,44 +1,56 @@
 [
   [
-    "produto-052",
-    "torcida-bacon",
-    "https://gigavc.vtexassets.com/arquivos/ids/157384/68fe65586e007a2185e6c6f6.jpg?v=638970993934230000",
-    "Torcida Bacon"
-  ],
-  [
     "produto-031",
     "doritos",
-    "https://assets.ibecom.com.br/ib.item.image.large/l-353e7fe2c40146e4a71a4b881c94e356.png",
-    "Doritos Queijo Nacho"
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/doritos_queijo.webp?itok=ffXnG6xf",
+    "Doritos Queijo Nacho — fabricante"
   ],
   [
-    "produto-032",
-    "fofura",
-    "https://www.elitemasters.com.br/img/Salgadinhos/D_NQ_NP_2X_912014-MLB43151288435_082020-F.jpg",
-    "Fofura sabores variados; referência"
+    "produto-047",
+    "fandangos",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/fandangos-presunto.webp?itok=p4Y4ATnv",
+    "Fandangos Presunto — fabricante"
   ],
   [
-    "produto-033",
-    "torcida",
-    "https://down-br.img.susercontent.com/file/br-11134207-7r98o-lxramx2y9jtec0",
-    "Torcida sabores variados; referência"
+    "produto-048",
+    "lay-s-embalagem-preta",
+    "https://www.br.joypepsico.com/prod/s3fs-public/2026-05/lays-peito-peru.webp",
+    "Lay's Sensações Peito de Peru — fabricante"
   ],
   [
-    "produto-034",
-    "bubbaloo",
-    "https://down-br.img.susercontent.com/file/100f35210dc339607a021f920e17396e",
-    "Bubbaloo sabores variados"
+    "produto-049",
+    "fofura-embalagem-azul",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/fofura-presunto.webp?itok=CZF9JDgH",
+    "Fofura Presunto — fabricante"
   ],
   [
-    "produto-027",
-    "smirnoff-ice",
-    "https://www.chegouafeira.com.br/image/cache/catalog/PRODUTOS/Smirnoff%20ICE%20275ml-500x500.jpg",
-    "Smirnoff Ice Original"
+    "produto-050",
+    "fofura-embalagem-vermelha",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/fofura-queijo.webp?itok=HyOBJmLs",
+    "Fofura Queijo — fabricante"
   ],
   [
-    "produto-038",
-    "bala-te-adoro",
-    "https://himalaia.agilecdn.com.br/7932.png",
-    "Lacta Te Adoro"
+    "produto-051",
+    "fofura-embalagem-roxa",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/fofura-churrasco.webp?itok=oXi-bD26",
+    "Fofura Churrasco — fabricante"
+  ],
+  [
+    "produto-052",
+    "torcida-bacon",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/TORCIDA_BACON.webp?itok=m7_5XcFE",
+    "Torcida Bacon — fabricante"
+  ],
+  [
+    "produto-053",
+    "torcida-embalagem-roxa",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/TORCIDA_CHURRASCO.webp?itok=f6XxW-1m",
+    "Torcida Churrasco — fabricante"
+  ],
+  [
+    "produto-054",
+    "torcida-embalagem-verde",
+    "https://www.br.joypepsico.com/prod/s3fs-public/styles/220px_height/public/2026-05/TORCIDA_PIMENTA.webp?itok=pez1lvk4",
+    "Torcida Pimenta Mexicana — fabricante"
   ]
 ]
