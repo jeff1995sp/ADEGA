@@ -17,9 +17,9 @@ function loadLocalVoice(){
  localVoicePromise=(async()=>{
   if(!window.meSpeak)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/vendor/mespeak/mespeak.js';script.onload=resolve;script.onerror=()=>reject(Error('Motor de voz indisponível.'));document.head.appendChild(script);});
   const engine=window.meSpeak;if(!engine)throw Error('Motor de voz não iniciou.');
-  const [cfg,voice]=await Promise.all(['/vendor/mespeak/mespeak_config.json','/vendor/mespeak/voices/pt.json'].map(async path=>{const r=await fetch(path);if(!r.ok)throw Error('Arquivo de voz indisponível.');return r.json();}));
-  engine.loadConfig(cfg);engine.loadVoice(voice);
-  if(!engine.isConfigLoaded()||!engine.isVoiceLoaded('pt'))throw Error('Voz em português indisponível.');
+  if(!engine.isConfigLoaded())engine.loadConfig('/vendor/mespeak/mespeak_config.json');
+  if(!engine.isVoiceLoaded('pt'))engine.loadVoice('/vendor/mespeak/voices/pt.json');
+  await new Promise((resolve,reject)=>{const deadline=Date.now()+20000;function check(){if(engine.isConfigLoaded()&&engine.isVoiceLoaded('pt'))return resolve();if(Date.now()>=deadline)return reject(Error('Voz em português indisponível.'));setTimeout(check,100);}check();});
   localVoiceReady=true;
  })().catch(e=>{localVoicePromise=null;localVoiceReady=false;throw e;});
  return localVoicePromise;

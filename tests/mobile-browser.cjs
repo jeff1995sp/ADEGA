@@ -46,6 +46,12 @@ const server=http.createServer((req,res)=>{
    await page.locator('[data-tab="settings"]').click();await page.locator('#pickupAddress').waitFor();assert.match(await page.locator('#pickupAddress').inputValue(),/Rua Dourado/);await page.locator('[data-pickup-radius="100"]').click();assert.equal(await page.locator('#pickupRadius').inputValue(),'100');assert.equal(await page.locator('#pickupRadiusValue').innerText(),'100 m');await page.locator('#pickupCoords').fill('-23.6, -46.6');await page.locator('#pickupApplyCoords').click();assert.equal(await page.locator('#pickupLat').inputValue(),'-23.6');assert.match(await page.locator('#pickupViewPoint').getAttribute('href'),/google.com\/maps/);const locDim=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));assert.ok(locDim.actual<=locDim.viewport+2,device+' localização '+JSON.stringify(locDim));
    await page.goto(origin+'/tv.html');await page.locator('#tvAuth:not(.hidden)').waitFor();await page.locator('#tvKey').fill('wrong');await page.locator('#tvConnect').click();await page.locator('#tvLoginError').filter({hasText:'Código da TV incorreto.'}).waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('adega_tv_code_v1')),null);
    await page.locator('#tvKey').fill('local-tv-valid-code');await page.locator('#tvConnect').click();await page.locator('#tvBoard:not(.hidden)').waitFor();assert.equal(await page.evaluate(()=>localStorage.getItem('adega_tv_code_v1')),'local-tv-valid-code');
+   await page.locator('.tv-settings summary').click();
+   await page.locator('#tvVoiceMode').selectOption('audio');
+   await page.waitForFunction(()=>window.meSpeak&&meSpeak.isConfigLoaded()&&meSpeak.isVoiceLoaded('pt'),null,{timeout:45000});
+   const generated=await page.evaluate(()=>{const samples=['Carlos, seu pedido está pronto.','Maria, seu pedido está pronto.'].map((name,i)=>new Uint8Array(meSpeak.speak(name,{voice:'pt',variant:i?'f3':'m3',rawdata:true})));return {headers:samples.map(b=>String.fromCharCode(...b.slice(0,4))),lengths:samples.map(b=>b.length),different:samples[0].length!==samples[1].length||samples[0].some((v,i)=>v!==samples[1][i])};});
+   assert.deepEqual(generated.headers,['RIFF','RIFF']);assert.ok(generated.lengths.every(n=>n>1000));assert.ok(generated.different);
+   console.log(device+' : síntese local em português gera WAV para dois nomes distintos');
    console.log(device+' '+width+'x'+height+': catálogo, carrinho, dinheiro, troco e autenticação admin/TV OK');
   }finally{await browser.close();}
  }
