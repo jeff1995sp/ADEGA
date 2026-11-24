@@ -327,7 +327,7 @@ async function submitOrder(event){
     let pending;try{pending=JSON.parse(sessionStorage.getItem(key)||'null');}catch{}
     if(pending&&pending.fingerprint!==fingerprint){
       const recovered=await api('recover-order',{request_id:pending.id});
-      if(recovered.order){currentOrder={id:recovered.order.id,token:recovered.order.token,number:recovered.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem(key);cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');$('trackBtn')?.classList.remove('hidden');return toast('Seu pedido anterior já foi registrado. Confira o acompanhamento.');}
+      if(recovered.order){trackingFinished=false;currentOrder={id:recovered.order.id,token:recovered.order.token,number:recovered.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem(key);cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');$('trackBtn')?.classList.remove('hidden');return toast('Seu pedido anterior já foi registrado. Confira o acompanhamento.');}
       if(Date.now()-pending.at<30000)return toast('Aguarde a confirmação do pedido anterior antes de alterar o carrinho.',true);
     }
     const request_id=pending?.fingerprint===fingerprint?pending.id:crypto.randomUUID();
@@ -342,20 +342,61 @@ async function submitOrder(event){
     loadCatalog();
   }catch(e){toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';}
 }
-let trackingBusy=false,trackingFinished=false;
+let trackingBusy=false,trackingFinished=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
+const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
+function reviewPanel(order){
+ if(order.status!=='delivered'||order.payment_status!=='paid')return '';
+ if(order.reviewed)return '<div class="review-thanks">Obrigado pela sua avaliação!</div>';
+ return `<form id="storeReviewForm" class="review-form"><span class="eyebrow">SUA OPINIÃO IMPORTA</span><h3>Como foi sua experiência?</h3><p class="small sub">Avalie a Hora Extra Drinks. O comentário é opcional.</p><fieldset class="review-rating"><legend class="sr-only">Nota de 1 a 5 estrelas</legend>${[1,2,3,4,5].map(n=>`<label><input type="radio" name="rating" value="${n}" required><span aria-hidden="true">★</span><span class="sr-only">${n} estrela(s)</span></label>`).join('')}</fieldset><p id="ratingLabel" class="small sub" aria-live="polite">Escolha sua nota</p><label for="reviewComment">Comentário (opcional)</label><textarea id="reviewComment" rows="3" maxlength="500" placeholder="Conte como foi o atendimento..."></textarea><label class="review-consent"><input type="checkbox" id="reviewShareName"> Mostrar meu primeiro nome (opcional)</label><p class="tiny sub">A nota e o comentário serão públicos. Não inclua telefone, endereço ou dados pessoais.</p><button type="submit" class="btn btn-primary btn-wide">Enviar avaliação</button><button type="button" id="reviewLater" class="btn btn-secondary btn-wide">Agora não</button></form>`;
+}
+function renderPublicReviews(){
+ const visible=reviewExpanded?reviewRows:reviewRows.slice(0,6);
+ $('publicReviews').innerHTML=visible.length?visible.map(r=>`<article class="review-card"><div class="review-stars" aria-label="${Number(r.rating)} de 5 estrelas">${reviewStars(r.rating)}</div><p class="review-copy">${esc(r.comment||'Avaliou o estabelecimento.')}</p><div class="review-author"><strong>${esc(r.display_name)}</strong><small>Compra verificada · ${esc(new Date(r.created_at).toLocaleDateString('pt-BR'))}</small></div></article>`).join(''):'<p class="sub">Ainda não temos avaliações. Seja o primeiro a contar como foi!</p>';
+ $('moreReviews').classList.toggle('hidden',reviewRows.length<=6);$('moreReviews').textContent=reviewExpanded?'Ver menos':'Ver mais avaliações';
+}
+async function loadReviews(){
+ if(reviewLoading)return;reviewLoading=true;
+ try{const data=await api('reviews',null,{method:'GET'});reviewRows=Array.isArray(data.reviews)?data.reviews:[];const n=Number(data.summary?.count)||0,avg=Number(data.summary?.average)||0;$('reviewSummary').innerHTML=n?`<strong>${avg.toFixed(1).replace('.',',')} <span>★</span></strong><small>${n} ${n===1?'avaliação':'avaliações'}</small>`:'<small>Sem avaliações ainda</small>';renderPublicReviews();}
+ catch{$('publicReviews').textContent='Avaliações temporariamente indisponíveis.';}
+ finally{reviewLoading=false;}
+}
+async function sendReview(e){
+ e.preventDefault();if(reviewSubmitting||!currentOrder)return;
+ const form=e.target,rating=Number(new FormData(form).get('rating'));if(!Number.isInteger(rating)||rating<1||rating>5)return toast('Escolha de 1 a 5 estrelas.',true);
+ const order={...currentOrder},comment=$('reviewComment').value,share_name=$('reviewShareName').checked;
+ reviewSubmitting=true;const btn=form.querySelector('[type="submit"]');btn.disabled=true;
+ try{await api('review',{id:order.id,token:order.token,rating,comment,share_name});if(currentOrder?.id===order.id){form.outerHTML='<div class="review-thanks">Obrigado pela sua avaliação!</div>';}$('trackBtn').classList.remove('review-pending');toast('Avaliação enviada. Obrigado!');void loadReviews();}
+ catch(err){toast(err.message,true);if(/já foi avaliado/.test(err.message))await loadTracking();}
+ finally{reviewSubmitting=false;btn.disabled=false;}
+}
+function maybePromptReview(order){
+ if(order.status!=='delivered'||order.reviewed||order.payment_status!=='paid')return;
+ $('trackBtn').classList.add('review-pending');
+ if(reviewPrompted===order.id||document.hidden||!$('ageGate').classList.contains('hidden'))return;
+ if(document.querySelector('.modal-backdrop.open:not(#trackingModal)')){toast('Pedido finalizado! Avalie em Meu pedido.');reviewPrompted=order.id;return;}
+ reviewPrompted=order.id;open('trackingModal');
+}
 function orderMessage(name,status){const messages={received:'recebemos seu pedido!',preparing:'seu pedido está sendo preparado.',ready:'seu pedido está pronto! Aguarde a entrega no portão.',delivered:'seu pedido foi entregue. Obrigado!',cancelled:'seu pedido foi cancelado.'};return name+', '+(messages[status]||'acompanhe seu pedido.');}
 async function loadTracking(){
-  if(!currentOrder||trackingBusy)return;
+  if(!currentOrder||trackingBusy||reviewSubmitting)return;
+  const trackingId=currentOrder.id;
   trackingBusy=true;
   try{
     const {order}=await api('track',{id:currentOrder.id,token:currentOrder.token});
+    if(currentOrder?.id!==trackingId)return;
     trackingFinished=['delivered','cancelled'].includes(order.status);
+    $('trackBtn').classList.toggle('review-pending',order.status==='delivered'&&order.payment_status==='paid'&&!order.reviewed);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>RETIRADA NO PORTÃO</span><b>${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Acompanhe por aqui ou pela TV da adega.</p></div>`;
+    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>RETIRADA NO PORTÃO</span><b>${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Acompanhe por aqui ou pela TV da adega.</p>${reviewPanel(order)}</div>`;
+    maybePromptReview(order);
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
 function start(){
+  $('moreReviews').onclick=()=>{reviewExpanded=!reviewExpanded;renderPublicReviews();};
+  $('trackingContent').addEventListener('submit',e=>{if(e.target.id==='storeReviewForm')sendReview(e);});
+  $('trackingContent').addEventListener('change',e=>{if(e.target.name==='rating'){const n=Number(e.target.value);$('ratingLabel').textContent=n+' de 5 estrelas';e.target.closest('.review-rating').querySelectorAll('label').forEach((label,k)=>label.classList.toggle('selected',k<n));}});
+  $('trackingContent').addEventListener('click',e=>{if(e.target.id==='reviewLater')close('trackingModal');});
   $('catalogo').addEventListener('click',e=>{
     const shake=e.target.closest('button[data-shake]');
     if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');}return;}
@@ -442,11 +483,12 @@ function start(){
   try{currentOrder=JSON.parse(localStorage.getItem('adega_my_order_v1')||'null');}catch{}
   if(currentOrder){$('trackBtn')?.classList.remove('hidden');loadTracking();}
   $('trackBtn')?.addEventListener('click',()=>{if(!currentOrder)return toast('Você ainda não possui pedido neste dispositivo.');loadTracking();open('trackingModal');});
-  (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
-  loadCatalog();
+  (async()=>{try{const pending=JSON.parse(sessionStorage.getItem('adega_pending_request_v2')||'null');if(pending?.id){const d=await api('recover-order',{request_id:pending.id});if(d.order){trackingFinished=false;currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));sessionStorage.removeItem('adega_pending_request_v2');$('trackBtn')?.classList.remove('hidden');await loadTracking();open('trackingModal');}}}catch{}})();
+  loadCatalog();loadReviews();
+  setInterval(()=>{if(!document.hidden)loadReviews();},60000);
   setInterval(()=>{if(!document.hidden)loadCatalog();},8000);
-  setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden&&$('trackingModal').classList.contains('open'))loadTracking();},3000);
-  window.addEventListener('focus',()=>loadCatalog());
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadCatalog();});
+  setInterval(()=>{if(currentOrder&&!trackingFinished&&!document.hidden)loadTracking();},3000);
+  window.addEventListener('focus',()=>{loadCatalog();if(currentOrder&&!trackingFinished)loadTracking();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadCatalog();if(currentOrder&&!trackingFinished)loadTracking();}});
 }
 start();

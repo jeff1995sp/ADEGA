@@ -168,7 +168,7 @@ function render(){renderStats();renderOrders();
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
   if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
   renderCash();renderSettings();}
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();for(const name of ['orders','inventory','cash','reviews','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
 let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
@@ -342,7 +342,17 @@ async function performAction(btn){
 }
 function showLogin(){ closeProductPreview();ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
+let reviewsBusy=false;
+async function loadAdminReviews(){
+ if(reviewsBusy)return;
+ reviewsBusy=true;
+ try{const {reviews}=await api('admin-reviews',null,{method:'GET',admin:true});$('adminReviews').innerHTML=reviews.length?reviews.map(r=>`<article class="review-card"><div class="review-stars" aria-label="${Number(r.rating)} de 5 estrelas">${'★'.repeat(Number(r.rating))+'☆'.repeat(5-Number(r.rating))}</div><strong>${esc(r.display_name)} · Pedido ${pad(r.order_no)}</strong><p class="review-copy">${esc(r.comment||'Sem comentário')}</p><small class="sub">${r.comment_hidden?'Comentário oculto; nota pública':'Avaliação pública'} · ${esc(new Date(r.created_at).toLocaleDateString('pt-BR'))}</small>${r.comment? `<button type="button" class="btn btn-secondary btn-sm" data-review-id="${esc(r.id)}" data-hide="${r.comment_hidden?'false':'true'}">${r.comment_hidden?'Restaurar comentário':'Ocultar comentário'}</button>`:''}</article>`).join(''):'<p class="sub">Nenhuma avaliação recebida.</p>';}
+ catch(e){$('adminReviews').textContent=e.message;}finally{reviewsBusy=false;}
+}
 async function start(){
+ $('refreshReviews').onclick=loadAdminReviews;
+ $('adminReviews').addEventListener('click',async e=>{const b=e.target.closest('[data-review-id]');if(!b||reviewsBusy)return;const hide=b.dataset.hide==='true';if(hide&&!confirm('Ocultar comentário por conteúdo inadequado, spam ou dados pessoais? A nota permanecerá pública.'))return;b.disabled=true;try{await api('admin-reviews',{id:b.dataset.reviewId,comment_hidden:hide},{admin:true,method:'PATCH'});await loadAdminReviews();}catch(err){toast(err.message,true);}finally{b.disabled=false;}});
+
  $('orderShopReopen').onclick=()=>{if(!shop.accepting_orders)$('shopToggle').click();};
 
 

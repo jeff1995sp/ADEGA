@@ -284,6 +284,25 @@ async function photo(db,body){
  ]);}catch(e){if(/constraint/i.test(e.message))reject('Limite de fotos do banco atingido. Use imagens locais do GitHub.',409);throw e;}
  return json({image_url:url,product:{id:body.id,image_url:url}});
 }
+async function ensureReviews(db){
+ await run(db,"CREATE TABLE IF NOT EXISTS store_reviews (id TEXT PRIMARY KEY,order_id TEXT NOT NULL UNIQUE REFERENCES orders(id),rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),comment TEXT NOT NULL DEFAULT '',display_name TEXT NOT NULL DEFAULT 'Cliente',comment_hidden INTEGER NOT NULL DEFAULT 0 CHECK(comment_hidden IN (0,1)),created_at TEXT NOT NULL)");
+}
+async function publicReviews(db){
+ await ensureReviews(db);
+ const summary=await one(db,'SELECT COUNT(*) AS count,COALESCE(AVG(rating),0) AS average FROM store_reviews');
+ const reviews=await many(db,"SELECT display_name,rating,CASE WHEN comment_hidden=1 THEN '' ELSE comment END AS comment,created_at FROM store_reviews ORDER BY created_at DESC,id DESC LIMIT 24");
+ return json({summary,reviews});
+}
+async function submitReview(db,body){
+ if(!uuid(body.id)||!uuid(body.token)||!int(body.rating,1,5)||typeof body.comment!=='string'||body.comment.length>500||typeof body.share_name!=='boolean')reject('Avaliação inválida. Confira as estrelas e o comentário.');
+ const order=await one(db,'SELECT id,first_name,status,payment_status FROM orders WHERE id=? AND public_token=?',body.id,body.token);
+ if(!order)missing();
+ if(order.status!=='delivered'||order.payment_status!=='paid')reject('Avalie após a finalização do pedido.',409);
+ await ensureReviews(db);
+ const result=await run(db,'INSERT INTO store_reviews(id,order_id,rating,comment,display_name,created_at) VALUES(?,?,?,?,?,?) ON CONFLICT(order_id) DO NOTHING',crypto.randomUUID(),order.id,body.rating,body.comment.trim(),body.share_name?order.first_name:'Cliente',now());
+ if(!result.meta.changes)reject('Este pedido já foi avaliado.',409);
+ return json({ok:true},201);
+}
 async function handler(request,env){
  const url=new URL(request.url),method=request.method.toUpperCase(),db=env.DB;
  if(url.pathname.startsWith('/media/')){
@@ -315,9 +334,18 @@ async function handler(request,env){
  if(route==='health'&&method==='GET'){const row=await one(db,'SELECT id FROM store_settings WHERE id=1');if(!row)reject('Banco não inicializado.',503);await one(db,'SELECT COUNT(*) AS n FROM sqlite_master WHERE type=\'table\' AND name IN (\'order_requests\',\'stock_reservations\',\'rate_limits\',\'product_photos\')').then(x=>{if(x.n!==4)reject('Complete a instalação do banco D1.',503);});return json({ok:true,database:'D1',online_enabled:false});}
  if(route==='catalog'&&method==='GET')return catalog(db,false);
  if(route==='admin-catalog'&&method==='GET')return catalog(db,true);
+ if(route==='reviews'&&method==='GET')return publicReviews(db);
+ if(route==='review'&&method==='POST'){await rate(db,request,'review',20,300);return submitReview(db,body);}
+ if(route==='admin-reviews'&&method==='GET'){await ensureReviews(db);return json({reviews:await many(db,'SELECT r.id,r.rating,r.comment,r.display_name,r.comment_hidden,r.created_at,o.order_no FROM store_reviews r JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC,r.id DESC LIMIT 200')});}
+ if(route==='admin-reviews'&&method==='PATCH'){
+  if(!uuid(body.id)||typeof body.comment_hidden!=='boolean')reject('Avaliação inválida.');
+  await ensureReviews(db);
+  const review=await one(db,'UPDATE store_reviews SET comment_hidden=? WHERE id=? RETURNING id',body.comment_hidden,body.id);
+  if(!review)missing();return json({ok:true});
+ }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();return json({order});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}return json({order:{...order,reviewed}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
