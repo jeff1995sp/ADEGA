@@ -90,3 +90,15 @@ body.catalog-body{background:#090909;color:#fff}
 
 /* Ranking calculado no D1 apenas a partir de vendas confirmadas. */
 .hora-best-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;font-size:1.14rem;font-weight:900;border-bottom:2px solid #ae293b;padding:9px 2px 8px}.hora-best-heading small{font-size:.72rem;font-weight:500;color:#b9aeb1;text-transform:none}.catalog-body .hora-catalog .hora-best-seller{border-color:#a8444f}.hora-best-seller .product-visual{position:relative}.hora-best-label{position:absolute;top:8px;left:8px;z-index:2;border-radius:5px;padding:5px 8px;background:#a81d30;color:#fff;font-size:.65rem;font-weight:800;box-shadow:0 2px 8px #0008}
+
+/* Categorias em destaque: imagens maiores, alinhamento e navegação compacta. */
+.catalog-body .hora-category-cards{gap:10px;padding:4px 2px 14px;scroll-snap-type:x proximity;scrollbar-color:#73323c #191518;scrollbar-width:thin}
+.catalog-body .hora-category-cards .tab{flex:0 0 clamp(128px,10vw,168px);height:154px;padding:7px;gap:7px;justify-content:space-between;border-radius:16px;background:linear-gradient(145deg,#21191e,#121115);scroll-snap-align:start;box-shadow:0 4px 12px #0004}
+.hora-category-media{display:grid;place-items:center;min-height:0;flex:1;width:100%;overflow:hidden;border-radius:10px;background:radial-gradient(ellipse at center,#34262c,#181519)}
+.catalog-body .hora-category-cards .tab img{display:block;width:100%;height:100%;min-height:0;max-height:102px;object-fit:contain;background:transparent;border-radius:0;transition:transform .2s}
+.hora-category-label{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:31px;color:#fff}.hora-category-label .hora-icon{width:16px;height:16px;color:#f58a94}.hora-category-label strong{font-size:.79rem;min-height:0;line-height:1.16;text-align:center}
+.catalog-body .hora-category-cards .hora-category-featured{border-color:#9b3947;background:linear-gradient(150deg,#382027,#191216)}
+.catalog-body .hora-category-cards .tab.active{border-color:#ff6171;background:linear-gradient(150deg,#4b202a,#211317);box-shadow:inset 0 0 0 1px #e74d5c,0 5px 15px #0006}
+@media(hover:hover){.catalog-body .hora-category-cards .tab:hover img{transform:scale(1.035)}}
+@media(max-width:800px){.catalog-body .hora-category-cards{gap:7px}.catalog-body .hora-category-cards .tab{flex-basis:112px;height:124px;padding:5px}.catalog-body .hora-category-cards .tab img{max-height:75px}.hora-category-label{gap:4px;min-height:28px}.hora-category-label strong{font-size:.72rem}.hora-category-label .hora-icon{width:13px;height:13px}}
+@media(prefers-reduced-motion:reduce){.catalog-body .hora-category-cards .tab,.catalog-body .hora-category-cards .tab img{transition:none}}

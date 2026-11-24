@@ -45,7 +45,7 @@ test('D1: login, sessões revogáveis, catálogo e pedidos fechados por padrão'
  assert.equal((await f.call('login',{username:'admin',password:'wrong'})).status,401);
  const t=await login(f);
  assert.equal((await f.call('catalog')).data.products.length,2);
- assert.equal((await f.call('admin-catalog',undefined,t)).data.products.length,3);
+ const internal=(await f.call('admin-catalog',undefined,t)).data.products;assert.ok(internal.some(p=>p.id==='interno-877'));assert.equal(internal.find(p=>p.id==='interno-800').stock,10);assert.equal(internal.find(p=>p.id==='interno-800').price_cents,300);assert.equal((await f.call('catalog')).data.products.length,2);
  assert.equal((await f.call('create-order',payload())).status,409);
  assert.equal((await f.call('admin-logout',{},t)).status,200);
  assert.equal((await f.call('admin-orders',undefined,t)).status,401);
@@ -184,3 +184,5 @@ test('D1: preço Ninho Trufado atualizado uma vez, caipirinha de cerveja visíve
  assert.equal((await f.call('catalog')).data.products.find(p=>p.id==='produto-024').price_cents,1700);
  assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-024'").get().stock,5);
 });
+
+test('D1: inventário de tabacaria só no admin, importação única e sem sobrescrever estoque',async()=>{const f=setup(),token=await login(f);const first=await f.call('admin-catalog',undefined,token);assert.equal(first.status,200);assert.ok(first.data.products.some(p=>p.id==='interno-877'&&p.category==='Tabacaria'&&p.stock===0&&!p.active));f.sql.exec("UPDATE products SET stock=4,price_cents=500 WHERE id='interno-877'");const again=await f.call('admin-catalog',undefined,token);assert.equal(again.data.products.find(p=>p.id==='interno-877').stock,4);assert.equal(again.data.products.find(p=>p.id==='interno-877').price_cents,500);assert.ok(!(await f.call('catalog')).data.products.some(p=>p.category==='Tabacaria'));});

@@ -136,7 +136,7 @@ function render(){renderStats();renderOrders();
   const editing=document.activeElement?.matches?.('[data-price-input],[data-stock-input],[data-option-stock-input]');
   if(!(activeTab==='inventory'&&(editing||$('editModal').classList.contains('open'))))renderInventory();
   renderCash();renderSettings();}
-function setTab(tab){activeTab=tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==tab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();for(const name of ['orders','inventory','cash','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={orders:'Pedidos ao vivo',inventory:'Produtos e estoque',tabacaria:'Tabacaria — estoque interno',cash:'Caixa e faturamento',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();}
 let selectedPhotoPreviewUrl=null;
 function setProductPhotoPreview(src){
   $('editPhotoPreview').src=src||'/imagens/foto-pendente.webp';
@@ -282,7 +282,7 @@ async function start(){
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
-  $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;renderInventory();});
+  $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===(inventoryFilter==='Tabacaria'?'tabacaria':'inventory')));$('pageTitle').textContent=inventoryFilter==='Tabacaria'?'Tabacaria — estoque interno':'Produtos e estoque';renderInventory();});
   $('newProduct').onclick=()=>productModal(null);
   $('openBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.add('open');renderBulkPhotos();};
   $('closeBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.remove('open');};

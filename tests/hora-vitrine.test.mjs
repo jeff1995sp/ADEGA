@@ -14,3 +14,4 @@ test('Corrigir nomes não altera IDs nem os nomes personalizados pelo proprietá
  assert.deepEqual(normalizeProduct(p),{...p,name:'Fofura Presunto'});
  assert.equal(normalizeProduct({...p,name:'Fofura personalizada'}).name,'Fofura personalizada');
 });
+test('Batidas e Caipirinhas juntas; atalho de estoque interno',()=>{const c=read('js/catalog.js');assert.ok(c.includes("['Todos','Batidas','Caipirinhas','Whisky'"));assert.match(read('admin.html'),/data-tab="tabacaria"/);});
