@@ -114,6 +114,11 @@ function dedupePublicProducts(list){
  return hidden.size?list.filter(p=>!hidden.has(p.id)):list;
 }
 const coordinate=(v,min,max)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
+const defaultPickupAddress='Rua Dourado, 34 - Eldorado, Diadema - SP';
+async function readPickupAddress(db){
+ await run(db,'CREATE TABLE IF NOT EXISTS pickup_address (id INTEGER PRIMARY KEY CHECK(id=1),address TEXT NOT NULL)');
+ const row=await one(db,'SELECT address FROM pickup_address WHERE id=1');return row?.address||defaultPickupAddress;
+}
 async function readPickupLocation(db){
  await run(db,'CREATE TABLE IF NOT EXISTS pickup_location (id INTEGER PRIMARY KEY CHECK(id=1),latitude REAL NOT NULL,longitude REAL NOT NULL,radius INTEGER NOT NULL CHECK(radius BETWEEN 25 AND 500),enabled INTEGER NOT NULL CHECK(enabled IN (0,1)))');
  return await one(db,'SELECT latitude,longitude,radius,enabled FROM pickup_location WHERE id=1');
@@ -121,8 +126,11 @@ async function readPickupLocation(db){
 async function savePickupLocation(db,body){
  await readPickupLocation(db);
  if(!coordinate(body.latitude,-90,90)||!coordinate(body.longitude,-180,180)||!int(body.radius,25,500)||typeof body.enabled!=='boolean')reject('Informe coordenadas válidas e raio de 25 a 500 metros.');
- await run(db,'INSERT INTO pickup_location(id,latitude,longitude,radius,enabled) VALUES(1,?,?,?,?) ON CONFLICT(id) DO UPDATE SET latitude=excluded.latitude,longitude=excluded.longitude,radius=excluded.radius,enabled=excluded.enabled',body.latitude,body.longitude,body.radius,body.enabled);
- return json({location:await readPickupLocation(db)});
+ const previous=await readPickupAddress(db);
+ const address=body.address===undefined?previous:text(body.address,251);
+ if(address.length<5||address.length>250)reject('Informe o endereço completo da adega.');
+ await db.batch([stmt(db,'INSERT INTO pickup_location(id,latitude,longitude,radius,enabled) VALUES(1,?,?,?,?) ON CONFLICT(id) DO UPDATE SET latitude=excluded.latitude,longitude=excluded.longitude,radius=excluded.radius,enabled=excluded.enabled',body.latitude,body.longitude,body.radius,body.enabled),stmt(db,'INSERT INTO pickup_address(id,address) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET address=excluded.address',address)]);
+ return json({location:{...await readPickupLocation(db),address}});
 }
 function distanceMeters(a,b){
  const rad=Math.PI/180,dlat=(b.latitude-a.latitude)*rad,dlon=(b.longitude-a.longitude)*rad;
@@ -152,7 +160,7 @@ async function catalog(db,admin){
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  const location=await readPickupLocation(db);
- return json({store:{...store,location_required:Boolean(location?.enabled),location_radius:location?.radius??50,...(admin?{pickup_location:location}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
+ return json({store:{...store,location_required:Boolean(location?.enabled),location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
 const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};

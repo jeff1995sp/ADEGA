@@ -155,13 +155,30 @@ function exportCash(){
   if(cashReport.paid_count>cashReport.transactions.length)toast('CSV com as 500 vendas mais recentes. O total e o resumo incluem todas as vendas.');
 }
 
+const defaultPickupAddress='Rua Dourado, 34 - Eldorado, Diadema - SP';
 let pickupDirty=false;
+const validPickupPoint=()=>{const lat=$('pickupLat').valueAsNumber,lng=$('pickupLng').valueAsNumber;return Number.isFinite(lat)&&Math.abs(lat)<=90&&Number.isFinite(lng)&&Math.abs(lng)<=180;};
+function renderPickupPreview(){
+ const address=$('pickupAddress').value.trim(),radius=$('pickupRadius').valueAsNumber,point=validPickupPoint();
+ $('pickupPreviewAddress').textContent=address||'Endereço não informado';
+ $('pickupFindAddress').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address||defaultPickupAddress);
+ $('pickupViewPoint').classList.toggle('hidden',!point);
+ if(point)$('pickupViewPoint').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent($('pickupLat').value+','+$('pickupLng').value);
+ $('pickupPointLabel').textContent=point?'Ponto definido':'Portão não definido';
+ const r=Number.isFinite(radius)?Math.max(25,Math.min(500,radius)):50;
+ $('pickupRadiusSlider').value=r;$('pickupRadiusValue').textContent=r+' m';
+ const circle=Math.min(99,36+63*Math.sqrt(r/500));$('pickupRadiusCircle').setAttribute('r',circle);$('pickupRadiusLine').setAttribute('d','M160 120h'+circle);
+ document.querySelectorAll('[data-pickup-radius]').forEach(b=>{const active=Number(b.dataset.pickupRadius)===radius;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});
+ $('pickupDraftStatus').textContent=pickupDirty?'Alterações não salvas.':'As mudanças só valem após salvar.';
+}
 function renderPickupSettings(){
  const loc=shop.pickup_location;
- $('pickupAdminState').textContent=loc?.enabled?'Ativo: pedidos somente perto do portão, raio de '+loc.radius+' m.':'Desativado: configure o ponto do portão e ative a regra.';
+ $('pickupAdminState').textContent=loc?.enabled?'Regra salva: pedidos somente dentro de '+loc.radius+' m.':'Regra desativada: confirme o ponto do portão antes de ativar.';
+ $('pickupStateBadge').textContent=loc?.enabled?'Ativo':'Desativado';$('pickupStateBadge').classList.toggle('is-active',Boolean(loc?.enabled));
  if(pickupDirty)return;
+ $('pickupAddress').value=shop.pickup_address||loc?.address||defaultPickupAddress;
  $('pickupLat').value=loc?.latitude??'';$('pickupLng').value=loc?.longitude??'';
- $('pickupRadius').value=loc?.radius??50;$('pickupEnabled').checked=Boolean(loc?.enabled);
+ $('pickupRadius').value=loc?.radius??50;$('pickupEnabled').checked=Boolean(loc?.enabled);renderPickupPreview();
 }
 function renderSettings(){
  renderPickupSettings();
@@ -359,22 +376,31 @@ async function loadAdminReviews(){
  catch(e){$('adminReviews').textContent=e.message;}finally{reviewsBusy=false;}
 }
 async function start(){
- $('pickupLocationForm').addEventListener('input',()=>pickupDirty=true);
+ $('pickupLocationForm').addEventListener('input',()=>{pickupDirty=true;renderPickupPreview();});
+ $('pickupRadiusSlider').addEventListener('input',()=>{$('pickupRadius').value=$('pickupRadiusSlider').value;pickupDirty=true;renderPickupPreview();});
+ document.querySelectorAll('[data-pickup-radius]').forEach(b=>b.onclick=()=>{$('pickupRadius').value=b.dataset.pickupRadius;pickupDirty=true;renderPickupPreview();});
+ $('pickupApplyCoords').onclick=()=>{
+  const raw=$('pickupCoords').value.trim();
+  const match=raw.match(/^(-?\d+(?:\.\d+)?)\s*[,;]\s*(-?\d+(?:\.\d+)?)$/);
+  if(!match||Math.abs(Number(match[1]))>90||Math.abs(Number(match[2]))>180)return toast('Cole o par de coordenadas do portão no formato latitude, longitude.',true);
+  $('pickupLat').value=match[1];$('pickupLng').value=match[2];pickupDirty=true;renderPickupPreview();toast('Coordenadas aplicadas. Confira o ponto no mapa antes de salvar.');
+ };
  $('pickupUseGPS').onclick=()=>{
   if(!navigator.geolocation)return toast('Use o celular no portão ou informe as coordenadas.',true);
   const btn=$('pickupUseGPS');btn.disabled=true;btn.textContent='Obtendo GPS…';
-  const finish=()=>{btn.disabled=false;btn.textContent='Usar GPS deste aparelho no portão';};
+  const finish=()=>{btn.disabled=false;btn.textContent='Usar GPS no portão';};
   navigator.geolocation.getCurrentPosition(p=>{
    finish();if(p.coords.accuracy>25)return toast('GPS impreciso. Ative a localização precisa e fique no portão.',true);
-   pickupDirty=true;$('pickupLat').value=p.coords.latitude.toFixed(7);$('pickupLng').value=p.coords.longitude.toFixed(7);$('pickupEnabled').checked=true;toast('Ponto capturado. Confira o raio e salve.');
+   pickupDirty=true;$('pickupLat').value=p.coords.latitude.toFixed(7);$('pickupLng').value=p.coords.longitude.toFixed(7);renderPickupPreview();toast('Ponto capturado. Confira o raio e ative a regra se desejar.');
   },()=>{finish();toast('Autorize o GPS ou informe as coordenadas do portão.',true);},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
  };
  $('pickupLocationForm').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.target.querySelector('[type="submit"]');if(btn.disabled)return;
   const latitude=$('pickupLat').valueAsNumber,longitude=$('pickupLng').valueAsNumber,radius=$('pickupRadius').valueAsNumber,enabled=$('pickupEnabled').checked;
-  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||!Number.isInteger(radius))return toast('Preencha as coordenadas e o raio.',true);
+  const address=$('pickupAddress').value.trim();
+  if(!validPickupPoint()||!Number.isInteger(radius)||radius<25||radius>500){$('pickupAdvanced').open=true;return toast('Defina o ponto exato do portão e um raio de 25 a 500 metros.',true);}
   if(!confirm(enabled?'Ativar pedidos somente perto deste ponto?':'Desativar a exigência de proximidade?'))return;
-  btn.disabled=true;try{const {location}=await api('admin-location',{latitude,longitude,radius,enabled},{admin:true,method:'PATCH'});shop={...shop,pickup_location:location,location_required:enabled,location_radius:radius};pickupDirty=false;renderPickupSettings();toast('Regra de localização salva.');}catch(err){toast(err.message,true);}finally{btn.disabled=false;}
+  btn.disabled=true;try{const {location}=await api('admin-location',{latitude,longitude,radius,enabled,address},{admin:true,method:'PATCH'});shop={...shop,pickup_location:location,pickup_address:location.address,location_required:enabled,location_radius:radius};pickupDirty=false;renderPickupSettings();toast('Regra de localização salva.');}catch(err){toast(err.message,true);}finally{btn.disabled=false;}
  });
 
  $('refreshReviews')?.addEventListener('click',loadAdminReviews);
