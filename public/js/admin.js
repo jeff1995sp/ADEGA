@@ -13,7 +13,7 @@ function adminAnnounce(message){
  if('speechSynthesis' in window){try{const u=new SpeechSynthesisUtterance(message);u.lang='pt-BR';u.rate=.95;window.speechSynthesis.speak(u);}catch{}}
 }
 function handleRefreshError(e,quiet){
- if(/sessão|login|autorizada|expirada/i.test(e.message)){authClear();showLogin();return;}
+ if(e.status===401||/sessão expirada|faça login no admin/i.test(e.message)){authClear();showLogin();$('loginError').textContent=e.message;return;}
  if(!quiet)toast(e.message,true);
 }
 async function refreshOrders(quiet=true){
@@ -350,8 +350,8 @@ async function loadAdminReviews(){
  catch(e){$('adminReviews').textContent=e.message;}finally{reviewsBusy=false;}
 }
 async function start(){
- $('refreshReviews').onclick=loadAdminReviews;
- $('adminReviews').addEventListener('click',async e=>{const b=e.target.closest('[data-review-id]');if(!b||reviewsBusy)return;const hide=b.dataset.hide==='true';if(hide&&!confirm('Ocultar comentário por conteúdo inadequado, spam ou dados pessoais? A nota permanecerá pública.'))return;b.disabled=true;try{await api('admin-reviews',{id:b.dataset.reviewId,comment_hidden:hide},{admin:true,method:'PATCH'});await loadAdminReviews();}catch(err){toast(err.message,true);}finally{b.disabled=false;}});
+ $('refreshReviews')?.addEventListener('click',loadAdminReviews);
+ $('adminReviews')?.addEventListener('click',async e=>{const b=e.target.closest('[data-review-id]');if(!b||reviewsBusy)return;const hide=b.dataset.hide==='true';if(hide&&!confirm('Ocultar comentário por conteúdo inadequado, spam ou dados pessoais? A nota permanecerá pública.'))return;b.disabled=true;try{await api('admin-reviews',{id:b.dataset.reviewId,comment_hidden:hide},{admin:true,method:'PATCH'});await loadAdminReviews();}catch(err){toast(err.message,true);}finally{b.disabled=false;}});
 
  $('orderShopReopen').onclick=()=>{if(!shop.accepting_orders)$('shopToggle').click();};
 
@@ -394,8 +394,15 @@ async function start(){
     try{
       const username=$('username').value.trim().toLowerCase(),password=$('pass').value;
       if(username!=='admin')throw Error('Use o usuário admin.');
-      const d=await api('login',{username,password},{timeout:12000});
-      if(!d.token||!d.expires_at)throw Error('Resposta de login inválida.');
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+      let d;
+      try{
+        const response=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({username,password}),cache:'no-store',signal:controller.signal});
+        d=await response.json().catch(()=>({error:'Resposta inválida do servidor (HTTP '+response.status+').'}));
+        if(!response.ok)throw Error(d.error||'Falha no login (HTTP '+response.status+').');
+      }catch(err){if(err.name==='AbortError')throw Error('Servidor demorou a responder. Tente novamente.');throw err;}
+      finally{clearTimeout(timer);}
+      if(!d.token)throw Error('Resposta de login inválida.');
       authSave(d);$('pass').value='';showAdmin();await refreshData();
     }catch(err){$('loginError').textContent=err.message||'Não foi possível conectar ao admin.';}
     finally{button.disabled=false;button.textContent='Entrar no painel';}
