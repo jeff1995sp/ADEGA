@@ -73,7 +73,7 @@ function renderInventory(){
       <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
-      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar / foto','edit',p.id)}</div></div>`;
+      ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Editar / foto','edit',p.id)}${button('Prévia do produto','preview',p.id)}</div></div>`;
   };
   const groups=new Map();for(const p of filtered){const cat=catalogCategory(p);if(!groups.has(cat))groups.set(cat,[]);groups.get(cat).push(p);}
   $('inventoryList').innerHTML=filtered.length?[...groups].map(([cat,items])=>`<section class="inventory-group"><header class="inventory-group-heading"><h3>${esc(categoryDisplay(cat))}</h3><span>${items.length} itens${cat==='Tabacaria'?' · controle interno':''}</span></header>${items.map(row).join('')}</section>`).join(''):'<div class="empty">Nenhum produto encontrado.</div>';
@@ -235,6 +235,26 @@ async function saveProduct(e){
     $('editModal').classList.remove('open');toast('Produto e foto salvos. O catálogo será atualizado automaticamente.');
   }catch(err){toast(err.message,true);}finally{busy=false;await refreshData(true);}
 }
+let previewTrigger=null;
+function closeProductPreview(){
+ const modal=$('productPreviewModal');
+ if(modal.open)modal.close();
+}
+function showProductPreview(p,trigger){
+ if(!p)return toast('Produto não encontrado.',true);
+ previewTrigger=trigger;
+ const body=$('productPreviewBody');
+ const local=p.category==='Tabacaria';
+ const stock=p.unlimited?'Estoque ilimitado':p.stock+' unidade(s) em estoque';
+ const state=p.active?'Ativo':'Pausado';
+ body.innerHTML=`<article class="admin-preview-card"><div class="admin-preview-image"><img alt="Foto de ${esc(p.name)}"></div><div class="admin-preview-content"><span class="tiny">${esc(categoryDisplay(catalogCategory(p)))}</span><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p><div class="admin-preview-state"><span class="pill ${p.active?'good':'bad'}">${state}</span><span>${esc(stock)}</span></div><strong class="admin-preview-price">${p.price_cents?fmt(p.price_cents):'Preço a definir'}</strong></div></article><p class="admin-preview-notice">${local?'Somente inventário interno. Não publicado no cardápio.':'Prévia administrativa do cadastro salvo; não cria pedido.'}</p>`;
+ const img=body.querySelector('img');
+ const fallback=photoFallbackFor(p);let tried=false;
+ img.onerror=()=>{if(!tried&&fallback){tried=true;img.src=fallback;}else{img.onerror=null;img.src='/imagens/foto-pendente.webp';}};
+ img.src=photoFor(p);
+ $('productPreviewModal').showModal();
+ $('closeProductPreview').focus();
+}
 async function performAction(btn){
   if(busy)return;
   const id=btn.dataset.id,action=btn.dataset.action,value=btn.dataset.value;
@@ -251,6 +271,7 @@ async function performAction(btn){
       body.stock=Number(value);
     }
   }
+  else if(action==='preview'){showProductPreview(p,btn);return;}
   else if(action==='edit'){productModal(p);return;}
   if(action==='cancel'&&!confirm('Cancelar este pedido e devolver os itens ao estoque?'))return;
   if(action==='paid'&&!confirm('O valor realmente foi recebido em dinheiro ou na maquininha?'))return;
@@ -276,9 +297,11 @@ async function performAction(btn){
   try{await api(route,body,{admin:true,method});toast(action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
 }
-function showLogin(){ $('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview(); $('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 async function start(){
+ $('closeProductPreview').onclick=closeProductPreview;
+ $('productPreviewModal').addEventListener('close',()=>{$('productPreviewBody').replaceChildren();if(previewTrigger?.isConnected)previewTrigger.focus();previewTrigger=null;});
   $('editCategory').innerHTML=CATEGORIES.slice(1).filter(c=>!['Doces e Balas','Salgadinhos','Doces e Snacks','Complementos','Doses'].includes(c)).map(c=>`<option value="${esc(c)}">${esc(categoryDisplay(c))}</option>`).join('');
   document.querySelectorAll('.side-link').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
   $('ordersList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
