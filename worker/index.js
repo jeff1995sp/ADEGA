@@ -216,8 +216,7 @@ async function handler(request,env){
  if(url.pathname!=='/api'&&url.pathname!=='/api/admin-login'){
  if(url.pathname.startsWith('/api/'))return json({error:'Rota não encontrada.'},404);
  if(!env.ASSETS)return new Response('Site aguardando publicação.',{status:503});
- const target=url.pathname==='/admin'?'/admin.html':url.pathname==='/tv'?'/tv.html':url.pathname;
- if(target!==url.pathname){url.pathname=target;return env.ASSETS.fetch(new Request(url,request));}
+ // Cloudflare resolves extensionless HTML paths itself. Never rewrite /admin to /admin.html.
  return env.ASSETS.fetch(request);
  }
  if(!db)reject('Banco D1 não conectado.',503);

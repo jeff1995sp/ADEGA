@@ -105,3 +105,14 @@ test('D1: foto autenticada e tamanho limitado, estoque e sabor editáveis',async
  assert.equal((await f.call('admin-stock',{id:'produto-061',mode:'add',quantity:3},t)).data.product.stock,13);
  assert.equal((await f.call('admin-drink-options',{id:'ice-1',active:false},t,'PATCH')).data.option.active,false);
 });
+
+test('Cloudflare: HTML navigation delegates unchanged to the assets router',async()=>{
+ const config=JSON.parse(read('../wrangler.jsonc'));
+ assert.equal(config.assets.html_handling,'auto-trailing-slash');
+ assert.deepEqual(config.assets.run_worker_first,['/api','/api/*','/media/*']);
+ for(const path of ['/','/admin','/admin.html','/tv','/tv.html']){
+  const req=new Request('https://test.local'+path+'?check=1');
+  const response=await worker.fetch(req,{ASSETS:{fetch(r){assert.equal(r.url,req.url);return new Response('asset');}}});
+  assert.equal(await response.text(),'asset');
+ }
+});
