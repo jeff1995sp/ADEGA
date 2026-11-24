@@ -26,3 +26,5 @@ test('inventário contém fotos internas das marcas identificadas nas fotos',()=
   assert.ok(statSync(join(new URL('../public/imagens/',import.meta.url).pathname,file)).size>200);
  }
 });
+
+test('upload em lote exige correspondência e confirmação, preserva preço e estoque',()=>{const h=read('../public/admin.html'),a=read('../public/js/admin.js');for(const id of ['openBulkPhotos','bulkPhotoFiles','bulkPhotoList','bulkPhotoSave'])assert.ok(h.includes('id="'+id+'"'));assert.match(h,/type="file" multiple accept="image\/jpeg,image\/png,image\/webp"/);assert.ok(a.includes("stem.split('--')[0]"));assert.ok(a.includes('new Set(rows.map(row=>row.id))'));assert.ok(a.includes("api('admin-photo',{id:row.id,...data}"));assert.ok(a.includes("inventoryStatus==='no-photo'"));});

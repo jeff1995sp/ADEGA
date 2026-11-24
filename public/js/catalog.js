@@ -32,7 +32,7 @@ const productCard=p=>{
   const packaged = ['Cervejas','Doces e Salgadinhos','Diversos','Bebidas prontas','Águas e Refrigerantes'].includes(catalogCategory(p));
   const fallback = photoFallbackFor(p);
   const status=photoStatusFor(p);
-  const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':status==='illustrative'?'<span class="photo-note">Imagem ilustrativa</span>':'';
+  const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':(status==='illustrative'||status==='custom'&&['Whisky','Gin','Vodka','Batidas','Caipirinhas'].includes(catalogCategory(p)))?'<span class="photo-note">Imagem ilustrativa</span>':'';
   const media = `<img class="product-photo" src="${esc(photoFor(p))}" data-fallback="${esc(fallback)}" alt="Foto do produto ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}">`;
   return `<article class="product">
     <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(catalogCategory(p))}</span>${photoNote}</div>

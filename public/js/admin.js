@@ -1,4 +1,4 @@
-import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,catalogCategory,isStandaloneIce,productDescription} from './shared.js';
+import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription} from './shared.js';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 let cashReport=null,reportAt=0,reportLoading=false;
@@ -57,7 +57,7 @@ function renderInventory(){
   const all=products.filter(p=>!isStandaloneIce(p)).sort((x,y)=>(order.indexOf(catalogCategory(x))<0?999:order.indexOf(catalogCategory(x)))-(order.indexOf(catalogCategory(y))<0?999:order.indexOf(catalogCategory(y)))||x.name.localeCompare(y.name,'pt-BR'));
   const filtered=all.filter(p=>{
     const cat=catalogCategory(p);
-    return (inventoryFilter==='Todos'||cat===inventoryFilter)&&(!inventorySearch||norm(p.name+' '+cat).includes(norm(inventorySearch)))&&(inventoryStatus==='all'||(inventoryStatus==='unpriced'&&!p.price_cents)||(inventoryStatus==='paused'&&!p.active)||(inventoryStatus==='out'&&!p.unlimited&&p.stock===0)||(inventoryStatus==='active'&&p.active));
+    return (inventoryFilter==='Todos'||cat===inventoryFilter)&&(!inventorySearch||norm(p.name+' '+cat).includes(norm(inventorySearch)))&&(inventoryStatus==='all'||(inventoryStatus==='unpriced'&&!p.price_cents)||(inventoryStatus==='paused'&&!p.active)||(inventoryStatus==='out'&&!p.unlimited&&p.stock===0)||(inventoryStatus==='active'&&p.active)||(inventoryStatus==='no-photo'&&photoStatusFor(p)==='pending'));
   });
   const optionsMode=inventoryFilter==='Sabores';
   $('drinkOptionsPanel').classList.toggle('hidden',!optionsMode);
@@ -167,6 +167,45 @@ async function fileToOptimizedDataUrl(file){
     throw Error('Foto grande demais. Escolha outra imagem.');
   }finally{bitmap.close();}
 }
+let bulkPhotos=[];
+function clearBulkPhotos(){
+ for(const row of bulkPhotos)URL.revokeObjectURL(row.preview);
+ bulkPhotos=[];$('bulkPhotoList').innerHTML='';$('bulkPhotoFiles').value='';
+}
+function renderBulkPhotos(){
+ const eligible=products.filter(p=>!isStandaloneIce(p)).sort((a,b)=>catalogCategory(a).localeCompare(catalogCategory(b),'pt-BR')||a.name.localeCompare(b.name,'pt-BR'));
+ $('bulkPhotoList').innerHTML=bulkPhotos.map((row,i)=>`<div class="bulk-photo-row"><img src="${esc(row.preview)}" alt="Prévia"><div><b>${esc(row.file.name)}</b><select data-bulk-index="${i}" ${busy||row.done?'disabled':''} aria-label="Produto correspondente"><option value="">Selecione o produto correto</option>${eligible.map(p=>`<option value="${esc(p.id)}" ${p.id===row.id?'selected':''}>${esc(catalogCategory(p)+' · '+p.name)}</option>`).join('')}</select><small>${esc(row.status||'Confira a foto e o produto antes de salvar.')}</small></div></div>`).join('');
+ $('bulkPhotoSave').disabled=busy||!bulkPhotos.some(row=>row.id&&!row.done);
+}
+function loadBulkFiles(files){
+ for(const row of bulkPhotos)URL.revokeObjectURL(row.preview);
+ bulkPhotos=Array.from(files).filter(f=>['image/png','image/jpeg','image/webp'].includes(f.type)).slice(0,150).map(file=>{
+  const stem=file.name.replace(/\.[^.]+$/,'');
+  const id=stem.split('--')[0],direct=products.find(p=>p.id===id&&!isStandaloneIce(p));
+  const candidates=products.filter(p=>!isStandaloneIce(p)&&photoSlug(p.name)===photoSlug(stem));
+  return {file,preview:URL.createObjectURL(file),id:direct?.id||(candidates.length===1?candidates[0].id:''),done:false};
+ });
+ renderBulkPhotos();
+}
+async function saveBulkPhotos(){
+ if(busy)return;
+ const rows=bulkPhotos.filter(row=>row.id&&!row.done);
+ if(!rows.length)return toast('Selecione as fotos e os produtos correspondentes.',true);
+ if(new Set(rows.map(row=>row.id)).size!==rows.length)return toast('Selecione apenas uma foto por produto.',true);
+ if(!confirm('Salvar '+rows.length+' fotos nos produtos selecionados? Preço e estoque não serão alterados.'))return;
+ busy=true;$('bulkPhotoSave').disabled=true;$('bulkPhotoFiles').disabled=true;$('closeBulkPhotos').disabled=true;
+ let saved=0;
+ try{
+  for(const row of rows){
+   try{const data=await fileToOptimizedDataUrl(row.file);await api('admin-photo',{id:row.id,...data},{admin:true});row.done=true;row.status='Foto salva';saved++;}
+   catch(e){row.status='Falha: '+e.message;}
+   renderBulkPhotos();
+  }
+ }finally{
+  busy=false;$('bulkPhotoFiles').disabled=false;$('closeBulkPhotos').disabled=false;renderBulkPhotos();
+  toast(saved+' de '+rows.length+' fotos salvas.',saved!==rows.length);await refreshData(true);
+ }
+}
 async function saveProduct(e){
   e.preventDefault();if(busy)return;
   let id=$('editId').value;const priceRaw=$('editPrice').value.trim();
@@ -245,6 +284,11 @@ async function start(){
   $('inventoryList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
   $('inventoryFilters').addEventListener('click',e=>{const btn=e.target.closest('[data-inventory-filter]');if(!btn)return;inventoryFilter=btn.dataset.inventoryFilter;renderInventory();});
   $('newProduct').onclick=()=>productModal(null);
+  $('openBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.add('open');renderBulkPhotos();};
+  $('closeBulkPhotos').onclick=()=>{if(busy)return;clearBulkPhotos();$('bulkPhotoModal').classList.remove('open');};
+  $('bulkPhotoFiles').addEventListener('change',e=>loadBulkFiles(e.target.files));
+  $('bulkPhotoList').addEventListener('change',e=>{const index=e.target.dataset.bulkIndex;if(index===undefined||busy)return;const row=bulkPhotos[Number(index)];if(row){row.id=e.target.value;row.done=false;row.status='';renderBulkPhotos();}});
+  $('bulkPhotoSave').onclick=saveBulkPhotos;
   $('inventorySearch').addEventListener('input',e=>{inventorySearch=e.target.value.trim();renderInventory();});
   $('inventoryStatus').addEventListener('change',e=>{inventoryStatus=e.target.value;renderInventory();});
   $('drinkOptionsList').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b)performAction(b);});
