@@ -57,6 +57,7 @@ export const isStandaloneIce=p=>p?.id==='produto-067'||p?.category==='Complement
 export const publicCatalogProduct=p=>p?.category!=='Tabacaria'&&!isStandaloneIce(p)&&(p?.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango'].includes(p.name));
 export const isDoseProduct=p=>['Whisky','Gin'].includes(p?.category);
 export const productDescription=p=>{
+ if(isHouseGin(p))return 'Gin de 700 ml com gelo e energético. Escolha Energético ou Red Bull.';
  if(p?.name==='Caipirinha de Limão')return 'Caipirinha de limão no copo de 700 ml.';
  if(p?.name==='Caipirinha de Morango')return 'Caipirinha de morango no copo de 700 ml.';
  if(isDoseProduct(p)&&(!p.description||/personalize após|dose com gelo e energético inclusos/i.test(p.description)))return 'Copo de 700 ml com gelo e energético inclusos.';
@@ -66,7 +67,11 @@ export const productDescription=p=>{
  if(/imagem ilustrativa para conferência/i.test(p?.description||''))return 'Confira a disponibilidade e retire no portão.';
  return p?.description||'Escolha a quantidade e retire no portão.';
 };
+export const isHouseGin=p=>p?.id==='produto-062'&&p.category==='Gin';
+export const isCommonEnergy=o=>String(o?.name||'')==='Energético'||String(o?.name||'').startsWith('Energético — ');
+export const doseUnitPrice=(p,energy)=>Number(p?.price_cents||0)+(isHouseGin(p)&&String(energy?.name||'').startsWith('Red Bull')?1000:0);
 export const energyMatchesDose=(product,energy)=>{
+ if(isHouseGin(product))return isCommonEnergy(energy)||String(energy?.name||'').startsWith('Red Bull');
  const name=String(product?.name||'').toLowerCase(),choice=String(energy?.name||'');
  // O energético Red Bull e o gelo já vêm inclusos no preço de whisky e gin;
  // a exceção é a dose cujo nome especifica Vibe.

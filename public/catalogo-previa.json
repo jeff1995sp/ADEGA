@@ -801,7 +801,7 @@
       "id": "produto-062",
       "name": "Gin (dose)",
       "category": "Gin",
-      "description": "Dose de gin no copo de 700 ml, com Red Bull e gelo inclusos. Consulte sabores liberados.",
+      "description": "Gin de 700 ml com gelo e energético. Escolha Energético ou Red Bull.",
       "price_cents": 1000,
       "stock": 0,
       "unlimited": false,

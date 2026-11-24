@@ -115,10 +115,10 @@
       <div class="modal-head"><div><div class="eyebrow">PERSONALIZE SUA DOSE</div><h2 id="doseTitle">Escolher a dose</h2><p id="dosePrice" class="sub small"></p></div>
         <button type="button" class="close" id="closeDose" aria-label="Fechar personalização">×</button></div>
       <form id="doseForm">
-        <p class="notice" style="margin:12px 0">1. Você escolheu a dose. Agora selecione o gelo e, depois, o energético. Sabores esgotados ou pausados não podem ser pedidos.</p>
-        <div class="form-field"><label for="doseIce">2. Escolha o sabor do gelo</label><select id="doseIce" required><option value="">Escolha o gelo</option></select></div>
+        <p id="doseInstructions" class="notice" style="margin:12px 0">1. Você escolheu a dose. Agora selecione o gelo e, depois, o energético. Sabores esgotados ou pausados não podem ser pedidos.</p>
+        <div id="doseEnergyKindField" class="form-field hidden"><label for="doseEnergyKind">1. Escolha o energético</label><select id="doseEnergyKind" disabled><option value="">Escolha o energético</option></select></div><div class="form-field"><label id="doseIceLabel" for="doseIce">2. Escolha o sabor do gelo</label><select id="doseIce" required><option value="">Escolha o gelo</option></select></div>
         <div class="form-field"><label for="doseEnergy" id="doseEnergyLabel">3. Escolha o sabor do Red Bull</label><select id="doseEnergy" required disabled><option value="">Escolha o energético</option></select></div>
-        <p class="tiny">O valor exibido é o preço da dose escolhida. Opções só ficam disponíveis após a adega confirmar estoque e composição.</p>
+        <p class="tiny">O valor exibido inclui o gelo e o energético escolhido. Apenas opções disponíveis podem ser pedidas.</p>
         <button type="submit" class="btn btn-primary btn-wide">Adicionar dose ao carrinho</button>
       </form>
     </div>

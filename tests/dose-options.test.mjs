@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {energyMatchesDose,optionAvailable,isDoseProduct,CATEGORIES,fmt} from '../public/js/shared.js';
+import {energyMatchesDose,optionAvailable,isDoseProduct,CATEGORIES,fmt,doseUnitPrice,isHouseGin} from '../public/js/shared.js';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const sql=read('../sql/02_OPCOES_DOSES_WHISKY_GIN.sql');
@@ -74,4 +74,13 @@ test('Tabacaria não aparece na vitrine e caipirinhas só limão/morango',()=>{
  assert.ok(catalog.includes("'Caipirinha de Limão','Caipirinha de Morango'"));
  assert.ok(catalog.includes("p.category!=='Tabacaria'"));
  assert.ok(backend.includes(".neq('category','Tabacaria')"));
+});
+
+test('Gin comum permite energético sem marca e Red Bull com acréscimo',()=>{
+ const p={id:'produto-062',name:'Gin (dose)',category:'Gin',price_cents:1000};
+ assert.equal(isHouseGin(p),true);
+ assert.equal(energyMatchesDose(p,{name:'Energético'}),true);
+ assert.equal(energyMatchesDose(p,{name:'Vibe Original'}),false);
+ assert.equal(doseUnitPrice(p,{name:'Energético'}),1000);
+ assert.equal(doseUnitPrice(p,{name:'Red Bull Original'}),2000);
 });

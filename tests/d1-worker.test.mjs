@@ -135,3 +135,15 @@ test('D1: cadastro de produto e foto aparecem no catálogo sem redeploy',async()
  const cat=await f.call('catalog');const p=cat.data.products.find(x=>x.id===id);
  assert.equal(p.image_url,uploaded.data.image_url);assert.equal(p.price_cents,15);assert.equal(p.active,false);
 });
+
+test('D1: Gin comum com energético custa 10 e com Red Bull custa 20, com estoque compartilhado',async()=>{
+ const f=setup();
+ f.sql.exec("UPDATE store_settings SET accepting_orders=1; INSERT INTO products(id,name,category,price_cents,stock,active,age_restricted) VALUES ('produto-062','Gin (dose)','Gin',1000,5,1,1); INSERT INTO drink_options(id,option_group,name,active,stock) VALUES ('energy-common','energy','Energético',1,5);");
+ const item=(energy_id)=>({id:'produto-062',quantity:1,ice_id:'ice-1',energy_id});
+ const bad=await f.call('create-order',payload({items:[item('energy-1')],expected_total_cents:1000}));assert.equal(bad.status,409);
+ const good=await f.call('create-order',payload({items:[item('energy-common'),item('energy-1')],expected_total_cents:3000}));assert.equal(good.status,201,JSON.stringify(good.data));assert.equal(good.data.order.total_cents,3000);
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-062'").get().stock,3);
+ assert.deepEqual(f.sql.prepare("SELECT unit_price_cents FROM order_items ORDER BY id").all().map(x=>x.unit_price_cents),[1000,2000]);
+ assert.equal(f.sql.prepare("SELECT stock FROM drink_options WHERE id='energy-common'").get().stock,4);
+ assert.equal(f.sql.prepare("SELECT stock FROM drink_options WHERE id='energy-1'").get().stock,4);
+});

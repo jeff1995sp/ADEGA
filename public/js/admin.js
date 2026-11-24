@@ -81,7 +81,7 @@ function renderDrinkOptions(){
  const element=$('drinkOptionsList');
  if(!element)return;
  if(!drinkOptionsReady){element.innerHTML='<p class="notice danger">Sabores indisponíveis. Confira a conexão com o banco D1.</p>';return;}
- const groups=[['ice','🧊 Gelo de água e gelos saborizados'],['energy','🥤 Red Bull e Vibe']];
+ const groups=[['ice','🧊 Gelo de água e gelos saborizados'],['energy','🥤 Energético, Red Bull e Vibe']];
  element.innerHTML=groups.map(([group,title])=>{
   const options=drinkOptions.filter(o=>o.option_group===group);
   return `<section style="margin:16px 0"><h3>${title}</h3><p class="tiny sub">Ajuste o estoque e ative somente as opções disponíveis.</p>${options.map(o=>{
