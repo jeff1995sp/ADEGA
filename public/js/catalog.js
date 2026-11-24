@@ -2,6 +2,7 @@ import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFo
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
 const cart=new Map();
+let bestSellers=[];
 let currentOrder=null,searchText='',shakeSelected=null;
 const isShake=p=>p?.category==='Batidas';
 const validShake=v=>v==='com'||v==='sem';
@@ -26,7 +27,7 @@ const iceSummary=item=>{
 const getAvailableOption=id=>{const o=optionById(id);return optionAvailable(o)?o:null;};
 const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce((s,i)=>s+i.quantity,0);
 
-const productCard=p=>{
+const productCard=(p,featured=false)=>{
   const left=p.unlimited?'Disponível':p.stock>0?`${p.stock} em estoque`:'Esgotado';
   const inactive=!p.active?'Indisponível':!p.price_cents?'Indisponível — preço a definir':!p.unlimited && !p.stock?'Indisponível — esgotado':!shop.accepting_orders?'Indisponível — pedidos pausados':null;
   const q=desiredQty(p);
@@ -37,8 +38,8 @@ const productCard=p=>{
   const status=photoStatusFor(p);
   const photoNote=status==='pending'?'<span class="photo-note">Foto real pendente</span>':status==='licensed'?'<span class="photo-note">Foto real ilustrativa</span>':(status==='illustrative'||status==='custom'&&['Whisky','Gin','Vodka','Batidas','Caipirinhas'].includes(catalogCategory(p)))?'<span class="photo-note">Imagem ilustrativa</span>':'';
   const media = `<img class="product-photo" src="${esc(photoFor(p))}" data-fallback="${esc(fallback)}" alt="Foto do produto ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}">`;
-  return `<article class="product">
-    <div class="product-visual ${packaged?'packshot':''}">${media}<span class="flag">${esc(catalogCategory(p))}</span>${photoNote}</div>
+  return `<article class="product ${featured?'hora-best-seller':''}">
+    <div class="product-visual ${packaged?'packshot':''}">${media}${featured?'<span class="hora-best-label">Mais vendido</span>':''}<span class="flag">${esc(catalogCategory(p))}</span>${photoNote}</div>
     <div class="product-content"><h3>${esc(p.name)}</h3><p>${esc(productDescription(p))}</p>
     <span class="tiny ${!p.unlimited&&p.stock<=5?'warn':''}">${inactive||left}</span>
     <div class="product-footer"><span class="price">${p.price_cents?(isHouseGin(p)?'A partir de '+fmt(p.price_cents):fmt(p.price_cents)):'Preço em breve'}</span>
@@ -78,11 +79,14 @@ function renderProducts(){
   const groups=['Salgadinhos','Chicletes','Balas e pirulitos','Doces e chocolates'];
   $('productGrid').innerHTML=groups.map(group=>{
    const rows=list.filter(p=>snackGroup(p)===group).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-   return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(productCard).join(''):'';
+   return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
   }).join('');
  }else{
   const ordered=category==='Todos'?[...list].sort((a,b)=>publicCategoryOrder.indexOf(catalogCategory(a))-publicCategoryOrder.indexOf(catalogCategory(b))||(a.sort_order||0)-(b.sort_order||0)):list;
-  $('productGrid').innerHTML=ordered.length?ordered.map(productCard).join(''):message;
+  const featured=category==='Todos'&&!norm?bestSellers.map(id=>ordered.find(p=>p.id===id)).filter(p=>p&&available(p)&&(!isDoseProduct(p)||hasDrinkOptions(p))):[];
+  const featuredIds=new Set(featured.map(p=>p.id));
+  const rest=ordered.filter(p=>!featuredIds.has(p.id));
+  $('productGrid').innerHTML=ordered.length?(featured.length?'<h3 class="hora-product-group hora-best-heading">MAIS VENDIDOS <small>Últimos 30 dias</small></h3>'+featured.map(p=>productCard(p,true)).join('')+(rest.length?'<h3 class="hora-product-group">TODOS OS OUTROS PRODUTOS</h3>':''):'')+rest.map(p=>productCard(p)).join(''):message;
  }
  $('endCategory').innerHTML='';
  $('cartCount').textContent=`${count()} ${count()===1?'item':'itens'}`;
@@ -176,7 +180,7 @@ async function loadCatalog(){
     const d=await api('catalog',null,{method:'GET'});
     const snapshot=JSON.stringify(d);
     if(snapshot===lastSnapshot)return;
-    lastSnapshot=snapshot;products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
+    lastSnapshot=snapshot;bestSellers=Array.isArray(d.best_sellers)?d.best_sellers:[];products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
     setBrand(shop.name);
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
@@ -185,7 +189,7 @@ async function loadCatalog(){
       else {renderCheckoutSummary();renderCheckoutExtras();}
     }
   }catch(e){
-    lastSnapshot='';
+    lastSnapshot='';bestSellers=[];
     // Catálogo de consulta quando o D1 ainda não está configurado.
     // Nunca habilita pedidos fictícios, mesmo que alguns preços já sejam conhecidos.
     try {

@@ -48,13 +48,17 @@ async function auth(db,request){
  return h;
 }
 async function catalog(db,admin){
- const [store,products,drink_options]=await Promise.all([
+ const [store,products,drink_options,paidSales]=await Promise.all([
  one(db,'SELECT name,accepting_orders,low_stock_threshold FROM store_settings WHERE id=1'),
  many(db,'SELECT id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order FROM products '+(admin?'':"WHERE category<>'Tabacaria'")+' ORDER BY sort_order,name'),
- many(db,'SELECT id,option_group,name,active,stock,unlimited,sort_order FROM drink_options ORDER BY option_group,sort_order,name')
+ many(db,'SELECT id,option_group,name,active,stock,unlimited,sort_order FROM drink_options ORDER BY option_group,sort_order,name'),
+ admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
  ]);
  if(!store)reject('Configuração da loja ausente.',503);
- return json({store,products:admin?products:products.filter(visible),drink_options,drink_options_ready:true,online_enabled:false});
+ const publicProducts=products.filter(visible);
+ const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
+ const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
+ return json({store,products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
 const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};

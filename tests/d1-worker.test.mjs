@@ -161,3 +161,18 @@ test('D1: batidas com e sem álcool são escolhas obrigatórias e chegam separad
  assert.deepEqual(order.order_items.map(i=>i.product_name).sort(),['Açaí Batido | Com álcool','Açaí Batido | Sem álcool']);
  assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-016'").get().stock,3);
 });
+
+test('D1: mais vendidos usa quantidade paga recente e disponível, não pedidos pendentes',async()=>{
+ const f=setup();f.sql.exec('UPDATE store_settings SET accepting_orders=1');
+ const pending=await f.call('create-order',payload({items:[{id:'produto-061',quantity:3}],expected_total_cents:750}));assert.equal(pending.status,201);
+ assert.deepEqual((await f.call('catalog')).data.best_sellers,[]);
+ const paid=await f.call('create-order',payload());assert.equal(paid.status,201);
+ f.sql.prepare("UPDATE orders SET payment_status='paid',paid_at=? WHERE id=?").run(new Date().toISOString(),paid.data.order.id);
+ const paid2=await f.call('create-order',payload({items:[{id:'produto-061',quantity:2}],expected_total_cents:500}));assert.equal(paid2.status,201);
+ f.sql.prepare("UPDATE orders SET payment_status='paid',paid_at=? WHERE id=?").run(new Date().toISOString(),paid2.data.order.id);
+ assert.deepEqual((await f.call('catalog')).data.best_sellers,['produto-061','produto-005']);
+ f.sql.exec("UPDATE products SET active=0 WHERE id='produto-061'");
+ assert.deepEqual((await f.call('catalog')).data.best_sellers,['produto-005']);
+ f.sql.exec("UPDATE orders SET paid_at='2020-01-01T00:00:00.000Z' WHERE payment_status='paid'");
+ assert.deepEqual((await f.call('catalog')).data.best_sellers,[]);
+});

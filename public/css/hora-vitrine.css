@@ -87,3 +87,6 @@ body.catalog-body{background:#090909;color:#fff}
 .catalog-body .hora-catalog .product{border-color:#483039;border-radius:15px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
 .catalog-body .hora-catalog .product:hover{border-color:#b23b49;box-shadow:0 8px 24px #0007}
 @media(max-width:800px){.hora-nav-links a,.hora-nav-links button{gap:4px}.hora-nav-links .hora-icon{width:17px;height:17px}.hora-nav-links .nav-home{display:none}.hora-category-cards .tab img,.hora-category-cards .category-symbol{height:60px}.hora-category-cards .category-symbol .hora-icon{width:32px;height:32px}.hora-address>.hora-icon{width:18px;height:18px}.catalog-body .hora-category-cards .tab{padding:5px;gap:3px}}
+
+/* Ranking calculado no D1 apenas a partir de vendas confirmadas. */
+.hora-best-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;font-size:1.14rem;font-weight:900;border-bottom:2px solid #ae293b;padding:9px 2px 8px}.hora-best-heading small{font-size:.72rem;font-weight:500;color:#b9aeb1;text-transform:none}.catalog-body .hora-catalog .hora-best-seller{border-color:#a8444f}.hora-best-seller .product-visual{position:relative}.hora-best-label{position:absolute;top:8px;left:8px;z-index:2;border-radius:5px;padding:5px 8px;background:#a81d30;color:#fff;font-size:.65rem;font-weight:800;box-shadow:0 2px 8px #0008}
