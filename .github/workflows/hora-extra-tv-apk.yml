@@ -18,8 +18,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - uses: android-actions/setup-android@v3
-      - run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Usar Android SDK do runner
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
       - run: node --input-type=module --check < android-tv/app/src/main/assets/tv-app.js
       - run: gradle -p android-tv :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
