@@ -168,11 +168,13 @@ function renderTv(orders){
   const working=orders.filter(o=>o.status==='received'||o.status==='preparing').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
   const ready=orders.filter(o=>o.status==='ready').sort((a,b)=>new Date(b.ready_at)-new Date(a.ready_at));
   lastOrders=orders;
+  queue=queue.filter(item=>!item.orderId||orders.some(o=>o.id===item.orderId&&o.status===item.status));
+  for(const [id,list] of [['preparingList',working],['readyList',ready]]){const el=$(id),n=Math.max(1,Math.ceil(list.length/3));const header=el.parentElement.querySelector('.hora-panel-header p');if(header)header.textContent=list.length+' pedidos · Página '+(tvPage%n+1)+' de '+n;}
   const paged=(list)=>{const n=Math.ceil(list.length/3);return !n?[]:list.slice((tvPage%n)*3,(tvPage%n)*3+3)};
   $('preparingList').innerHTML=working.length?paged(working).map(smallTicket).join(''):'<div class="tv-empty"><strong>Nenhum pedido em preparação.</strong></div>';
   $('readyList').innerHTML=ready.length?paged(ready).map(smallTicket).join(''):'<div class="tv-empty"><strong>Aguardando pedidos prontos.</strong></div>';
-  $('preparingList').dataset.count=String(Math.min(3,working.length));
-  $('readyList').dataset.count=String(Math.min(3,ready.length));
+  $('preparingList').dataset.count=String(paged(working).length);
+  $('readyList').dataset.count=String(paged(ready).length);
   const readyNow=new Map(orders.filter(o=>['preparing','ready'].includes(o.status)).map(o=>[o.id+':'+o.status+(o.status==='ready'?':'+o.ready_at:''),o]));
   if(!started){for(const [key,o] of readyNow){seen.add(key);if(o.status==='ready')speakOrder(o);}started=true;}
   else for(const [key,o] of readyNow){if(!seen.has(key)){seen.add(key);if(soundEnabled||!autoStarted)speakOrder(o);}}
