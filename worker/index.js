@@ -34,7 +34,7 @@ async function rate(db,request,kind,max,seconds){
 }
 async function login(db,env,request,body){
  if(!env.ADEGA_ADMIN_PIN||env.ADEGA_ADMIN_PIN.length<12)ready();
- await rate(db,request,'admin',5,300);
+ // O login administrativo não aplica bloqueio por número de tentativas; o PIN continua obrigatório.
  if(body.username!=='admin'||!await equal(body.password,env.ADEGA_ADMIN_PIN))reject('Usuário ou senha incorretos.',401);
  const value=token(),t=epoch();
  await db.batch([stmt(db,'DELETE FROM admin_sessions WHERE expires_at<=?',t),stmt(db,'INSERT INTO admin_sessions(token_hash,created_at,expires_at) VALUES (?,?,?)',await hash(value),t,t+43200),stmt(db,'DELETE FROM rate_limits WHERE slot < ?',Math.floor(t/300)-576)]);

@@ -54,6 +54,17 @@ test('D1: login, sessões revogáveis, catálogo e pedidos fechados por padrão'
  assert.equal((await f.call('admin-logout',{},t)).status,200);
  assert.equal((await f.call('admin-orders',undefined,t)).status,401);
 });
+test('D1: administrador pode entrar sem bloqueio após tentativas inválidas',async()=>{
+ const f=setup();
+ for(let i=0;i<8;i++){
+  assert.equal((await f.call('login',{username:'admin',password:'wrong'})).status,401);
+ }
+ const t=await login(f);
+ assert.ok(t);
+ for(let i=0;i<6;i++)await login(f);
+ assert.equal((await f.call('admin-orders',undefined,t)).status,200);
+ assert.equal((await f.call('admin-orders')).status,401);
+});
 test('D1: pedido, troco, sabores, repetição segura e cancelamento sem duplicar estoque',async()=>{
  const f=setup(),t=await login(f);
  assert.equal((await f.call('admin-settings',{accepting_orders:true},t,'PATCH')).status,200);
