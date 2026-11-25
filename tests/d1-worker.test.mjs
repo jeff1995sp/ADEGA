@@ -65,6 +65,24 @@ test('D1: administrador pode entrar sem bloqueio após tentativas inválidas',as
  assert.equal((await f.call('admin-orders',undefined,t)).status,200);
  assert.equal((await f.call('admin-orders')).status,401);
 });
+test('D1: zerar protege pedidos pagos ativos e arquiva vendas entregues',async()=>{
+ const f=setup(),token=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');
+ const order=(await f.call('create-order',payload())).data.order;
+ const action=(action,value)=>f.call('admin-order-action',{id:order.id,action,value},token);
+ assert.equal((await action('status','ready')).status,200);
+ assert.equal((await action('paid')).status,200);
+ f.sql.exec('UPDATE store_settings SET accepting_orders=0');
+ const reset=(paid_count,active_count)=>f.call('admin-cash-reset',{confirmation:'ZERAR',paid_count,active_count},token);
+ assert.equal((await reset(1,1)).status,409);
+ assert.equal((await action('age')).status,200);
+ assert.equal((await action('status','delivered')).status,200);
+ assert.equal((await reset(0,0)).status,409);
+ assert.equal((await reset(1,0)).status,200);
+ const report=(await f.call('admin-cash',undefined,token)).data;
+ assert.equal(report.total_cents,0);assert.equal(report.active_count,0);assert.equal(report.archives[0].total_cents,4750);
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-005'").get().stock,4);
+ assert.equal(f.sql.prepare('SELECT status FROM orders WHERE id=?').get(order.id).status,'delivered');
+});
 test('D1: reset financeiro preserva histórico, repõe recebido e reinicia numeração pública',async()=>{
  const f=setup(),token=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');
  const old=(await f.call('create-order',payload())).data.order;
