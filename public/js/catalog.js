@@ -14,7 +14,7 @@ const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && 
 const total=()=>[...cart.values()].reduce((sum,item)=>sum+doseUnitPrice(products.find(p=>p.id===item.id),optionById(item.energy_id))*item.quantity,0);
 const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
 // O dono confirmou que somente limão e morango seguem no catálogo de caipirinhas.
-const visibleInCatalog=p=>!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
+const visibleInCatalog=p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)&&(!isDoseProduct(p)||hasDrinkOptions(p))&&!unconfirmedDuplicate(p)&&!isStandaloneIce(p)&&(p.category!=='Caipirinhas'||['Caipirinha de Limão','Caipirinha de Morango','Caipirinha de cerveja'].includes(p.name));
 const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
 const optionById=id=>drinkOptions.find(o=>o.id===id);
 const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));
@@ -90,7 +90,7 @@ function syncViewedCategory(){
 function queueViewedCategory(){if(!categoryFrame)categoryFrame=requestAnimationFrame(syncViewedCategory);}
 function showCategories(){
  const exist=new Set(products.filter(p=>visibleInCatalog(p)).map(catalogCategory));
- const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||exist.has(c)||c==='Tabacaria');
+ const cats=[...new Set([...publicCategoryOrder,...CATEGORIES])].filter(c=>c==='Todos'||exist.has(c));
  if(!cats.includes(category))category='Todos';
  $('categorySideLinks').innerHTML=cats.map(c=>`<button type="button" class="hora-side-link ${c===category?'active':''}" data-category="${esc(c)}" aria-pressed="${c===category}"><span aria-hidden="true">${categoryIcons[c]||categoryIcons.Diversos}</span>${esc(categoryLabel(c))}</button>`).join('');
  const mobileTabs=$('mobileCategoryTabs'),mobileScroll=mobileTabs.scrollLeft;
@@ -236,7 +236,7 @@ function showDoseConfigurator(p){
   $('doseEnergy').disabled=vibe;
   $('doseIce').disabled=false;
  }
- open('doseModal');
+ open('doseModal');syncChoiceCards();
 }
 function addConfiguredDose(event){
  event.preventDefault();
@@ -508,6 +508,24 @@ async function initNotifications(){
 async function enableNotifications(){const b=$('entryNotify');b.disabled=true;try{pushSubscription=await pushRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushKey});notificationText('Avisos ativados neste celular.');b.classList.add('hidden');pushLast=0;void bindNotifications();}catch{notificationText('Aviso não autorizado. Você pode acompanhar pela TV.');b.disabled=Notification.permission==='denied';}}
 async function bindNotifications(){if(!currentOrder||trackingFinished||!pushSubscription||Notification.permission!=='granted'||pushBinding||pushBound===currentOrder.id||Date.now()-pushLast<10000)return;const o=currentOrder;pushBinding=true;pushLast=Date.now();try{const r=await api('order-push',{id:o.id,token:o.token,subscription:pushSubscription.toJSON()});if(r.registered)pushBound=o.id;}catch{notificationText('Não foi possível vincular aviso. Acompanhe pela TV.');}finally{pushBinding=false;}}
 
+function syncChoiceCards(){
+ for(const id of ['shakeAlcohol','doseEnergyKind','doseEnergy','doseIce']){
+  const select=$(id);if(!select)continue;
+  let panel=select.nextElementSibling;
+  if(!panel?.classList.contains('hora-choice-cards')){
+   panel=document.createElement('div');panel.className='hora-choice-cards';panel.setAttribute('role','group');select.after(panel);select.classList.add('hora-native-choice');
+  }
+  panel.setAttribute('aria-label',select.closest('.form-field')?.querySelector('label')?.textContent||'Escolha uma opção');
+  panel.replaceChildren();
+  for(const opt of select.options){
+   if(!opt.value||opt.disabled)continue;
+   const b=document.createElement('button');b.type='button';b.className='hora-choice-card';b.disabled=select.disabled;b.setAttribute('aria-pressed',String(select.value===opt.value));
+   const mark=document.createElement('span');mark.className='hora-choice-mark';mark.textContent=id==='doseIce'?'❄':id==='shakeAlcohol'?(opt.value==='com'?'🍹':'🥤'):'⚡';
+   const name=document.createElement('span');name.textContent=opt.textContent;b.append(mark,name);
+   b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);
+  }
+ }
+}
 function start(){
   $('entryLocation').onclick=checkEntryLocation;$('entryPermissionsDismiss').onclick=()=>$('entryPermissions').classList.add('hidden');
   $('entryNotify').onclick=enableNotifications;
@@ -547,7 +565,7 @@ function start(){
   $('catalogo').addEventListener('click',e=>{
     if(e.target.closest('button[data-pay-now]')){showCheckout(true);return;}
     const shake=e.target.closest('button[data-shake]');
-    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');}return;}
+    if(shake){const p=products.find(x=>x.id===shake.dataset.shake);if(p&&available(p)){shakeSelected=p.id;$('shakeTitle').textContent=p.name;$('shakePrice').textContent=fmt(p.price_cents)+' · 700 ml';$('shakeAlcohol').value='';open('shakeModal');syncChoiceCards();}return;}
     const config=e.target.closest('button[data-configure]');
     if(config){const p=products.find(x=>x.id===config.dataset.configure);if(p)showDoseConfigurator(p);return;}
     const btn=e.target.closest('button[data-qty]');if(!btn)return;
@@ -556,7 +574,7 @@ function start(){
     if(qty&&(!available(p)||(!p.unlimited&&qty>p.stock)))return;
     qty?cart.set(p.id,{id:p.id,quantity:qty}):cart.delete(p.id);renderProducts();
   });
-  $('doseEnergyKind').addEventListener('change',refreshHouseGinEnergy);
+  $('doseEnergyKind').addEventListener('change',()=>{refreshHouseGinEnergy();syncChoiceCards();});
   $('doseEnergy').addEventListener('change',()=>{if(isHouseGin(doseSelected)){$('doseIce').disabled=!$('doseEnergy').value;}});
   // Changing ice never clears the already included energy drink.
   $('shakeForm').addEventListener('submit',e=>{e.preventDefault();const p=products.find(x=>x.id===shakeSelected),v=$('shakeAlcohol').value;if(!p||!isShake(p)||!validShake(v)||!available(p)||(!p.unlimited&&desiredQty(p)>=p.stock))return toast('Confira o preparo e a disponibilidade.',true);const key=p.id+':shake:'+v;const item=cart.get(key)||{id:p.id,quantity:0,shake_alcohol:v};item.quantity++;cart.set(key,item);close('shakeModal');renderProducts();toast('Batida adicionada: '+(v==='com'?'com álcool':'sem álcool'));});
