@@ -64,9 +64,18 @@ function renderStats(){
   const p=[['Aguardando',pending.filter(o=>o.status==='received').length],['Preparando',pending.filter(o=>o.status==='preparing').length],['Prontos',pending.filter(o=>o.status==='ready').length],['Pagos em andamento',orders.filter(o=>paid(o)).length]];
   $('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
+let orderFilter='all',orderSearch='',orderPage=0;
 function renderOrders(){
   const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).sort((x,y)=>({received:0,preparing:1,ready:2}[x.status]-{received:0,preparing:1,ready:2}[y.status])||new Date(x.created_at)-new Date(y.created_at));
-  $('ordersList').innerHTML=visible.length?visible.map(o=>{
+  const root=$('ordersList');if(!$('orderQueueTools')){const tools=document.createElement('div');tools.id='orderQueueTools';tools.style.cssText='display:grid;gap:10px;margin:12px 0';tools.innerHTML='<input id="orderQueueSearch" placeholder="Buscar nome ou número" aria-label="Buscar pedido"><div id="orderQueueTabs" style="display:flex;gap:8px;flex-wrap:wrap"></div><div id="orderQueuePages" style="display:flex;gap:10px;align-items:center"></div>';root.before(tools);$('orderQueueSearch').oninput=e=>{orderSearch=e.target.value.toLowerCase();orderPage=0;renderOrders();};}
+  const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos']];
+  $('orderQueueTabs').innerHTML=groups.map(([k,n])=>`<button class="btn btn-${orderFilter===k?'primary':'secondary'} btn-sm" data-queue="${k}">${n} · ${visible.filter(o=>k==='all'||o.status===k).length}</button>`).join('');
+  $('orderQueueTabs').querySelectorAll('button').forEach(el=>el.onclick=()=>{orderFilter=el.dataset.queue;orderPage=0;renderOrders();});
+  const filtered=visible.filter(o=>(orderFilter==='all'||o.status===orderFilter)&&(!orderSearch||(pad(o.order_no)+' '+o.first_name+' '+o.last_name).toLowerCase().includes(orderSearch)));
+  const pages=Math.max(1,Math.ceil(filtered.length/8));orderPage=Math.min(orderPage,pages-1);
+  $('orderQueuePages').innerHTML='<button class="btn btn-secondary btn-sm" id="queuePrev">Anterior</button><span>Página '+(orderPage+1)+' de '+pages+' · '+filtered.length+' pedidos</span><button class="btn btn-secondary btn-sm" id="queueNext">Próxima</button>';
+  $('queuePrev').disabled=orderPage===0;$('queueNext').disabled=orderPage>=pages-1;$('queuePrev').onclick=()=>{orderPage--;renderOrders();};$('queueNext').onclick=()=>{orderPage++;renderOrders();};
+  root.innerHTML=filtered.length?filtered.slice(orderPage*8,orderPage*8+8).map(o=>{
     const cash=o.payment_method==='cash'
       ?o.cash_given_cents!==null
         ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Finalize somente após receber o dinheiro e entregar o pedido.</span></div>`

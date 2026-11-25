@@ -193,7 +193,7 @@ function cleanCart(){
 }
 function refreshHouseGinEnergy(){
  const p=doseSelected;if(!isHouseGin(p))return;
- const kind=$('doseEnergyKind').value,choices=drinkChoiceList('energy',p).filter(o=>kind==='common'?isCommonEnergy(o):kind==='redbull'&&String(o.name).startsWith('Red Bull'));
+ const kind=$('doseEnergyKind').value,choices=drinkChoiceList('energy',p).filter(o=>kind==='common'?isCommonEnergy(o):kind==='redbull'&&String(o.name).startsWith('Red Bull')).filter(remainingOption);
  $('doseEnergy').innerHTML='<option value="">Escolha o sabor</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
  $('doseEnergy').disabled=!kind;
  const choice=kind?preferredEnergy(choices,kind==='redbull'?'Red Bull Original':'Energético'):null;
@@ -207,8 +207,8 @@ function showDoseConfigurator(p){
  doseSelected=p;
  $('doseTitle').textContent=p.name;
  $('dosePrice').textContent=fmt(p.price_cents)+' • Copo de 700 ml • Gelo e energético inclusos';
- const choices=drinkChoiceList('ice',p);
- const energies=drinkChoiceList('energy',p);
+ const choices=drinkChoiceList('ice',p).filter(remainingOption);
+ const energies=drinkChoiceList('energy',p).filter(remainingOption);
  $('doseIce').innerHTML='<option value="">Escolha o gelo</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
  $('doseEnergy').innerHTML='<option value="">Escolha o energético</option>'+energies.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
  const vibe=p.name.toLowerCase().includes('com vibe');
@@ -224,13 +224,13 @@ function showDoseConfigurator(p){
  if(house){
   form.insertBefore(energyField,iceField);
   $('doseEnergyLabel').textContent='2. Escolha o sabor do energético';$('doseIceLabel').textContent='3. Escolha o sabor do gelo';
-  const common=energies.some(o=>isCommonEnergy(o)&&optionAvailable(o)),redbull=energies.some(o=>String(o.name).startsWith('Red Bull')&&optionAvailable(o));
-  $('doseEnergyKind').innerHTML='<option value="">Escolha o energético</option>'+[['common','Energético',p.price_cents,common],['redbull','Red Bull',p.price_cents+1000,redbull]].map(([v,n,price,ok])=>`<option value="${v}" ${ok?'':'disabled'}>${n} — ${fmt(price)}${ok?'':' (indisponível)'}</option>`).join('');
+  const common=energies.some(o=>isCommonEnergy(o)&&remainingOption(o)),redbull=energies.some(o=>String(o.name).startsWith('Red Bull')&&remainingOption(o));
+  $('doseEnergyKind').innerHTML='<option value="">Escolha o energético</option>'+[['common','Energético',p.price_cents,common],['redbull','Red Bull',p.price_cents+1000,redbull]].filter(row=>row[3]).map(([v,n,price,ok])=>`<option value="${v}" ${ok?'':'disabled'}>${n} — ${fmt(price)}${ok?'':' (indisponível)'}</option>`).join('');
   refreshHouseGinEnergy();
  }else{
   form.insertBefore(iceField,energyField);
   $('doseIceLabel').textContent='Escolha o sabor do gelo';
-  const choice=preferredEnergy(energies,vibe?'Vibe Original':'Red Bull Original');
+  const choice=vibe?energies.find(o=>o.name==='Vibe Original'):preferredEnergy(energies,'Red Bull Original');
   if(!choice)return toast('Energético sem estoque disponível. Confira o carrinho.',true);
   $('doseEnergy').value=choice.id;
   $('doseEnergy').disabled=vibe;
