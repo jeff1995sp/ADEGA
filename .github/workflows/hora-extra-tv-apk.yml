@@ -23,6 +23,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
       - run: node --input-type=module --check < android-tv/app/src/main/assets/tv-app.js
+      - run: node --test android-tv/review.test.mjs
       - run: gradle -p android-tv :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
