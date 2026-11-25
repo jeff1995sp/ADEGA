@@ -49,7 +49,7 @@ public class MainActivity extends Activity {
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         web=new WebView(this); setContentView(web);
         WebSettings s=web.getSettings();
-        s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
+        s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);s.setUseWideViewPort(true);s.setLoadWithOverviewMode(true);s.setTextZoom(100);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);s.setAllowContentAccess(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
@@ -120,7 +120,7 @@ public class MainActivity extends Activity {
             String n=v.getName().toLowerCase(Locale.ROOT);
             boolean male=n.matches(".*(male|masculin|daniel|ricardo|paulo|joao|felipe).*")&&!n.contains("female");
             boolean female=n.matches(".*(female|feminin|luciana|fernanda|maria|vitoria).*");
-            int x=v.getQuality()+("BR".equals(v.getLocale().getCountry())?1000:0)+(q.voice.equals("male")&&male||q.voice.equals("female")&&female?500:0)+(offline?0:v.isNetworkConnectionRequired()?100:0)-v.getLatency()/10;
+            int x=v.getQuality()+("BR".equals(v.getLocale().getCountry())?1000:0)+(q.voice.equals("male")&&male||q.voice.equals("female")&&female?500:0)+(offline?0:v.isNetworkConnectionRequired()?350:0)-v.getLatency()/10;
             if(x>score){score=x;best=v;}
         }
         return best;
@@ -134,7 +134,7 @@ public class MainActivity extends Activity {
                 if(offline){finish(q,false);return;}
                 if(tts.setLanguage(locale)<TextToSpeech.LANG_AVAILABLE){finish(q,false);return;}
             }
-            tts.setSpeechRate(q.rate);tts.setPitch("male".equals(q.voice)?.90f:1.08f);
+            tts.setSpeechRate(q.rate);tts.setPitch(1.0f);
             Bundle params=new Bundle();params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,q.volume);
             q.utterance="hora-"+q.seq+"-"+q.attempt;
             int result=tts.speak(q.text,TextToSpeech.QUEUE_FLUSH,params,q.utterance);

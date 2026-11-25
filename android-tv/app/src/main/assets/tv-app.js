@@ -8,9 +8,9 @@ let voicePrefs={female:'',male:''};
 let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
 let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!=='off';}catch{}
 function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
-let voiceMode='auto',localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
+let voiceMode='auto',neuralWorker=null,neuralReady=false,neuralBusy=false,neuralTask=null,neuralTimer=null,neuralFailed=false,localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
 try{voiceMode=localStorage.getItem('adega_tv_voice_mode_v1')||'auto';}catch{}
-if(!['auto','audio','wav','native'].includes(voiceMode))voiceMode='auto';
+if(!['auto','audio','wav','native'].includes(voiceMode))voiceMode='auto';try{if(localStorage.getItem('hora_tv_voice_v2')!=='1'){voiceMode='auto';localStorage.setItem('hora_tv_voice_v2','1');localStorage.setItem('adega_tv_voice_mode_v1','auto');}}catch{}
 const appBridge=typeof window.HoraNative?.postMessage==='function';
 let nativeFallback=!appBridge, autoStarted=false, autoActivate=()=>{}, nativeReply=null;
 let volume=1,rate=.95;
@@ -19,6 +19,29 @@ if(appBridge)window.HoraNative.onmessage=e=>{try{const msg=JSON.parse(e.data);if
 function sendNative(message){try{window.HoraNative.postMessage(JSON.stringify(message));return true;}catch{return false;}}
 const nativeSpeech=()=>('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
 const useLocalAudio=()=>voiceMode==='audio'||voiceMode==='wav'||nativeFallback;
+function neuralStatus(message){const el=$('horaNeuralStatus');if(el)el.textContent=message;}
+function releaseNeural(message){clearTimeout(neuralTimer);if(neuralWorker)neuralWorker.terminate();neuralWorker=null;neuralBusy=false;neuralReady=false;neuralFailed=true;const task=neuralTask;neuralTask=null;neuralStatus(message);if(task)task(null);}
+function prepareNeural(){
+ if(voiceMode!=='auto'||neuralWorker||neuralFailed)return;
+ if(!window.Worker||!window.WebAssembly){neuralStatus('Voz neural indisponível; usando a voz do Android.');return;}
+ try{
+  neuralWorker=new Worker('/js/kokoro-test-worker.js?v=2',{type:'module'});neuralBusy=true;neuralStatus('Preparando voz natural. Chamadas continuam com a voz de reserva.');
+  neuralWorker.onerror=()=>releaseNeural('Voz neural incompatível; usando a voz do Android.');
+  neuralWorker.onmessage=({data:d})=>{
+   if(d.type==='status'){if(!neuralReady)neuralStatus(d.message||'Preparando voz natural…');return;}
+   if(d.type==='error'){releaseNeural('Voz neural indisponível; usando a voz do Android.');return;}
+   if(d.type==='audio'){clearTimeout(neuralTimer);neuralBusy=false;neuralReady=true;neuralStatus('Voz natural disponível.');const task=neuralTask;neuralTask=null;if(task)task(d.wav);}
+  };
+  neuralTimer=setTimeout(()=>releaseNeural('Modelo demorou para carregar; usando a voz do Android.'),180000);
+  neuralWorker.postMessage({voice:'dora',text:'Hora Extra Drinks.'});
+ }catch{releaseNeural('Voz neural indisponível; usando a voz do Android.');}
+}
+function synthesizeNeural(text,type,done){
+ if(voiceMode!=='auto'||!neuralReady||neuralBusy||!neuralWorker||text.length>200)return false;
+ neuralBusy=true;neuralTask=done;
+ neuralTimer=setTimeout(()=>releaseNeural('Voz neural lenta neste aparelho; usando a voz do Android.'),4500);
+ try{neuralWorker.postMessage({voice:type==='male'?'alex':'dora',text});return true;}catch{releaseNeural('Falha na voz neural; usando a voz do Android.');return true;}
+}
 function loadLocalVoice(){
  if(localVoicePromise)return localVoicePromise;
  localVoicePromise=(async()=>{
@@ -36,7 +59,7 @@ function loadLocalVoice(){
 function clearAudio(){
  const a=$('tvVoiceAudio');a.onended=null;a.onerror=null;a.onplaying=null;a.pause();a.removeAttribute('src');if(localAudioUrl){URL.revokeObjectURL(localAudioUrl);localAudioUrl='';}
 }
-function stopSpeech(){nativeReply=null;if(appBridge)sendNative({action:'stop'});speechGeneration++;clearTimeout(finishTimer);if(nativeSpeech())speechSynthesis.cancel();clearAudio();queue=[];speaking=false;}
+function stopSpeech(){neuralTask=null;nativeReply=null;if(appBridge)sendNative({action:'stop'});speechGeneration++;clearTimeout(finishTimer);if(nativeSpeech())speechSynthesis.cancel();clearAudio();queue=[];speaking=false;}
 let soundNoticeTimer;
 function audioNotice(message,persistent=false){
  const notice=$('tvAudioNotice');notice.textContent=message;notice.classList.remove('hidden');clearTimeout(soundNoticeTimer);if(!persistent)soundNoticeTimer=setTimeout(()=>notice.classList.add('hidden'),8000);
@@ -79,9 +102,11 @@ function say(text,type){
  const generation=++speechGeneration;speaking=true;
  const finish=(error)=>{if(generation!==speechGeneration)return;speechGeneration++;clearTimeout(finishTimer);clearAudio();speaking=false;
   if(!error){$('tvAudioNotice').classList.add('hidden');clearTimeout(soundNoticeTimer);}
-  if(error){soundEnabled=false;queue=[];if(nativeSpeech())speechSynthesis.cancel();updateSoundUI('⚠ '+error);toast(error,true);return;}nextSpeech();};
+  if(error){if(nativeSpeech())speechSynthesis.cancel();audioNotice('⚠ '+error);nextSpeech();return;}nextSpeech();};
  finishTimer=setTimeout(()=>finish('A reprodução de voz não respondeu. Ative a voz novamente.'),30000);
 
+ const nativeOrLocal=()=>{
+ if(generation!==speechGeneration)return;
  if(appBridge&&!useLocalAudio()){
   const fallback=()=>{if(generation!==speechGeneration)return;nativeReply=null;sendNative({action:'stop'});clearTimeout(finishTimer);nativeFallback=true;audioNotice('Preparando voz de reserva…',true);finishTimer=setTimeout(()=>finish('Voz de reserva indisponível.'),25000);loadLocalVoice().then(()=>{if(generation===speechGeneration){clearTimeout(finishTimer);say(text,type);}}).catch(()=>finish('Voz do Android e voz de reserva indisponíveis.'));};
   clearTimeout(finishTimer);finishTimer=setTimeout(fallback,45000);
@@ -106,6 +131,14 @@ function say(text,type){
  try{const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';u.rate=.91;u.pitch=type==='male'?.95:1.08;u.volume=1;
  const voice=chooseVoice(type);if(voice)u.voice=voice;
  u.onend=()=>finish();u.onerror=()=>{if(generation!==speechGeneration)return;if(voiceMode==='auto'){voiceMode='audio';$('tvVoiceMode').value='audio';preloadLocalVoice();}finish('Voz do navegador falhou. Ative a voz novamente para testar o modo áudio.');};speechSynthesis.speak(u);}catch(e){finish('Voz do navegador indisponível.');}
+ };
+ if(!synthesizeNeural(String(text),type,wav=>{
+  if(generation!==speechGeneration)return;
+  if(!(wav instanceof ArrayBuffer)||wav.byteLength<44){nativeOrLocal();return;}
+  clearTimeout(finishTimer);clearAudio();const a=$('tvVoiceAudio');let failed=false;
+  const fallback=()=>{if(failed||generation!==speechGeneration)return;failed=true;clearTimeout(finishTimer);clearAudio();nativeOrLocal();};
+  try{localAudioUrl=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));a.src=localAudioUrl;a.volume=volume;a.playbackRate=rate/.95;a.muted=false;a.onended=()=>finish();a.onerror=fallback;finishTimer=setTimeout(fallback,30000);Promise.resolve(a.play()).catch(fallback);}catch{fallback();}
+ }))nativeOrLocal();
 }
 function nextSpeech(){
   if(!soundEnabled || speaking || !queue.length)return;
@@ -180,8 +213,9 @@ async function poll(){
 function time(){ $('tvClock').textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date()); }
 function start(){
   const copy=document.querySelector('#tvDemandNotice .demand-copy');if(copy){copy.querySelector('b').textContent='A adega está com alta demanda.';copy.querySelector('span').textContent='Seu pedido poderá demorar um pouco mais que o normal. Agradecemos a compreensão!';}
-  const style=document.createElement('style');style.textContent='@keyframes horaDemandPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.32)}}.hora-app-demand-pulse{animation:horaDemandPulse 1.2s ease-in-out 3}@media(prefers-reduced-motion:reduce){.hora-app-demand-pulse{animation:none}}';document.head.appendChild(style);
-  const settings=document.querySelector('.tv-settings details');if(settings){const panel=document.createElement('div');panel.innerHTML='<div class="form-field"><label for="horaAppVolume">Volume da voz</label><input id="horaAppVolume" type="range" min="0" max="100" step="5"></div><div class="form-field"><label for="horaAppRate">Velocidade da fala</label><input id="horaAppRate" type="range" min="70" max="130" step="5"></div><button id="horaMaleTest" class="btn btn-outline btn-sm" type="button">Testar voz masculina</button>';settings.appendChild(panel);$('horaAppVolume').value=Math.round(volume*100);$('horaAppRate').value=Math.round(rate*100);$('horaAppVolume').oninput=()=>{volume=Number($('horaAppVolume').value)/100;try{localStorage.setItem('hora_tv_volume',volume)}catch{}};$('horaAppRate').oninput=()=>{rate=Number($('horaAppRate').value)/100;try{localStorage.setItem('hora_tv_rate',rate)}catch{}};$('horaMaleTest').onclick=()=>{if(!soundEnabled){activateVoice();return;}queue.push({text:'Atenção! Teste da voz masculina. Hora Extra Drinks.',voice:'male'});nextSpeech();};}
+  document.body.classList.add('hora-tv-apk');
+  const style=document.createElement('style');style.textContent='@keyframes horaDemandPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.32)}}.hora-app-demand-pulse{animation:horaDemandPulse 1.2s ease-in-out 3}@media(prefers-reduced-motion:reduce){.hora-app-demand-pulse{animation:none}} .hora-tv-apk .tv-concept-sound.sound-on:after{content:none!important}.hora-tv-apk .tv-concept-sound.sound-on .hora-tv-sound-label{display:inline!important}.hora-tv-apk #soundStatus,.hora-tv-apk #tvAudioToggle,.hora-tv-apk #fullScreen{display:none!important}.hora-tv-apk #tvBoard:not(.hidden){height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.hora-tv-apk.tv-body .tv-concept-canvas{width:min(100vw,177.7778vh);height:min(100vh,56.25vw);min-height:0!important;min-width:0!important;flex:none}.hora-tv-apk .tv-concept-tools{position:absolute;right:1%;bottom:1%;background:transparent;padding:0;z-index:12;display:block}.hora-tv-apk .tv-settings details{background:#17171be8;border-radius:7px;color:white;padding:5px 9px}.hora-tv-apk .tv-settings details[open]{position:absolute;bottom:0;right:0;width:min(370px,85vw);max-height:85vh;overflow:auto;box-shadow:0 4px 30px #000a;padding:16px}.hora-tv-apk .tv-settings summary{font-size:clamp(10px,1vw,16px);cursor:pointer}.hora-tv-apk .tv-concept-list .tv-ticket-body{min-width:0}.hora-tv-apk .tv-concept-list .tv-ticket strong{font-size:clamp(12px,2.25vw,40px);line-height:1.15}.hora-tv-apk .tv-concept-list .tv-ticket strong.tv-name-long{font-size:clamp(11px,1.65vw,30px)}.hora-tv-apk .tv-ticket-status{font-size:clamp(8px,.9vw,16px)}.hora-tv-apk .mode-banner.offline{position:fixed;top:0;left:0;right:0}';document.head.appendChild(style);
+  const settings=document.querySelector('.tv-settings details');if(settings){const panel=document.createElement('div');panel.innerHTML='<div class="form-field"><label for="horaAppVolume">Volume da voz</label><input id="horaAppVolume" type="range" min="0" max="100" step="5"></div><div class="form-field"><label for="horaAppRate">Velocidade da fala</label><input id="horaAppRate" type="range" min="70" max="130" step="5"></div><button id="horaMaleTest" class="btn btn-outline btn-sm" type="button">Testar voz masculina</button><p id="horaNeuralStatus" class="small sub" role="status">Voz natural automática quando compatível com a TV.</p><button id="horaNeuralRetry" class="btn btn-outline btn-sm" type="button">Preparar voz natural</button>';settings.appendChild(panel);settings.querySelector('summary').textContent='⚙ Configurações';const neuralLink=settings.querySelector('a[href="/teste-voz.html"]');if(neuralLink)neuralLink.hidden=true;$('horaNeuralRetry').onclick=()=>{if(neuralBusy)return;neuralFailed=false;if(neuralWorker){neuralWorker.terminate();neuralWorker=null;neuralReady=false;}voiceMode='auto';$('tvVoiceMode').value='auto';nativeFallback=!appBridge;try{localStorage.setItem('adega_tv_voice_mode_v1','auto');}catch{}prepareNeural();};$('horaAppVolume').value=Math.round(volume*100);$('horaAppRate').value=Math.round(rate*100);$('horaAppVolume').oninput=()=>{volume=Number($('horaAppVolume').value)/100;try{localStorage.setItem('hora_tv_volume',volume)}catch{}};$('horaAppRate').oninput=()=>{rate=Number($('horaAppRate').value)/100;try{localStorage.setItem('hora_tv_rate',rate)}catch{}};$('horaMaleTest').onclick=()=>{if(!soundEnabled)activateVoice();queue.push({text:'Atenção! Teste da voz masculina. Hora Extra Drinks.',voice:'male'});nextSpeech();};}
   time();setInterval(time,10000);
   $('tvAuthForm').addEventListener('submit',e=>{e.preventDefault();if(checking)return;const code=$('tvKey').value.trim();if(!code)return tvError('Informe o código da TV.');tvClearCode();tvCode=code;retryAt=0;poll();});
   $('tvIdleEnabled').checked=idleEnabled;$('tvIdleEnabled').onchange=()=>{idleEnabled=$('tvIdleEnabled').checked;try{localStorage.setItem('adega_tv_idle_v1',idleEnabled?'on':'off');}catch{}updateIdle();};
@@ -191,12 +225,12 @@ function start(){
     if(!connected)return toast('Conecte o painel da TV primeiro.',true);
     if(useLocalAudio()&&!localVoiceReady){updateSoundUI('Carregando áudio em português…');loadLocalVoice().then(()=>{if(!soundEnabled&&connected)activateVoice();}).catch(()=>updateSoundUI('⚠ Não foi possível carregar o áudio. Tente novamente.'));return;}
     if(!useLocalAudio()&&!appBridge&&!nativeSpeech())return toast('Selecione Áudio compatível com TV nas configurações.',true);
-    soundEnabled=true;updateSoundUI();audioNotice('Testando a voz da TV…',true);say('Chamadas por voz ativadas. Hora Extra Drinks.','female');announceDemand();
+    soundEnabled=true;updateSoundUI();prepareNeural();nextSpeech();announceDemand();
   }
   autoActivate=activateVoice;
   $('activateSound').onclick=$('tvAudioToggle').onclick=()=>{if(soundEnabled){soundEnabled=false;stopSpeech();updateSoundUI('Chamadas por voz desativadas.');}else activateVoice();};
-  $('tvVoiceMode').value=voiceMode;$('tvVoiceMode').onchange=()=>{soundEnabled=false;stopSpeech();voiceMode=$('tvVoiceMode').value;nativeFallback=!appBridge;try{localStorage.setItem('adega_tv_voice_mode_v1',voiceMode);}catch{}updateSoundUI();preloadLocalVoice();};
-  $('tvTestVoice').onclick=()=>{if(!soundEnabled){activateVoice();return;}audioNotice('Teste de voz na fila…',true);queue.push({text:'Atenção! Pedido de teste. Seu pedido está pronto. Pode retirar no portão.',voice:'female'});nextSpeech();};
+  $('tvVoiceMode').innerHTML='<option value="auto">Natural automática (neural + Android)</option><option value="native">Voz de alta qualidade do Android</option><option value="audio">Reserva MP3</option><option value="wav">Reserva WAV</option>';$('tvVoiceMode').value=voiceMode;$('tvVoiceMode').onchange=()=>{soundEnabled=false;stopSpeech();voiceMode=$('tvVoiceMode').value;nativeFallback=!appBridge;try{localStorage.setItem('adega_tv_voice_mode_v1',voiceMode);}catch{}updateSoundUI();preloadLocalVoice();if(connected)activateVoice();};
+  $('tvTestVoice').onclick=()=>{if(!soundEnabled)activateVoice();queue.push({text:'Atenção! Pedido de teste. Seu pedido está pronto. Pode retirar no portão.',voice:'female'});nextSpeech();};
 
   for(const type of ['female','male']){
     const select=$(type==='female'?'femaleVoice':'maleVoice');
