@@ -167,7 +167,15 @@ async function catalog(db,admin){
  const location=await readPickupLocation(db);
  return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options,drink_options_ready:true,online_enabled:false,best_sellers});
 }
-const orderResult=o=>json({order:{id:o.id,token:o.public_token,number:o.order_no,total_cents:o.total_cents,status:o.status}},201);
+async function ensureOrderCycles(db){await run(db,'CREATE TABLE IF NOT EXISTS cash_order_cycles (cutoff INTEGER NOT NULL UNIQUE CHECK(cutoff>=0),created_at TEXT NOT NULL)');}
+async function displayOrders(db,rows,field='order_no'){
+ if(!rows.length)return rows;
+ await ensureOrderCycles(db);
+ const cycles=await many(db,'SELECT cutoff FROM cash_order_cycles ORDER BY cutoff DESC');
+ return rows.map(o=>({...o,[field]:o[field]-(cycles.find(c=>c.cutoff<o[field])?.cutoff||0)}));
+}
+async function orderResult(db,o){const [display]=await displayOrders(db,[o]);return json({order:{id:o.id,token:o.public_token,number:display.order_no,total_cents:o.total_cents,status:o.status}},201);}
+
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
  await applyCatalogPricePatch(db);
@@ -184,7 +192,7 @@ async function createOrder(db,body){
  const items=raw.map(i=>({id:i.id,quantity:i.quantity,ice_id:i.ice_id??null,energy_id:i.energy_id??null,...(i.shake_alcohol!=null?{shake_alcohol:i.shake_alcohol}:{})}));
  const fingerprint=await hash(JSON.stringify([first,last,method,cash,body.expected_total_cents,items]));
  const prior=async()=>{const o=await one(db,'SELECT o.*,r.fingerprint FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(o&&o.fingerprint!==fingerprint)reject('Pedido já utilizado. Confira o acompanhamento.',409);return o;};
- const existing=await prior();if(existing)return orderResult(existing);
+ const existing=await prior();if(existing)return orderResult(db,existing);
  const store=await one(db,'SELECT accepting_orders FROM store_settings WHERE id=1');
  if(!store?.accepting_orders)reject('A adega está temporariamente fechada para pedidos.',409);
  await requireNearby(db,body.position);
@@ -222,9 +230,9 @@ async function createOrder(db,body){
  stmt(db,stockSql('drink_options'),opstocks,opstocks),
  stmt(db,"INSERT INTO order_requests(request_id,fingerprint,order_id) VALUES(?,?,?)",body.request_id,fingerprint,oid)
  ]);
- }catch(e){const duplicate=await prior();if(duplicate)return orderResult(duplicate);if(/constraint|PRODUTO_INDISPONIVEL/i.test(String(e.message)))reject('Preço, estoque ou disponibilidade mudou. Atualize o carrinho.',409);throw e;}
+ }catch(e){const duplicate=await prior();if(duplicate)return orderResult(db,duplicate);if(/constraint|PRODUTO_INDISPONIVEL/i.test(String(e.message)))reject('Preço, estoque ou disponibilidade mudou. Atualize o carrinho.',409);throw e;}
  const saved=await one(db,'SELECT * FROM orders WHERE id=?',oid);if(!saved)throw Error('order missing');
- return orderResult(saved);
+ return orderResult(db,saved);
 }
 async function cancel(db,id,restoreStock=true,customerToken=null){
  if(!uuid(id))reject('Pedido inválido.');
@@ -262,7 +270,7 @@ async function orderAction(db,body){
  }
  const order=await one(db,'UPDATE orders SET '+sql+' RETURNING *',...args);
  if(!order)reject('Ação bloqueada. Confira pagamento, documento e situação do pedido.',409);
- return json({order});
+ const [display]=await displayOrders(db,[order]);return json({order:display});
 }
 async function orders(db){
  const list=await many(db,"SELECT * FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 250");
@@ -271,7 +279,7 @@ async function orders(db){
  const ids=JSON.stringify(list.map(o=>o.id));
  const lines=await many(db,'SELECT i.order_id,i.product_id,i.product_name,i.quantity,i.unit_price_cents,i.ice_option_id,i.energy_option_id,p.category FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id IN (SELECT value FROM json_each(?)) ORDER BY i.id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
- const same=duplicateNames(list);return json({orders:list.map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand});
+ const same=duplicateNames(list);return json({orders:(await displayOrders(db,list)).map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand});
 }
 async function ensureCashArchive(db){
  await run(db,"CREATE TABLE IF NOT EXISTS cash_batches (id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('closed','test')),created_at TEXT NOT NULL)");
@@ -298,12 +306,32 @@ async function archiveCash(db,body){
  }catch(e){reject('O movimento mudou. Atualize o caixa e tente novamente.',409);}
  return json({ok:true,batch_id:id,count:body.ids.length});
 }
+async function resetCash(db,body){
+ if(body.confirmation!=='ZERAR'||!int(body.paid_count,0,100000000)||!int(body.active_count,0,100000000))reject('Confirme os valores exibidos antes de zerar.');
+ await ensureCashArchive(db);await ensureOrderCycles(db);
+ const {start,end}=cashDay(),date=now(),id=crypto.randomUUID();
+ const active="status IN ('received','preparing','ready')";
+ const pending=active+" AND payment_status<>'paid'";
+ const received="o.status='received' AND o.payment_status<>'paid'";
+ const valid="(SELECT accepting_orders FROM store_settings WHERE id=1)=0 AND NOT EXISTS(SELECT 1 FROM orders WHERE "+active+" AND payment_status='paid') AND (SELECT COUNT(*) FROM orders WHERE "+pending+")=? AND (SELECT COUNT(*) FROM orders WHERE "+activeCashFilter+")=?";
+ const restore=(table,kind)=>stmt(db,"UPDATE "+table+" SET stock=stock+(SELECT SUM(r.quantity) FROM stock_reservations r JOIN orders o ON o.id=r.order_id WHERE r.kind=? AND r.item_id="+table+".id AND "+received+") WHERE id IN (SELECT r.item_id FROM stock_reservations r JOIN orders o ON o.id=r.order_id WHERE r.kind=? AND "+received+")",kind,kind);
+ try{
+ await db.batch([
+ stmt(db,"INSERT OR REPLACE INTO cash_order_cycles(cutoff,created_at) VALUES(CASE WHEN "+valid+" THEN MAX(COALESCE((SELECT seq FROM sqlite_sequence WHERE name='orders'),0),COALESCE((SELECT MAX(order_no) FROM orders),0)) ELSE NULL END,?)",body.active_count,start,end,body.paid_count,date),
+ stmt(db,"INSERT INTO cash_batches(id,kind,created_at) SELECT ?,'closed',? WHERE EXISTS(SELECT 1 FROM orders WHERE "+activeCashFilter+")",id,date,start,end),
+ stmt(db,"INSERT INTO cash_archived_orders(order_id,batch_id) SELECT id,? FROM orders WHERE "+activeCashFilter,id,start,end),
+ restore('products','product'),restore('drink_options','option'),
+ stmt(db,"UPDATE orders SET status='cancelled',updated_at=? WHERE "+pending,date)
+ ]);
+ }catch(e){reject('Não foi possível zerar. Pause a loja, finalize os pedidos pagos e atualize o caixa antes de tentar novamente.',409);}
+ return json({ok:true,archived:body.paid_count,cancelled:body.active_count,next_number:1});
+}
 async function cashArchive(db,body){
  if(!uuid(body.id))reject('Relatório inválido.');
  await ensureCashArchive(db);
  const batch=await one(db,'SELECT * FROM cash_batches WHERE id=?',body.id);if(!batch)missing();
  const transactions=await many(db,'SELECT o.id,o.order_no,o.first_name,o.last_name,o.payment_method,o.total_cents,o.paid_at FROM orders o JOIN cash_archived_orders a ON a.order_id=o.id WHERE a.batch_id=? ORDER BY o.paid_at DESC',batch.id);
- return json({batch,transactions,day:batch.created_at.slice(0,10),paid_count:transactions.length});
+ return json({batch,transactions:await displayOrders(db,transactions),day:batch.created_at.slice(0,10),paid_count:transactions.length});
 }
 async function readDemand(db){
  await run(db,'CREATE TABLE IF NOT EXISTS tv_demand (id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN (0,1)))');
@@ -324,15 +352,17 @@ async function cashReport(db){
  await ensureCashArchive(db);
  const {day,start,end}=cashDay();
  const filter=activeCashFilter;
- const [methods,items,transactions,pending]=await Promise.all([
+ const [methods,items,transactions,pending,active,store]=await Promise.all([
  many(db,'SELECT payment_method,COUNT(*) AS qty,SUM(total_cents) AS total FROM orders WHERE '+filter+' GROUP BY payment_method',start,end),
  many(db,'SELECT i.product_name AS name,SUM(i.quantity) AS quantity,SUM(i.quantity*i.unit_price_cents) AS total_cents FROM orders o JOIN order_items i ON i.order_id=o.id WHERE o.payment_status=\'paid\' AND o.paid_at>=? AND o.paid_at<? AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a WHERE a.order_id=o.id) GROUP BY i.product_name ORDER BY quantity DESC',start,end),
  many(db,'SELECT id,order_no,first_name,last_name,payment_method,total_cents,paid_at,status FROM orders WHERE '+filter+' ORDER BY paid_at DESC LIMIT 500',start,end),
- one(db,"SELECT COUNT(*) AS qty FROM orders WHERE payment_status='pending' AND status<>'cancelled' AND created_at>=? AND created_at<?",start,end)
+ one(db,"SELECT COUNT(*) AS qty FROM orders WHERE payment_status='pending' AND status<>'cancelled' AND created_at>=? AND created_at<?",start,end),
+ one(db,"SELECT COUNT(*) AS qty,COALESCE(SUM(CASE WHEN payment_status='paid' THEN 1 ELSE 0 END),0) AS paid FROM orders WHERE status IN ('received','preparing','ready')"),
+ one(db,'SELECT accepting_orders FROM store_settings WHERE id=1')
  ]);
  const totals={cash:0,card:0,pix:0,apple:0,google:0};let paid_count=0,total_cents=0;for(const m of methods){totals[m.payment_method]=m.total;paid_count+=m.qty;total_cents+=m.total;}
  const archives=await many(db,'SELECT b.id,b.kind,b.created_at,COUNT(*) AS qty,SUM(o.total_cents) AS total_cents FROM cash_batches b JOIN cash_archived_orders a ON a.batch_id=b.id JOIN orders o ON o.id=a.order_id GROUP BY b.id,b.kind,b.created_at ORDER BY b.created_at DESC,b.id DESC LIMIT 100');
- return json({day,paid_count,pending_count:pending.qty,total_cents,item_count:items.reduce((n,i)=>n+i.quantity,0),by_method:totals,products:items,transactions,archives,truncated:paid_count>500});
+ return json({day,paid_count,pending_count:pending.qty,total_cents,item_count:items.reduce((n,i)=>n+i.quantity,0),by_method:totals,products:items,transactions:await displayOrders(db,transactions),archives,truncated:paid_count>500,active_count:active.qty,paid_active_count:active.paid,accepting_orders:Boolean(store?.accepting_orders)});
 }
 async function patchRow(db,table,id,patch){
  const fields=Object.keys(patch);if(!fields.length)reject('Nenhuma alteração informada.');
@@ -458,7 +488,7 @@ async function handler(request,env,ctx){
  if(route==='login'&&method==='POST')return login(db,env,request,body);
  const admin=route.startsWith('admin-');const session=admin?await auth(db,request):null;
  if(route==='admin-audit'&&method==='POST')return auditList(db,body);
- if((route==='create-order'&&method==='POST')||(['admin-products','admin-stock','admin-drink-options','admin-cancel','admin-order-action','admin-cash-archive','admin-settings'].includes(route)&&['POST','PATCH'].includes(method)))await ensureAudit(db);
+ if((route==='create-order'&&method==='POST')||(['admin-products','admin-stock','admin-drink-options','admin-cancel','admin-order-action','admin-cash-archive','admin-cash-reset','admin-settings'].includes(route)&&['POST','PATCH'].includes(method)))await ensureAudit(db);
  if(route==='admin-logout'&&method==='POST'){await run(db,'DELETE FROM admin_sessions WHERE token_hash=?',session);return json({ok:true});}
  if(route==='health'&&method==='GET'){const row=await one(db,'SELECT id FROM store_settings WHERE id=1');if(!row)reject('Banco não inicializado.',503);await one(db,'SELECT COUNT(*) AS n FROM sqlite_master WHERE type=\'table\' AND name IN (\'order_requests\',\'stock_reservations\',\'rate_limits\',\'product_photos\')').then(x=>{if(x.n!==4)reject('Complete a instalação do banco D1.',503);});return json({ok:true,database:'D1',online_enabled:false});}
  if(route==='catalog'&&method==='GET')return catalog(db,false);
@@ -468,7 +498,7 @@ async function handler(request,env,ctx){
  if(route==='admin-catalog'&&method==='GET')return catalog(db,true);
  if(route==='reviews'&&method==='GET')return publicReviews(db);
  if(route==='review'&&method==='POST'){await rate(db,request,'review',20,300);return submitReview(db,body);}
- if(route==='admin-reviews'&&method==='GET'){await ensureReviews(db);return json({reviews:await many(db,'SELECT r.id,r.rating,r.comment,r.display_name,r.comment_hidden,r.created_at,o.order_no FROM store_reviews r JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC,r.id DESC LIMIT 200')});}
+ if(route==='admin-reviews'&&method==='GET'){await ensureReviews(db);return json({reviews:await displayOrders(db,await many(db,'SELECT r.id,r.rating,r.comment,r.display_name,r.comment_hidden,r.created_at,o.order_no FROM store_reviews r JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC,r.id DESC LIMIT 200'))});}
  if(route==='admin-reviews'&&method==='PATCH'){
   if(!uuid(body.id)||typeof body.comment_hidden!=='boolean')reject('Avaliação inválida.');
   await ensureReviews(db);
@@ -488,19 +518,20 @@ async function handler(request,env,ctx){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}return json({order:{...order,reviewed}});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}const [display]=await displayOrders(db,[order]);return json({order:{...display,reviewed}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
  if(!await equal(request.headers.get('X-TV-Code'),env.TV_PASSCODE)){await rate(db,request,'tv',10,300);reject('Código da TV incorreto.',403);}
  const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 60");
- return json({orders:orders.map(o=>({...o,public_name:o.first_name+' '+o.last_name})),...await demandStatus(db)});
+ return json({orders:(await displayOrders(db,orders,'number')).map(o=>({...o,public_name:o.first_name+' '+o.last_name})),...await demandStatus(db)});
  }
- if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(order);}
+ if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(db,order);}
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);const result=await createOrder(db,body);if(validSubscription(body.subscription)){try{const {order}=await result.clone().json();await bindPush(db,order.id,body.subscription);}catch{/* The order is already saved; notifications are optional. */}}return result;}
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
  if(route==='admin-cash-archive'&&method==='POST')return archiveCash(db,body);
+ if(route==='admin-cash-reset'&&method==='POST')return resetCash(db,body);
  if(route==='admin-cash-report'&&method==='POST')return cashArchive(db,body);
  if(route==='admin-demand'&&method==='PATCH')return saveDemand(db,body);
  if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);await ensureInternalInventory(db);return productsAdmin(db,body,method);}

@@ -137,22 +137,31 @@ function renderDrinkOptions(){
   }).join('')}</section>`;
  }).join('');
 }
+let cashResetSnapshot=null;
 let demandActive=false,demandManual=false,demandCount=0,demandBusy=false,cashActionKind='',cashActionBusy=false,cashActionIds=[];
 function renderDemand(){const b=$('demandToggle');b.textContent=demandManual?'Voltar ao automático':'Forçar aviso';b.classList.toggle('btn-primary',demandManual);b.classList.toggle('btn-secondary',!demandManual);b.setAttribute('aria-pressed',String(demandManual));$('demandStatus').textContent=(demandActive?'Aviso ativo':'Movimento normal')+' · '+demandCount+' pedidos aguardando ou em preparo'+(demandManual?' · manual':' · automático');}
+function renderCashTransactions(){
+ const r=cashReport;if(!r){$('cashTransactions').innerHTML='<p class="sub">Aguardando dados...</p>';return;}
+ const q=$('cashSearch').value.trim().toLocaleLowerCase('pt-BR'),m=$('cashMethod').value;
+ const list=(r.transactions||[]).filter(o=>(!m||m===o.payment_method)&&(!q||(pad(o.order_no)+' '+o.first_name+' '+o.last_name).toLocaleLowerCase('pt-BR').includes(q)));
+ $('cashTransactions').innerHTML='<p class="cash-pro-result">'+list.length+' vendas exibidas · '+fmt(list.reduce((n,o)=>n+o.total_cents,0))+(r.truncated?' · últimas 500 vendas':'')+'</p>'+ (list.length?list.map(o=>`<article class="cash-pro-row"><div class="cash-pro-num">#${esc(pad(o.order_no))}</div><div><strong>${esc(o.first_name+' '+o.last_name)}</strong><small>${esc(new Date(o.paid_at).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}))} · ${esc(labels[o.payment_method]||o.payment_method)}</small></div><b>${fmt(o.total_cents)}</b><span class="pill good">Pago</span></article>`).join(''):'<p class="cash-pro-empty">Nenhuma venda encontrada.</p>');
+}
 function renderCash(){
   if(!cashReport){
     $('cashStats').innerHTML='<div class="stat"><span>Caixa do dia</span><b>—</b></div>';
     $('cashList').innerHTML='<div class="notice">Buscando vendas confirmadas no banco de dados...</div>';
-    $('itemReport').innerHTML='';return;
+    $('itemReport').innerHTML='';$('resetCash').disabled=true;renderCashTransactions();return;
   }
   const r=cashReport;
+  $('resetCash').disabled=false;
   $('closeCash').disabled=!r.paid_count||r.truncated===true;
   $('clearTestCash').disabled=!(r.transactions||[]).some(o=>o.status==='delivered'&&o.payment_method==='cash');
   $('cashArchives').innerHTML=(r.archives||[]).map(b=>`<div class="cash-archive-row"><div><strong>${b.kind==='test'?'Vendas de teste':'Caixa fechado'}</strong><p class="small sub">${esc(new Date(b.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}))} · ${b.qty} vendas · ${fmt(b.total_cents)}</p></div><button type="button" class="btn btn-outline btn-sm" data-cash-archive="${esc(b.id)}">CSV</button></div>`).join('')||'<p class="small sub">Nenhum relatório arquivado.</p>';
-  const stats=[['Faturamento atual',fmt(r.total_cents)],['Vendas pagas',r.paid_count],['Em aberto',r.pending_count],['Itens vendidos',r.item_count]];
+  const stats=[['Faturamento atual',fmt(r.total_cents)],['Vendas pagas',r.paid_count],['Em aberto',r.pending_count],['Itens vendidos',r.item_count],['Ticket médio',fmt(r.paid_count?Math.round(r.total_cents/r.paid_count):0)],['Fila ativa',r.active_count??r.pending_count]];
   $('cashStats').innerHTML=stats.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
-  const methods=Object.entries(r.by_method||{}).map(([key,value])=>`<span>${esc(labels[key]||key)}: ${fmt(value)}</span>`).join('');
-  $('cashList').innerHTML=`<div class="cash-summary-header"><span>Movimento de ${esc(r.day.split('-').reverse().join('/'))}</span><small>Registros detalhados disponíveis no CSV.</small></div><div class="order-details cash-methods">${methods}</div>`;
+  const methods=Object.entries(r.by_method||{}).map(([key,value])=>`<div class="cash-pro-method"><span>${esc(labels[key]||key)}</span><b>${fmt(value)}</b><div class="cash-pro-track"><i style="width:${Math.max(0,Math.min(100,r.total_cents?value/r.total_cents*100:0))}%"></i></div></div>`).join('');
+  $('cashList').innerHTML=`<div class="cash-summary-header"><span>Movimento de ${esc(r.day.split('-').reverse().join('/'))}</span><small>Valores efetivamente recebidos</small></div><div class="cash-pro-methods">${methods}</div>`;
+  renderCashTransactions();
   $('itemReport').innerHTML=r.products?.length?r.products.sort((a,b)=>b.quantity-a.quantity).map(i=>`<div class="order-line" style="padding:9px 0"><span>${esc(i.name)} · ${i.quantity} unidades</span><b>${fmt(i.total_cents)}</b></div>`).join(''):'<p class="sub">Sem produtos vendidos hoje.</p>';
 }
 async function loadReport(){
@@ -444,6 +453,17 @@ async function loadAdminReviews(){
 function openCashAction(kind){
  if(!cashReport||cashActionBusy)return;
  cashActionKind=kind;
+ if(kind==='reset'){
+  if(cashReport.accepting_orders)return toast('Pause a loja antes de zerar, para evitar novos pedidos.',true);
+  if(cashReport.paid_active_count)return toast('Finalize os pedidos pagos que ainda estão em atendimento.',true);
+  cashActionIds=[];cashResetSnapshot={paid_count:cashReport.paid_count,active_count:cashReport.active_count};
+  $('cashActionTitle').textContent='Zerar caixa e reiniciar pedidos';
+  $('cashActionInfo').textContent='Arquiva vendas do movimento, cancela pedidos ativos não pagos e reinicia a numeração pública em 001. O histórico é preservado. Estoque reservado de pedidos ainda recebidos retorna; produtos em preparo ou prontos não retornam automaticamente. A loja permanece pausada.';
+  $('cashActionList').innerHTML='<p>'+cashReport.paid_count+' vendas arquivadas · '+fmt(cashReport.total_cents)+'</p><p>'+cashReport.active_count+' pedidos não pagos serão cancelados.</p>';
+  $('cashActionConfirm').value='';$('cashActionLabel').textContent='Digite ZERAR para confirmar';
+  $('cashActionModal').classList.add('open');
+  return;
+ }
  const rows=(cashReport.transactions||[]).filter(o=>kind==='closed'||(o.status==='delivered'&&o.payment_method==='cash'));
  cashActionIds=rows.map(o=>o.id);
  if(!rows.length)return toast('Nenhuma venda elegível.',true);
@@ -463,12 +483,15 @@ async function start(){
  $('tab-overview').addEventListener('click',e=>{const b=e.target.closest('[data-admin-jump]');if(!b)return;setTab(b.dataset.adminJump);if(b.dataset.adminJump==='inventory'){const filter=b.dataset.adminFilter||'all';if(filter==='options'){inventoryFilter='Sabores';}else{inventoryStatus=filter;$('inventoryStatus').value=filter;}renderInventory();}window.scrollTo({top:0,behavior:'instant'});});
  $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso manual enviado à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
  $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
+ $('resetCash').onclick=()=>openCashAction('reset');
+ $('cashSearch').oninput=renderCashTransactions;$('cashMethod').onchange=renderCashTransactions;
+ $('cashRefresh').onclick=()=>{reportAt=0;loadReport();};
  $('cashActionClose').onclick=()=>{if(!cashActionBusy)$('cashActionModal').classList.remove('open');};
  $('cashActionForm').addEventListener('submit',async e=>{
  e.preventDefault();if(cashActionBusy)return;const kind=cashActionKind,confirmation=$('cashActionConfirm').value.trim().toUpperCase(),ids=kind==='test'?[...document.querySelectorAll('[name="cashTestId"]:checked')].map(x=>x.value):cashActionIds;
- if(!ids.length||confirmation!==(kind==='test'?'TESTE':'FECHAR'))return toast('Selecione as vendas e digite a confirmação indicada.',true);
+ if((kind!=='reset'&&!ids.length)||confirmation!==(kind==='reset'?'ZERAR':kind==='test'?'TESTE':'FECHAR'))return toast('Confira os dados e digite a confirmação indicada.',true);
  cashActionBusy=true;const b=e.target.querySelector('[type="submit"]');b.disabled=true;
- try{await api('admin-cash-archive',{kind,confirmation,ids},{admin:true});$('cashActionModal').classList.remove('open');cashReport=null;reportAt=0;renderCash();toast(kind==='test'?'Vendas de teste arquivadas.':'Caixa fechado e relatório preservado.');}
+ try{if(kind==='reset'){await api('admin-cash-reset',{confirmation,...cashResetSnapshot},{admin:true});await refreshOrders(true);}else await api('admin-cash-archive',{kind,confirmation,ids},{admin:true});$('cashActionModal').classList.remove('open');cashReport=null;reportAt=0;renderCash();toast(kind==='reset'?'Caixa zerado. Próximo pedido: 001.':kind==='test'?'Vendas de teste arquivadas.':'Caixa fechado e relatório preservado.');}
  catch(err){toast(err.message,true);}finally{cashActionBusy=false;b.disabled=false;reportAt=0;if(reportLoading){setTimeout(()=>{reportAt=0;loadReport();},1500);}else await loadReport();}
  });
  $('cashArchives').addEventListener('click',async e=>{const b=e.target.closest('[data-cash-archive]');if(!b)return;b.disabled=true;try{downloadCash(await api('admin-cash-report',{id:b.dataset.cashArchive},{admin:true}));}catch(err){toast(err.message,true);}finally{b.disabled=false;}});

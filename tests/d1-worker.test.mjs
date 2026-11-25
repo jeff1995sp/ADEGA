@@ -65,6 +65,24 @@ test('D1: administrador pode entrar sem bloqueio após tentativas inválidas',as
  assert.equal((await f.call('admin-orders',undefined,t)).status,200);
  assert.equal((await f.call('admin-orders')).status,401);
 });
+test('D1: reset financeiro preserva histórico, repõe recebido e reinicia numeração pública',async()=>{
+ const f=setup(),token=await login(f);f.sql.exec('UPDATE store_settings SET accepting_orders=1');
+ const old=(await f.call('create-order',payload())).data.order;
+ assert.equal(old.number,1);
+ const reset=()=>f.call('admin-cash-reset',{confirmation:'ZERAR',paid_count:0,active_count:1},token);
+ assert.equal((await reset()).status,409);
+ f.sql.exec('UPDATE store_settings SET accepting_orders=0');
+ assert.equal((await reset()).status,200);
+ assert.equal(f.sql.prepare('SELECT status FROM orders WHERE id=?').get(old.id).status,'cancelled');
+ assert.equal(f.sql.prepare("SELECT stock FROM products WHERE id='produto-005'").get().stock,5);
+ f.sql.exec('UPDATE store_settings SET accepting_orders=1');
+ const fresh=(await f.call('create-order',payload())).data.order;
+ assert.equal(fresh.number,1);assert.notEqual(fresh.id,old.id);
+ assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM orders').get().n,2);
+ const tv=await f.call('tv',undefined,null,'GET',{'X-TV-Code':f.env.TV_PASSCODE});
+ assert.equal(tv.data.orders[0].number,1);
+ const track=await f.call('track',{id:fresh.id,token:fresh.token});assert.equal(track.data.order.order_no,1);
+});
 test('D1: pedido, troco, sabores, repetição segura e cancelamento sem duplicar estoque',async()=>{
  const f=setup(),t=await login(f);
  assert.equal((await f.call('admin-settings',{accepting_orders:true},t,'PATCH')).status,200);
