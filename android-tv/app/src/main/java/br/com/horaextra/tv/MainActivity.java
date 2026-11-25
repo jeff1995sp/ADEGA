@@ -140,7 +140,7 @@ public class MainActivity extends Activity {
             int result=tts.speak(q.text,TextToSpeech.QUEUE_FLUSH,params,q.utterance);
             if(result!=TextToSpeech.SUCCESS){completed(q.utterance,false);return;}
             String id=q.utterance;
-            handler.postDelayed(()->{if(current==q&&id.equals(q.utterance)){tts.stop();completed(id,false);}},q.attempt==0?10000:12000);
+            handler.postDelayed(()->{if(current==q&&id.equals(q.utterance)){tts.stop();completed(id,false);}},q.attempt==0?20000:20000);
         }catch(Exception e){if(q.attempt++==0)play(q);else finish(q,false);}
     }
     private void completed(String id,boolean ok){

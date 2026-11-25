@@ -78,13 +78,13 @@ function chooseVoice(type){
 function say(text,type){
  const generation=++speechGeneration;speaking=true;
  const finish=(error)=>{if(generation!==speechGeneration)return;speechGeneration++;clearTimeout(finishTimer);clearAudio();speaking=false;
-  if(!error)audioNotice('Áudio finalizado. Você ouviu a chamada?');
+  if(!error){$('tvAudioNotice').classList.add('hidden');clearTimeout(soundNoticeTimer);}
   if(error){soundEnabled=false;queue=[];if(nativeSpeech())speechSynthesis.cancel();updateSoundUI('⚠ '+error);toast(error,true);return;}nextSpeech();};
  finishTimer=setTimeout(()=>finish('A reprodução de voz não respondeu. Ative a voz novamente.'),30000);
- audioNotice('Preparando chamada de voz…',true);
+
  if(appBridge&&!useLocalAudio()){
   const fallback=()=>{if(generation!==speechGeneration)return;nativeReply=null;sendNative({action:'stop'});clearTimeout(finishTimer);nativeFallback=true;audioNotice('Preparando voz de reserva…',true);finishTimer=setTimeout(()=>finish('Voz de reserva indisponível.'),25000);loadLocalVoice().then(()=>{if(generation===speechGeneration){clearTimeout(finishTimer);say(text,type);}}).catch(()=>finish('Voz do Android e voz de reserva indisponíveis.'));};
-  clearTimeout(finishTimer);finishTimer=setTimeout(fallback,25000);
+  clearTimeout(finishTimer);finishTimer=setTimeout(fallback,45000);
   const id=String(generation);nativeReply={id,fn:ok=>ok?finish():fallback()};
   if(!sendNative({action:'speak',id,text:String(text).slice(0,350),voice:type,volume,rate}))fallback();
   return;
@@ -96,7 +96,7 @@ function say(text,type){
    if(!wav||!wav.byteLength)throw Error('Não foi possível gerar o áudio.');
    clearAudio();const a=$('tvVoiceAudio');const blob=voiceMode==='wav'?new Blob([wav],{type:'audio/wav'}):wavToMp3(wav);
    localAudioUrl=URL.createObjectURL(blob);a.src=localAudioUrl;a.volume=volume;a.muted=false;
-   a.onplaying=()=>{if(generation===speechGeneration)audioNotice('Reproduzindo '+(voiceMode==='wav'?'WAV':'MP3')+' • confira o volume da TV',true);};
+   a.onplaying=()=>{if(generation===speechGeneration)$('tvAudioNotice').classList.add('hidden');};
    a.onended=()=>finish();a.onerror=()=>finish('Falha ao reproduzir '+(voiceMode==='wav'?'WAV':'MP3')+'. Código '+(a.error?.code||'?')+'. Teste outro formato nas configurações.');
    const playback=a.play();if(playback&&playback.catch)playback.catch(()=>finish('A TV bloqueou o áudio. Toque novamente em Ativar voz.'));
   }catch(e){finish(e.message||'Falha no áudio local.');}
