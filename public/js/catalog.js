@@ -208,7 +208,7 @@ function refreshHouseGinEnergy(){
 function showDoseConfigurator(p){
  if(!available(p)||!hasDrinkOptions(p))return toast('Dose ou sabores indisponíveis. O dono precisa liberar no admin.',true);
  doseSelected=p;
- $('doseTitle').textContent=p.name;
+ $('doseTitle').textContent=p.name;const hero=$('doseHeroPhoto');if(hero){const source=document.querySelector('[data-id="'+CSS.escape(p.id)+'"]')?.closest('article')?.querySelector('img');hero.src=source?.getAttribute('src')||p.image_url||'/imagens/foto-pendente.webp';hero.alt=p.name;}
  $('dosePrice').textContent=fmt(p.price_cents)+' • Copo de 700 ml • Gelo e energético inclusos';
  const choices=drinkChoiceList('ice',p).filter(remainingOption);
  const energies=drinkChoiceList('energy',p).filter(remainingOption);
@@ -232,7 +232,7 @@ function showDoseConfigurator(p){
   refreshHouseGinEnergy();
  }else{
   form.insertBefore(iceField,energyField);
-  $('doseIceLabel').textContent='Escolha o sabor do gelo';
+  $('doseIceLabel').textContent='01 — Escolha seu gelo';$('doseEnergyLabel').textContent=vibe?'Vibe incluído':'02 — Escolha seu energético';
   const choice=vibe?energies.find(o=>o.name==='Vibe Original'):preferredEnergy(energies,'Red Bull Original');
   if(!choice)return toast('Energético sem estoque disponível. Confira o carrinho.',true);
   $('doseEnergy').value=choice.id;
@@ -557,6 +557,8 @@ async function bindNotifications(){
  finally{pushBinding=false;}
 }
 
+const energyPhotos={"energy-1":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/3695a10545/br_ed_250ml_energy-drink_country_rgb__cold_closed_front_com_25.png/m/168x0","energy-2":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/8083114670/br_sf_250ml_sugarfree_country_rgb__cold_closed_front_com_full.png/m/168x0","energy-3":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/a58094ed39/br_zr_250ml_ac_zero_country_rgb_packrq-2750_cold_closed_front_com_full.png/m/168x0","energy-4":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/635d955ea9/br_yl_250ml_the-tropical-edition_country_rgb_do238698_cold_closed_front_com_25.png/m/168x0","energy-5":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/8c43f3f482/br_wm_250ml_the-melancia-edition_country_rgb_do238714_cold_closed_front_com_25.png/m/168x0","energy-6":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/63c692f0a6/br_ce_250ml_the-melao-edition_country_rgb_initi8-40_cold_closed_front_com_full-1.png/m/168x0","energy-7":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/6faa6f0f46/br_as_250ml_the-pessego-edition_country_rgb__cold_closed_front_com_full.png/m/168x0","energy-8":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/14471adf6c/br_jb_250ml_the-cereja-edition_country_rgb_do243994_cold_closed_front_com_25.png/m/168x0","energy-9":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/97bb5a49dc/br_sf-cs_250ml_ac_the-white-edition_country_rgb_packrq-4842_cold_closed_front_com_25.png/m/168x0","energy-10":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/222e943f79/br_sf-wp_250ml_ac_the-nectarina-edition-sugarfree_country_rgb_packrq-5170_cold_closed_front_com_25.png/m/168x0","energy-11":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/48c7ee3693/br_sf-igb_250ml_ac_the-ice-edition-sugarfree_country_rgb_initi8-188_cold_closed_front_com_25.png/m/168x0","energy-12":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/6b32a22fb3/br_sf-fai_250ml_ac_the-maca-edition-sugarfree_country_rgb_packrq-3400_cold_closed_front_com_full.png/m/168x0","energy-13":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/2d9f981288/new_br_sf-ff_250ml_the-amora-edition-sugarfree_country_rgb_initi8-49_cold_closed_front_com_full.png/m/168x0","energy-14":"https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/030bc3b020/br_sf-wpg_250ml_the-pomelo-edition-sugarfree_country_rgb_initi8-56_cold_closed_front_com_25.png/m/168x0"};
+const icePhotos={"ice-1":"/imagens/gelo-de-agua.webp","ice-2":"/img/ice-2-visual.svg","ice-3":"/img/ice-3-visual.svg","ice-4":"/img/ice-4-visual.svg","ice-5":"/img/ice-5-visual.svg","ice-6":"/img/ice-6-visual.svg"};
 function syncChoiceCards(){
  for(const id of ['shakeAlcohol','doseEnergyKind','doseEnergy','doseIce']){
   const select=$(id);if(!select)continue;
@@ -569,8 +571,8 @@ function syncChoiceCards(){
   for(const opt of select.options){
    if(!opt.value||opt.disabled)continue;
    const b=document.createElement('button');b.type='button';b.className='hora-choice-card';b.disabled=select.disabled;b.setAttribute('aria-pressed',String(select.value===opt.value));
-   const visual=flavorVisual(id,opt.textContent),mark=document.createElement('span');mark.className='hora-choice-mark choice-visual choice-'+visual.kind;mark.style.setProperty('--flavor-color',visual.color);mark.setAttribute('aria-hidden','true');mark.textContent=visual.symbol;if(id==='doseIce'&&normalize(opt.textContent).includes('agua')){const img=document.createElement('img');img.src='/imagens/gelo-de-agua.webp';img.alt='';img.onerror=()=>{img.remove();mark.textContent=visual.symbol;};mark.replaceChildren(img);}
-   const name=document.createElement('span');name.textContent=opt.textContent;b.append(mark,name);
+   const visual=flavorVisual(id,opt.textContent),mark=document.createElement('span');mark.className='hora-choice-mark choice-visual choice-'+visual.kind;mark.style.setProperty('--flavor-color',visual.color);mark.setAttribute('aria-hidden','true');mark.textContent=visual.symbol;const src=id==='doseEnergy'?energyPhotos[opt.value]:id==='doseIce'?icePhotos[opt.value]:null;if(src){const img=document.createElement('img');img.src=src;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();mark.textContent=visual.symbol;};mark.replaceChildren(img);b.classList.add('choice-has-image');}
+   const name=document.createElement('span');name.textContent=opt.textContent;const state=document.createElement('small');state.textContent=select.value===opt.value?'✓ Selecionado':'Disponível';b.append(mark,name,state);
    b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);
   }
  }

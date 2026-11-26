@@ -240,7 +240,9 @@ function renderShopControl(){
  $('shopSwitchWord').textContent=!ready?'—':open?'ON':'OFF';
  $('shopControlAction').textContent=pending?'Salvando…':!ready?'Consultando…':open?'Toque para fechar':'Toque para abrir';
 }
-function renderSettings(){
+let numberSettingsLoaded=false,numberSettingsLoading=false;
+async function loadNumberSettings(){if(numberSettingsLoaded||numberSettingsLoading)return;numberSettingsLoading=true;try{const d=await api('admin-order-number',null,{admin:true,method:'GET'});$('dailyNumberEnabled').checked=Boolean(d.settings.enabled);$('dailyNumberHour').value=String(d.settings.hour);$('numberSettingsStatus').textContent='Configuração salva. A próxima sequência começa em #0001.';numberSettingsLoaded=true;}catch(e){$('numberSettingsStatus').textContent=e.message;}finally{numberSettingsLoading=false;}}
+function renderSettings(){if($('orderNumberForm'))void loadNumberSettings();
  renderPickupSettings();
  renderShopControl();
   if($('storeName'))$('storeName').value=shop.name;
@@ -598,6 +600,8 @@ async function start(){
    finally{shopToggleRevision++;shopToggleBusy=false;renderShopControl();}
    await refreshData(true);
   };
+  $('orderNumberForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await api('admin-order-number',{enabled:$('dailyNumberEnabled').checked,hour:Number($('dailyNumberHour').value)},{admin:true});toast('Numeração salva.');}catch(err){toast(err.message,true);}});
+  if($('manualNumberReset'))$('manualNumberReset').onclick=async()=>{if(!confirm('Reiniciar somente a numeração? O próximo pedido será #0001.'))return;try{await api('admin-order-number',{action:'reset',confirmation:'REINICIAR'},{admin:true});toast('Numeração reiniciada.');}catch(err){toast(err.message,true);}};
   $('settingsForm')?.addEventListener('submit',async e=>{e.preventDefault();try{await api('admin-settings',{name:$('storeName').value.trim(),low_stock_threshold:Number($('stockAlert').value)},{admin:true,method:'PATCH'});toast('Configurações salvas.');await refreshData(true);}catch(err){toast(err.message,true);}});
   $('soundToggle').onclick=()=>{sounds=!sounds;$('soundToggle').textContent=sounds?'🔔 Alertas ligados':'🔕 Ativar alertas';if(sounds)tone();};
   $('logoutBtn').onclick=async()=>{try{await api('admin-logout',{}, {admin:true});}catch{}finally{authClear();showLogin();lastCatalogAt=0;}};

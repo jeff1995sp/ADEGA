@@ -158,7 +158,9 @@ async function nearbyResult(db,position){
  return result(true,'Você está dentro da área de atendimento.',details);
 }
 async function requireNearby(db,position){if(position===undefined||position===null)return;const r=await nearbyResult(db,position);if(!r.allowed)reject(r.message,409);}
-async function catalog(db,admin){
+const sodaPatch='20261126-refri-sabores-v1';
+async function ensureSodaFlavors(db){await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',sodaPatch))return;const rows=[["refri-sprite","Sprite — Limão (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439309/180/Expresso-Delivery_4d331b252ac100d121c6107d76c37ef1.jpg"],["refri-fanta-laranja","Fanta Laranja (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439276/180/Expresso-Delivery_c3801a2bf5fb6512bb34a2e95faca8b4.jpg"],["refri-fanta-uva","Fanta Uva (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439277/180/Expresso-Delivery_b289f78e0ce5905bc4eb692d4aed0325.jpg"],["refri-guarana","Guaraná Antarctica (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439272/180/Expresso-Delivery_7b9fd9864118bbdeef1157a8bb50edf7.jpg"]];await db.batch([...rows.map(([id,name,img],i)=>stmt(db,"INSERT OR IGNORE INTO products(id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order) SELECT ?,?,'Águas e Refrigerantes','Lata de 350 ml. Retirada no portão.',COALESCE((SELECT NULLIF(price_cents,0) FROM products WHERE id='produto-030'),600),10,0,1,'🥤',?,0,920+? WHERE NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",id,name,img,i,sodaPatch)),stmt(db,"UPDATE products SET active=0 WHERE id='produto-030' AND NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",sodaPatch),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',sodaPatch)]);}
+async function catalog(db,admin){await ensureSodaFlavors(db);
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
@@ -176,6 +178,13 @@ async function catalog(db,admin){
  return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options:admin?drink_options:drink_options.filter(o=>o.active&&(o.unlimited||o.stock>0)),drink_options_ready:true,online_enabled:false,best_sellers});
 }
 async function ensureOrderCycles(db){await run(db,'CREATE TABLE IF NOT EXISTS cash_order_cycles (cutoff INTEGER NOT NULL UNIQUE CHECK(cutoff>=0),created_at TEXT NOT NULL)');}
+const numberDay=(hour=6,at=Date.now())=>new Date(at-(3+hour)*3600000).toISOString().slice(0,10);
+async function ensureNumberSettings(db){await ensureOrderCycles(db);await run(db,"CREATE TABLE IF NOT EXISTS order_number_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN(0,1)),hour INTEGER NOT NULL CHECK(hour IN(0,4,6)),last_day TEXT NOT NULL)");await run(db,"INSERT OR IGNORE INTO order_number_settings VALUES(1,1,6,?)",numberDay());}
+const noActive="NOT EXISTS(SELECT 1 FROM orders WHERE status IN ('received','preparing','ready'))";
+const cutoff="MAX(COALESCE((SELECT seq FROM sqlite_sequence WHERE name='orders'),0),COALESCE((SELECT MAX(order_no) FROM orders),0))";
+const numberDue="EXISTS(SELECT 1 FROM order_number_settings WHERE id=1 AND enabled=1 AND last_day<CASE hour WHEN 0 THEN ? WHEN 4 THEN ? ELSE ? END)";
+function dailyNumberStatements(db,at){const ds=[0,4,6].map(h=>numberDay(h,at));return [stmt(db,"INSERT OR IGNORE INTO cash_order_cycles(cutoff,created_at) SELECT "+cutoff+",? WHERE "+noActive+" AND "+numberDue,new Date(at).toISOString(),...ds),stmt(db,"UPDATE order_number_settings SET last_day=CASE hour WHEN 0 THEN ? WHEN 4 THEN ? ELSE ? END WHERE id=1 AND "+noActive+" AND "+numberDue,...ds,...ds)];}
+async function numberSettings(db,body=null){await ensureNumberSettings(db);if(body){if(body.action==='reset'){if(body.confirmation!=='REINICIAR')reject('Confirme a reinicialização.');const settings=await one(db,'SELECT hour FROM order_number_settings WHERE id=1');const result=await db.batch([stmt(db,"INSERT OR IGNORE INTO cash_order_cycles(cutoff,created_at) SELECT "+cutoff+",? WHERE "+noActive,now()),stmt(db,"UPDATE order_number_settings SET last_day=? WHERE id=1 AND "+noActive,numberDay(settings.hour))]);if(!result[1].meta.changes)reject('Ainda existem pedidos ativos. Finalize a fila antes de reiniciar.',409);}else{if(typeof body.enabled!=='boolean'||![0,4,6].includes(body.hour))reject('Configuração inválida.');await run(db,'UPDATE order_number_settings SET enabled=?,hour=?,last_day=? WHERE id=1',Number(body.enabled),body.hour,numberDay(body.hour));}}return json({settings:await one(db,'SELECT enabled,hour,last_day FROM order_number_settings WHERE id=1')});}
 async function displayOrders(db,rows,field='order_no'){
  if(!rows.length)return rows;
  await ensureOrderCycles(db);
@@ -186,6 +195,7 @@ async function orderResult(db,o){const [display]=await displayOrders(db,[o]);ret
 
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
+ await ensureSodaFlavors(db);await ensureNumberSettings(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
@@ -231,6 +241,7 @@ async function createOrder(db,body){
  const stocks=JSON.stringify(stockRows),opstocks=JSON.stringify(optionRows);
  try{
  await db.batch([
+ ...dailyNumberStatements(db,Date.parse(date)),
  stmt(db,"INSERT INTO orders(id,public_token,first_name,last_name,payment_method,cash_given_cents,total_cents,age_required,created_at,updated_at) VALUES(CASE WHEN (SELECT accepting_orders FROM store_settings WHERE id=1)=1 THEN ? ELSE NULL END,?,?,?,?,?,?,?,?,?)",oid,publicToken,first,last,method,cash,total,Number(age),date,date),
  stmt(db,sqlItems,oid,payload),
  stmt(db,"INSERT INTO stock_reservations(order_id,kind,item_id,quantity) SELECT ?,'product',p.id,SUM(json_extract(j.value,'$.qty')) FROM json_each(?) j JOIN products p ON p.id=json_extract(j.value,'$.id') WHERE p.unlimited=0 GROUP BY p.id UNION ALL SELECT ?,'option',o.id,SUM(json_extract(j.value,'$.qty')) FROM json_each(?) j JOIN drink_options o ON o.id=json_extract(j.value,'$.id') WHERE o.unlimited=0 GROUP BY o.id",oid,stocks,oid,opstocks),
@@ -539,6 +550,8 @@ async function handler(request,env,ctx){
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(db,order);}
  if(route==='create-order'&&method==='POST'){await rate(db,request,'order',30,300);const result=await createOrder(db,body);if(validSubscription(body.subscription)){try{const {order}=await result.clone().json();await bindPush(db,order.id,body.subscription);}catch{/* The order is already saved; notifications are optional. */}}return result;}
+ if(route==='admin-order-number'&&method==='GET')return numberSettings(db);
+ if(route==='admin-order-number'&&method==='POST')return numberSettings(db,body);
  if(route==='admin-orders'&&method==='GET')return orders(db);
  if(route==='admin-cash'&&method==='GET')return cashReport(db);
  if(route==='admin-cash-archive'&&method==='POST')return archiveCash(db,body);
