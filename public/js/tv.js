@@ -7,6 +7,9 @@ let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue
 try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
 let tvPages={working:[],ready:[]},lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
+let referenceArtReady=false,artSpotlightKey='';
+function initReferenceArt(){const names=['tv-arte-personagens.png','tv-arte-logo.png','tv-arte-descanso.png'];Promise.all(names.map(name=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>im.naturalWidth?resolve():reject();im.onerror=reject;im.src='/img/'+name;}))).then(()=>{referenceArtReady=true;document.body.classList.add('tv-reference-ready');tvPages={working:[],ready:[]};if(started)renderTv(lastOrders);}).catch(()=>{});}
+function renderArtCall(ready){const latest=ready.slice().sort((a,b)=>Date.parse(b.ready_at)-Date.parse(a.ready_at)||Number(b.number)-Number(a.number))[0];const el=$('tvArtCall');el.classList.toggle('hidden',!latest);if(!latest){artSpotlightKey='';return;}const key=orderVoiceKey(latest);if(key===artSpotlightKey)return;artSpotlightKey=key;$('tvArtCallNumber').textContent=pad(latest.number);$('tvArtCallName').textContent=latest.public_name||latest.first_name;el.classList.remove('tv-art-new');void el.offsetWidth;el.classList.add('tv-art-new');}
 let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!=='off';}catch{}
 function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
 let voiceMode='auto',localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
@@ -51,7 +54,7 @@ try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket" data-tv-order="${esc(o.id)}"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvPages={working:[],ready:[]};tvSnapshot='';setDemand(false);updateIdle();}
+function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvPages={working:[],ready:[]};artSpotlightKey='';$('tvArtCall')?.classList.add('hidden');tvSnapshot='';setDemand(false);updateIdle();}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -115,13 +118,13 @@ function speakOrder(o){
   nextSpeech();
 }
 function renderTv(orders,rotate=false){
- const lanes=tvQueue(orders);lastOrders=orders;
+ const lanes=tvQueue(orders);lastOrders=orders;const limit=referenceArtReady?30:6;if(referenceArtReady)renderArtCall(lanes.ready);
  for(const [key,id] of [['working','preparingList'],['ready','readyList']]){
-  const list=lanes[key],el=$(id);tvPages[key]=stablePage(list,tvPages[key],rotate,6);
+  const list=lanes[key],el=$(id);tvPages[key]=stablePage(list,tvPages[key],rotate,limit);
   const selected=tvPages[key].map(id=>list.find(o=>o.id===id)).filter(Boolean);
   const markup=selected.length?selected.map(smallTicket).join(''):'<div class="tv-empty"><strong>'+(key==='working'?'Nenhum pedido em andamento.':'Aguardando pedidos prontos.')+'</strong></div>';
   if(el.dataset.markup!==markup){el.innerHTML=markup;el.dataset.markup=markup;}
-  el.dataset.count=String(selected.length);el.classList.toggle('tv-dense',selected.length>3);
+  el.dataset.count=String(selected.length);el.classList.toggle('tv-dense',selected.length>3);if(referenceArtReady){const cols=selected.length>20?3:selected.length>10?2:1;el.style.setProperty('--tv-art-columns',String(cols));el.style.setProperty('--tv-art-rows',String(Math.max(1,Math.ceil(selected.length/cols))));el.classList.toggle('tv-art-compact',selected.length>6);}
   $(key==='working'?'tvWorkingCount':'tvReadyCount').textContent=list.length+' no total'+(list.length>selected.length?' · '+selected.length+' por vez':'');
   el.setAttribute('aria-label',list.length+' pedidos '+(key==='working'?'em andamento':'prontos'));
  }
@@ -165,6 +168,7 @@ async function poll(){
 }
 function time(){ $('tvClock').textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date()); }
 function start(){
+  initReferenceArt();
   time();setInterval(time,10000);
   $('tvAuthForm').addEventListener('submit',e=>{e.preventDefault();if(checking)return;const code=$('tvKey').value.trim();if(!code)return tvError('Informe o código da TV.');tvClearCode();tvCode=code;retryAt=0;poll();});
   $('tvIdleEnabled').checked=idleEnabled;$('tvIdleEnabled').onchange=()=>{idleEnabled=$('tvIdleEnabled').checked;try{localStorage.setItem('adega_tv_idle_v1',idleEnabled?'on':'off');}catch{}updateIdle();};

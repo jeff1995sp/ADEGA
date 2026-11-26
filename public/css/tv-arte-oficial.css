@@ -1,0 +1,38 @@
+/* Original PNG assets: no image filters, no stretching. Previous TV remains functional until all 3 files load. */
+.tv-art-hero{display:none}
+body.tv-reference-ready .tv-concept-canvas{min-width:0;aspect-ratio:16/9;background:linear-gradient(110deg,#080708b5,#14090bcc 50%,#080708db),url('/img/comunidade-urbana.svg') center/cover;isolation:isolate;overflow:hidden;border:1px solid #e82a26}
+.tv-reference-ready .tv-art-hero{display:grid;position:absolute;inset:0 2% auto;height:34%;grid-template-columns:33% 27% 40%;align-items:center;gap:0}
+.tv-art-people,.tv-art-logo{height:100%;background-repeat:no-repeat;background-size:contain;background-position:center}
+.tv-art-people{background-image:url('/img/tv-arte-personagens.png')}.tv-art-logo{background-image:url('/img/tv-arte-logo.png')}
+.tv-art-message{padding:9% 3% 0 1%;font-family:'Barlow Condensed',Impact,sans-serif;min-width:0}
+.tv-art-live{font-size:clamp(10px,1.2vw,24px);color:#a5ff80;font-weight:800;letter-spacing:.08em}
+.tv-art-message h1{font-family:inherit;font-size:clamp(20px,3vw,60px);line-height:.96;font-style:italic;letter-spacing:.005em;text-shadow:2px 3px #000;color:#fff;margin:.2em 0;font-weight:900}
+.tv-art-message h1 em{color:#ffda00;font-style:inherit}
+.tv-art-call{border:2px solid #77ff18;box-shadow:0 0 11px #58ff00,inset 0 0 10px #267b0b;background:#071709;border-radius:10px;padding:.45vw .7vw;overflow:hidden}
+.tv-art-call.hidden{display:none}.tv-art-call div{display:flex;gap:.45em;align-items:center;white-space:nowrap;font-size:clamp(14px,2.05vw,40px);font-weight:900}.tv-art-call b{color:#7bff26}.tv-art-call strong{overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}.tv-art-call small{color:#ffe321;font-size:clamp(9px,1.08vw,21px);font-weight:800}
+.tv-art-new{animation:artPulse .5s ease-out}@keyframes artPulse{0%{opacity:.6;transform:scale(.98)}100%{opacity:1;transform:scale(1)}}
+.tv-reference-ready .hora-tv-intro,.tv-reference-ready .hora-tv-head{display:none}
+.tv-reference-ready .hora-tv-label{top:35%;height:6.2%;left:2%;width:47.2%;display:flex;align-items:center;gap:.4em;background:linear-gradient(100deg,#3b100e,#140909);border:2px solid #ff5034;border-radius:10px;padding:0 .8vw;color:#ffdb39;box-shadow:0 0 9px #fa3629;font-size:clamp(13px,2.1vw,42px);line-height:1;white-space:nowrap}
+.tv-reference-ready .hora-tv-label-ready{left:50.8%;background:linear-gradient(100deg,#123010,#071208);border-color:#75ff28;box-shadow:0 0 9px #57fd1d;color:#a1ff62}
+.tv-reference-ready .tv-queue-count{margin-left:auto;font-size:clamp(8px,.85vw,17px);white-space:normal}
+body.tv-reference-ready .tv-concept-canvas .tv-concept-list{left:2%;width:47.2%;top:42%;height:44%;padding:.45vw;display:grid;grid-auto-flow:column;grid-template-columns:repeat(var(--tv-art-columns,1),minmax(0,1fr));grid-template-rows:repeat(var(--tv-art-rows,1),minmax(0,1fr));gap:.35vw;border:1px solid #f54f2c;border-radius:10px;background:#0e090ce8;box-shadow:0 0 8px #df2c16;align-items:stretch}
+body.tv-reference-ready .tv-concept-canvas .tv-concept-ready{left:50.8%;border-color:#71fd2b;box-shadow:0 0 8px #55e91c}
+body.tv-reference-ready .tv-concept-canvas .tv-ticket{height:100%;min-width:0;min-height:0;padding:.15vw .5vw;gap:.4vw;animation:none;--tv-accent:#ffd52c;border:1px solid #ff762f;border-left:3px solid #ff762f;border-radius:6px;background:#21100f}
+body.tv-reference-ready .tv-concept-ready .tv-ticket{--tv-accent:#89ff3d;border-color:#79ff30;background:#0d2111}
+.tv-reference-ready .tv-ticket-number{flex:0 0 26%;padding-right:.25vw}.tv-reference-ready .tv-ticket-number span{display:none}
+body.tv-reference-ready .tv-concept-list .tv-ticket-number b{font-size:clamp(12px,1.65vw,34px)}
+body.tv-reference-ready .tv-concept-list .tv-ticket strong{font-size:clamp(14px,2.2vw,44px);text-shadow:1px 2px #000}
+body.tv-reference-ready .tv-concept-list .tv-ticket-status{font-size:clamp(8px,.8vw,16px);line-height:1}
+body.tv-reference-ready .tv-concept-list.tv-art-compact .tv-ticket strong{font-size:clamp(11px,1.15vw,23px)}
+body.tv-reference-ready .tv-concept-list.tv-art-compact .tv-ticket-number b{font-size:clamp(10px,1vw,20px)}
+body.tv-reference-ready .tv-concept-list.tv-art-compact .tv-ticket-status{font-size:clamp(7px,.62vw,13px)}
+.tv-reference-ready .tv-concept-list .tv-empty{height:100%;grid-column:1/-1;grid-row:1/-1}
+.tv-reference-ready .hora-tv-bottom{left:2%;right:2%;bottom:1.2%;padding:0;border:none;font-size:clamp(8px,.7vw,15px)}
+body.tv-reference-ready .tv-demand-notice{left:2%;right:2%;top:87%;height:8.5%;border:2px solid #ff392b;border-radius:10px;box-shadow:0 0 10px #ff301b;background:#190a09}
+body.tv-reference-ready .tv-concept-clock{right:1.4%;top:2.1%;width:13.7%;height:8%;background:#070707;color:white;font-size:clamp(15px,3vw,60px);border:2px solid #ff4938;border-radius:12px;z-index:8}
+body.tv-reference-ready .tv-concept-sound{left:65%;top:2.6%;width:18.2%;height:7%;background:#070707;border:2px solid #ff4938;border-radius:12px;z-index:8}
+body.tv-reference-ready .tv-idle{background:#050505 url('/img/tv-arte-descanso.png') center/contain no-repeat;z-index:7}
+.tv-reference-ready .tv-idle-brand,.tv-reference-ready .tv-idle-glow,.tv-reference-ready .tv-idle-address{display:none}
+body.tv-reference-ready .tv-is-idle .tv-concept-clock{z-index:9}
+body.tv-reference-ready .tv-is-idle .tv-concept-sound{z-index:9}
+@media(prefers-reduced-motion:reduce){.tv-art-new{animation:none}}
