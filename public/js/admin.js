@@ -74,7 +74,12 @@ function renderStats(){
   renderServiceMetrics();$('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
 let orderFilter='all',orderSearch='',selectedOrderId=null,initialOrderSelection=true;
-let soloMode=false,soloView='prep';
+let soloMode=false,soloView='prep',soloWakeLock=null,soloWakePending=false;
+async function syncSoloWakeLock(){
+ if(!soloMode||activeTab!=='orders'||document.hidden||!authRead()?.token||$('appScreen').classList.contains('hidden')){const lock=soloWakeLock;soloWakeLock=null;if(lock)try{await lock.release();}catch{}return;}
+ if(soloWakeLock||soloWakePending||!navigator.wakeLock)return;
+ soloWakePending=true;try{const lock=await navigator.wakeLock.request('screen');if(!soloMode||activeTab!=='orders'||document.hidden||!authRead()?.token||$('appScreen').classList.contains('hidden')){await lock.release();return;}soloWakeLock=lock;lock.addEventListener('release',()=>{if(soloWakeLock===lock)soloWakeLock=null;});}catch{}finally{soloWakePending=false;}
+}
 let serviceMetrics={count:0,average_seconds:null};
 function renderServiceMetrics(){const el=$('serviceAverage');if(!el)return;const n=Number(serviceMetrics.count)||0,seconds=serviceMetrics.average_seconds;el.textContent=n&&Number.isFinite(seconds)?Math.floor(seconds/60)+'m '+Math.round(seconds%60)+'s':'—';$('serviceSamples').textContent=n?n+' pedidos prontos hoje · do recebimento até ficar pronto':'Sem pedidos prontos hoje';}
 function selectOrder(id){selectedOrderId=id;initialOrderSelection=false;renderOrders();}
@@ -85,7 +90,8 @@ function renderOrders(){
   $('soloControls').onclick=e=>{
    const b=e.target.closest('button[data-solo]');if(!b||busy)return;
    const kind=b.dataset.solo;
-   if(kind==='toggle'){soloMode=!soloMode;soloView='prep';selectedOrderId=null;initialOrderSelection=!soloMode;}
+   if(kind==='demand'){if(!demandBusy&&!ordersConnectionFailed)$('demandToggle').click();return;}
+   if(kind==='toggle'){soloMode=!soloMode;soloView='prep';selectedOrderId=null;initialOrderSelection=!soloMode;void syncSoloWakeLock();}
    if(kind==='prep'){soloView='prep';selectedOrderId=null;}
    if(kind==='pickup'){soloView='pickup';selectedOrderId=b.dataset.pickupId||soloQueue(orders).ready[0]?.id||null;}
    renderOrders();
@@ -105,7 +111,7 @@ function renderOrders(){
   initialOrderSelection=false;
  }
  const soloMarkup='<div class="solo-heading"><div><span class="eyebrow">HORA EXTRA • OPERAÇÃO SOLO</span><strong>'+(soloMode?'Um pedido por vez':'Atendendo sozinho?')+'</strong></div><button type="button" data-solo="toggle" class="btn btn-'+(soloMode?'secondary':'primary')+'">'+(soloMode?'Voltar à lista':'Ativar modo solo')+'</button></div>'+
- (soloMode?'<div class="solo-nav"><button type="button" class="btn btn-'+(soloView==='prep'?'primary':'secondary')+'" data-solo="prep">Preparo · '+(solo.working.length+solo.waiting.length)+'</button><button type="button" class="btn btn-'+(soloView==='pickup'?'primary':'secondary')+'" data-solo="pickup" '+(!solo.ready.length?'disabled':'')+'>Retiradas · '+solo.ready.length+'</button></div>'+
+ (soloMode?'<div class="solo-demand"><div><b>'+(demandActive?'⚡ Alta demanda ativa':'Movimento normal')+'</b><small>Comunicado no site e na TV · '+(demandManual?'manual':'automático')+'</small></div><button type="button" class="btn btn-'+(demandManual?'secondary':'primary')+'" data-solo="demand" '+(demandBusy||ordersConnectionFailed||!lastOrdersAt?'disabled':'')+'>'+(demandManual?'Voltar ao automático':'Avisar clientes')+'</button></div><div class="solo-nav"><button type="button" class="btn btn-'+(soloView==='prep'?'primary':'secondary')+'" data-solo="prep">Preparo · '+(solo.working.length+solo.waiting.length)+'</button><button type="button" class="btn btn-'+(soloView==='pickup'?'primary':'secondary')+'" data-solo="pickup" '+(!solo.ready.length?'disabled':'')+'>Retiradas · '+solo.ready.length+'</button></div>'+
  (ordersConnectionFailed?'<div class="notice danger">Sem conexão. Aguarde a fila atualizar antes de avançar.</div>':'')+
  (solo.working.length>1?'<div class="notice danger">Há mais de um pedido iniciado anteriormente. Conclua os já iniciados antes de abrir novos.</div>':'')+
  (solo.blocked.length?'<div class="notice">'+solo.blocked.length+' pedido(s) aguardando confirmação do pagamento online.</div>':'')+
@@ -303,7 +309,7 @@ async function loadAudit(append=false){
  }catch(e){if(version===auditVersion){if(!append)$('auditList').textContent='Não foi possível carregar a auditoria. '+e.message;toast(e.message,true);}}
  finally{if(version===auditVersion){auditLoading=false;$('auditMore').disabled=false;}}
 }
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['overview','orders','preparation','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={overview:'Central de gestão',orders:'Pedidos ao vivo',preparation:'Central de preparo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();if(activeTab==='overview')renderOverview();if(activeTab==='preparation')renderPreparation();document.querySelectorAll('.side-link').forEach(el=>{if(el.dataset.tab===tab)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['overview','orders','preparation','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={overview:'Central de gestão',orders:'Pedidos ao vivo',preparation:'Central de preparo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();if(activeTab==='overview')renderOverview();if(activeTab==='preparation')renderPreparation();void syncSoloWakeLock();document.querySelectorAll('.side-link').forEach(el=>{if(el.dataset.tab===tab)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});}
 let preparationMarkupKey='';
 function renderPreparation(){
  const fresh=$('preparationFreshness');
@@ -505,7 +511,7 @@ async function performAction(btn){
   try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});if(advanceSolo){await refreshOrders(true);const s=soloQueue(orders);if(!ordersConnectionFailed&&!s.working.length&&s.current&&soloEligible(s.current)){try{await api('admin-order-action',{id:s.current.id,action:'status',value:'preparing',solo:true},{admin:true});}catch(e){toast('Pedido anterior pronto. Confira o próximo: '+e.message,true);}}}toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{try{await refreshOrders(true);}finally{busy=false;}await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();soloMode=false;soloView='prep';selectedOrderId=null;initialOrderSelection=true;serviceMetrics={count:0,average_seconds:null};renderServiceMetrics();orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();soloMode=false;soloView='prep';void syncSoloWakeLock();selectedOrderId=null;initialOrderSelection=true;serviceMetrics={count:0,average_seconds:null};renderServiceMetrics();orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 let reviewsBusy=false;
 async function loadAdminReviews(){
@@ -545,7 +551,7 @@ async function start(){
  $('pickupTestSaved').onclick=()=>{const btn=$('pickupTestSaved'),out=$('pickupTestResult');if(!navigator.geolocation){out.textContent='GPS indisponível neste dispositivo.';return;}btn.disabled=true;out.textContent='Consultando localização…';navigator.geolocation.getCurrentPosition(async p=>{try{const r=await api('check-location',{position:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}});out.textContent=r.message+(Number.isFinite(r.distance)?' Distância: '+r.distance+' m · precisão: '+r.accuracy+' m · raio salvo: '+r.radius+' m.':'');}catch(e){out.textContent=e.message;}finally{btn.disabled=false;}},()=>{out.textContent='Permita o GPS preciso e tente novamente.';btn.disabled=false;},{enableHighAccuracy:true,maximumAge:0,timeout:15000});};
  $('overviewRefresh').onclick=async()=>{const b=$('overviewRefresh');b.disabled=true;try{await refreshData(false,true);}finally{b.disabled=false;renderOverview();}};
  $('tab-overview').addEventListener('click',e=>{const b=e.target.closest('[data-admin-jump]');if(!b)return;setTab(b.dataset.adminJump);if(b.dataset.adminJump==='inventory'){const filter=b.dataset.adminFilter||'all';if(filter==='options'){inventoryFilter='Sabores';}else{inventoryStatus=filter;$('inventoryStatus').value=filter;}renderInventory();}window.scrollTo({top:0,behavior:'instant'});});
- $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso manual enviado à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
+ $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;if(soloMode)renderOrders();try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso de alta demanda enviado ao site e à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;if(soloMode)renderOrders();}};
  $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
  $('resetCash').onclick=()=>openCashAction('reset');
  $('cashSearch').oninput=renderCashTransactions;$('cashMethod').onchange=renderCashTransactions;
@@ -665,7 +671,7 @@ async function start(){
   setInterval(()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);},3000);
   setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshData(true,false);},30000);
   window.addEventListener('focus',()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
+  document.addEventListener('visibilitychange',()=>{void syncSoloWakeLock();if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
   setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden')&&activeTab==='cash')loadReport();},30000);
 }
 start();

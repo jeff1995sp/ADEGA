@@ -49,7 +49,7 @@ function updateSoundUI(message){
 }
 function preloadLocalVoice(){if(useLocalAudio())loadLocalVoice().catch(()=>{if(!soundEnabled)updateSoundUI('⚠ Áudio local indisponível. Toque em Ativar voz para tentar novamente.');});}
 const DEMAND_INTERVAL=5*60*1000;
-const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o normal. Obrigado pela compreensão.';
+const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o previsto. Obrigado pela paciência e pela preferência.';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket" data-tv-order="${esc(o.id)}"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
@@ -115,7 +115,8 @@ function announceDemand(){
   nextSpeech();
 }
 function speakOrder(o){
-  queue.push({orderKey:orderVoiceKey(o),text:o.status==='preparing'?`${o.first_name}, pedido número ${o.number}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, pedido número ${o.number}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
+  const call={orderKey:orderVoiceKey(o),text:o.status==='preparing'?`${o.first_name}, pedido número ${o.number}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, pedido número ${o.number}, seu pedido está pronto! Aguarde a entrega no portão. Obrigado pela preferência!`,voice:o.voice||'female'};
+  const noticeIndex=queue.findIndex(item=>item.demand);if(noticeIndex<0)queue.push(call);else queue.splice(noticeIndex,0,call);
   nextSpeech();
 }
 function renderTv(orders,rotate=false){

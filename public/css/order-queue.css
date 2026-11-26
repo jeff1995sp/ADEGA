@@ -16,3 +16,5 @@
 .solo-next{padding:10px 12px;margin:0;border-radius:9px;background:#ffffff0b;font-weight:700;overflow-wrap:anywhere}
 .solo-pickups{display:grid;gap:8px;max-height:240px;overflow:auto}.solo-pickup{display:grid!important;text-align:left;gap:4px;white-space:normal;min-height:58px}.solo-pickup small{font-size:.8rem}.solo-pickup[aria-pressed=true]{outline:2px solid #ffcf8c}
 .solo-active .order-actions .btn-primary{min-height:58px;width:100%;font-size:1rem;font-weight:800;white-space:normal}.solo-active .order-card{max-width:850px;margin-inline:auto}.solo-active .order-name{overflow-wrap:anywhere}
+
+.solo-demand{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1px solid #71313e;border-radius:10px;background:#302027}.solo-demand>div{display:grid;gap:4px}.solo-demand small{font-size:.78rem;color:#dfccd0}.solo-demand b{color:#ffcf8c}.solo-demand .btn{min-height:44px;white-space:normal}
