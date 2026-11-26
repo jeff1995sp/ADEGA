@@ -95,4 +95,4 @@ INSERT OR IGNORE INTO drink_options (id,option_group,name,active,stock,unlimited
 ('energy-12','energy','Red Bull Maçã Sugarfree',0,0,0,12),
 ('energy-13','energy','Red Bull Amora Sugarfree — Frutas Vermelhas',0,0,0,13),
 ('energy-14','energy','Red Bull Pomelo Sugarfree',0,0,0,14),
-('energy-99','energy','Vibe Original',0,0,0,99);
+('energy-99','energy','Vibe Original',1,0,1,99);

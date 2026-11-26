@@ -168,7 +168,10 @@ async function ensureColaAndEnergyFlavors(db){
  stmt(db,"INSERT OR IGNORE INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-101','energy','Energético — Tropical',0,0,0,101),('energy-102','energy','Energético — Melancia',0,0,0,102)"),
  stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',patch)]);
 }
-async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);
+async function ensureIncludedVibe(db){
+ await run(db,"INSERT INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-99','energy','Vibe Original',1,0,1,99) ON CONFLICT(id) DO UPDATE SET active=1,unlimited=1 WHERE drink_options.active<>1 OR drink_options.unlimited<>1");
+}
+async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
@@ -203,7 +206,7 @@ async function orderResult(db,o){const [display]=await displayOrders(db,[o]);ret
 
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
- await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureNumberSettings(db);
+ await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);await ensureNumberSettings(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
@@ -569,7 +572,7 @@ async function handler(request,env,ctx){
  if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);await ensureInternalInventory(db);return productsAdmin(db,body,method);}
  if(route==='admin-photo'&&method==='POST')return photo(db,body);
  if(route==='admin-drink-options'&&method==='PATCH'){
- if(!idOk(body.id))reject('Sabor inválido.');const p={};
+ if(!idOk(body.id))reject('Sabor inválido.');if(body.id==='energy-99')reject('Vibe já está incluso nas doses e não possui controle individual de estoque. Pause a dose para suspender a venda.',409);const p={};
  if(body.active!==undefined){if(typeof body.active!=='boolean')reject('Status inválido.');p.active=body.active;}
  if(body.stock!==undefined){if(!int(body.stock,0,MAX_STOCK))reject('Estoque inválido.');p.stock=body.stock;}
  return json({option:await patchRow(db,'drink_options',body.id,p)});

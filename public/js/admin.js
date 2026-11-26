@@ -153,9 +153,9 @@ function renderDrinkOptions(){
    const status=!o.active?'Pausado':state?'Disponível':'Esgotado';
    return `<div class="inventory-row" style="grid-template-columns:1.4fr .7fr 1fr">
     <div><b>${esc(o.name)}</b><div class="tiny">${esc(status)}</div></div>
-    <div class="controls">${o.unlimited?'<span class="pill good">Sem estoque físico</span>':`<input class="stock-set" type="number" min="0" max="1000000" value="${o.stock}" data-option-stock-input="${esc(o.id)}" aria-label="Estoque ${esc(o.name)}">
+    <div class="controls">${o.id==='energy-99'?'<span class="pill good">Incluso na dose · sem estoque</span>':o.unlimited?'<span class="pill good">Sem estoque físico</span>':`<input class="stock-set" type="number" min="0" max="1000000" value="${o.stock}" data-option-stock-input="${esc(o.id)}" aria-label="Estoque ${esc(o.name)}">
     ${button('Salvar qtd.','optionstock',o.id)}`}</div>
-    <div class="controls">${button(o.active?'Pausar sabor':'Ativar sabor','optiontoggle',o.id,'',o.active?'danger':'primary')}</div>
+    <div class="controls">${o.id==='energy-99'?'<span class="tiny sub">Sempre disponível nas doses com Vibe</span>':button(o.active?'Pausar sabor':'Ativar sabor','optiontoggle',o.id,'',o.active?'danger':'primary')}</div>
    </div>`;
   }).join('')}</section>`;
  }).join('');
