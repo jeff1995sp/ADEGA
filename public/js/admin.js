@@ -87,7 +87,7 @@ function renderOrders(){
    const kind=b.dataset.solo;
    if(kind==='toggle'){soloMode=!soloMode;soloView='prep';selectedOrderId=null;initialOrderSelection=!soloMode;}
    if(kind==='prep'){soloView='prep';selectedOrderId=null;}
-   if(kind==='pickup'){soloView='pickup';selectedOrderId=b.dataset.pickupId||null;}
+   if(kind==='pickup'){soloView='pickup';selectedOrderId=b.dataset.pickupId||soloQueue(orders).ready[0]?.id||null;}
    renderOrders();
   };
   $('orderQueueSearch').oninput=e=>{orderSearch=e.target.value;renderOrders();};
