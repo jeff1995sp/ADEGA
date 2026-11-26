@@ -18,7 +18,7 @@ const visibleInCatalog=p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)&&(
 const desiredQty=p=>[...cart.values()].filter(i=>i.id===p.id).reduce((sum,i)=>sum+i.quantity,0);
 const optionById=id=>drinkOptions.find(o=>o.id===id);
 const drinkChoiceList=(group,p)=>drinkOptions.filter(o=>o.option_group===group&&(group!=='energy'||energyMatchesDose(p,o)));
-const hasDrinkOptions=p=>drinkChoiceList('ice',p).some(optionAvailable)&&drinkChoiceList('energy',p).some(optionAvailable);
+const hasDrinkOptions=p=>drinkChoiceList('ice',p).some(remainingOption)&&drinkChoiceList('energy',p).some(remainingOption);
 const iceSummary=item=>{
  if(validShake(item.shake_alcohol))return item.shake_alcohol==='com'?'Com álcool':'Sem álcool';
  if(!item.ice_id)return '';
@@ -27,6 +27,7 @@ const iceSummary=item=>{
 const getAvailableOption=id=>{const o=optionById(id);return optionAvailable(o)?o:null;};
 const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce((s,i)=>s+i.quantity,0);
 const remainingOption=o=>optionAvailable(o)&&(o.unlimited||amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')<o.stock);
+const availableOptionMarkup=(choices,placeholder)=>`<option value="">${esc(placeholder)}</option>`+choices.filter(remainingOption).map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
 const preferredEnergy=(choices,name)=>choices.find(o=>o.name===name&&remainingOption(o))||choices.find(remainingOption);
 
 const productCard=(p,featured=false)=>{
@@ -194,7 +195,7 @@ function cleanCart(){
 function refreshHouseGinEnergy(){
  const p=doseSelected;if(!isHouseGin(p))return;
  const kind=$('doseEnergyKind').value,choices=drinkChoiceList('energy',p).filter(o=>kind==='common'?isCommonEnergy(o):kind==='redbull'&&String(o.name).startsWith('Red Bull')).filter(remainingOption);
- $('doseEnergy').innerHTML='<option value="">Escolha o sabor</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
+ $('doseEnergy').innerHTML=availableOptionMarkup(choices,'Escolha o sabor');
  $('doseEnergy').disabled=!kind;
  const choice=kind?preferredEnergy(choices,kind==='redbull'?'Red Bull Original':'Energético'):null;
  $('doseEnergy').value=choice?.id||'';
@@ -209,8 +210,8 @@ function showDoseConfigurator(p){
  $('dosePrice').textContent=fmt(p.price_cents)+' • Copo de 700 ml • Gelo e energético inclusos';
  const choices=drinkChoiceList('ice',p).filter(remainingOption);
  const energies=drinkChoiceList('energy',p).filter(remainingOption);
- $('doseIce').innerHTML='<option value="">Escolha o gelo</option>'+choices.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
- $('doseEnergy').innerHTML='<option value="">Escolha o energético</option>'+energies.map(o=>`<option value="${esc(o.id)}" ${!optionAvailable(o)?'disabled':''}>${esc(o.name)}${optionAvailable(o)?'':' (indisponível)'}</option>`).join('');
+ $('doseIce').innerHTML=availableOptionMarkup(choices,'Escolha o gelo');
+ $('doseEnergy').innerHTML=availableOptionMarkup(energies,'Escolha o energético');
  const vibe=p.name.toLowerCase().includes('com vibe');
  $('doseEnergyLabel').textContent=vibe?'Vibe incluído':'Red Bull incluído — sabor';
  const house=isHouseGin(p),form=$('doseForm'),iceField=$('doseIce').closest('.form-field'),energyField=$('doseEnergy').closest('.form-field');
@@ -274,6 +275,11 @@ async function loadCatalog(){
     setBrand(shop.name);updateLocationPanel();
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
+    if($('doseModal').classList.contains('open')&&doseSelected){
+      const p=products.find(x=>x.id===doseSelected.id),ice=$('doseIce').value,energy=$('doseEnergy').value,kind=$('doseEnergyKind').value;
+      if(!p||!available(p)||!hasDrinkOptions(p)||(!p.unlimited&&desiredQty(p)>=p.stock)){close('doseModal');doseSelected=null;toast('A disponibilidade desta dose mudou. Confira o cardápio.',true);}
+      else {showDoseConfigurator(p);if(isHouseGin(p)&&[...$('doseEnergyKind').options].some(o=>o.value===kind&&kind)){ $('doseEnergyKind').value=kind;refreshHouseGinEnergy(); }if([...$('doseEnergy').options].some(o=>o.value===energy&&energy))$('doseEnergy').value=energy;if([...$('doseIce').options].some(o=>o.value===ice&&ice))$('doseIce').value=ice;syncChoiceCards();}
+    }
     if($('cartModal').classList.contains('open')){
       if(!count())close('cartModal');
       else {renderCheckoutSummary();renderCheckoutExtras();}
@@ -325,19 +331,20 @@ const renderCheckoutSummary=()=>{
 const renderCheckoutExtras=()=>{
  const panel=$('checkoutExtras');
  if(!panel)return;
- panel.classList.toggle('hidden',extrasDismissed);
- if(extrasDismissed)return;
- $('checkoutExtrasList').innerHTML=checkoutExtras.map(extra=>{
+ const rows=extrasDismissed?[]:checkoutExtras.map(extra=>{
   const p=extraProduct(extra.key);
   const usable=Boolean(p&&available(p)&&(!p.unlimited?desiredQty(p)<p.stock:true));
   const qty=p?desiredQty(p):0;
-  const description=usable?fmt(p.price_cents):'Indisponível no momento';
+  if(!usable)return '';
+  const description=fmt(p.price_cents);
   return `<div class="checkout-extra">
    <span class="checkout-extra-emoji" aria-hidden="true">${extra.icon}</span>
    <div class="checkout-extra-name"><strong>${esc(extra.label)}</strong><small>${esc(description)}${qty?' · '+qty+' no pedido':''}</small></div>
    <button type="button" class="btn btn-secondary btn-sm" data-checkout-extra="${esc(extra.key)}" ${usable?'':'disabled'}>${usable?'+ Adicionar':'Indisponível'}</button>
   </div>`;
  }).join('');
+ $('checkoutExtrasList').innerHTML=rows;
+ panel.classList.toggle('hidden',!rows);
 };
 const addCheckoutExtra=key=>{
  const p=extraProduct(key);
@@ -364,7 +371,8 @@ async function checkEntryLocation(){
  if(locationBusy)return;locationBusy=true;const btn=$('entryLocation');btn.disabled=true;$('entryLocationResult').textContent='Consultando GPS…';
  try{const position=await readCurrentPosition();locationOptIn=true;try{sessionStorage.setItem('adega_gps_optin','1');}catch{}const r=await api('check-location',{position});$('entryLocationResult').textContent=r.message+(Number.isFinite(r.distance)?' Distância aproximada: '+r.distance+' m · precisão: '+r.accuracy+' m.':'');btn.textContent='Verificar novamente';}catch(e){locationOptIn=false;try{sessionStorage.removeItem('adega_gps_optin');}catch{}$('entryLocationResult').textContent='Não foi possível confirmar a localização. Você pode pedir normalmente sem GPS.';}finally{locationBusy=false;btn.disabled=false;}
 }
-function showEntryPermissions(){if(permissionPanelShown)return;permissionPanelShown=true;$('entryPermissions').classList.remove('hidden');updateLocationPanel();void initNotifications();}
+function dismissEntryPermissions(){ $('entryPermissions').classList.add('hidden');try{sessionStorage.setItem('adega_permissions_dismissed','1');}catch{} }
+function showEntryPermissions(){if(permissionPanelShown)return;permissionPanelShown=true;let dismissed=false;try{dismissed=sessionStorage.getItem('adega_permissions_dismissed')==='1';}catch{}if(!dismissed)$('entryPermissions').classList.remove('hidden');updateLocationPanel();void initNotifications();}
 function updatePickupNotice(message=''){
  const el=$('pickupLocationNotice');
  el.classList.toggle('hidden',!shop.location_required&&!message);
@@ -495,18 +503,51 @@ async function loadTracking(){
     const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
     $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${order.status==='received'&&order.payment_status==='pending'?'<div class="notice"><p class="small">Você pode cancelar enquanto a adega ainda não iniciou o preparo.</p><button type="button" class="btn btn-danger btn-wide" id="customerCancelOrder">Cancelar meu pedido</button></div>':order.status==='preparing'||order.status==='ready'?'<p class="small sub">O preparo já começou. Se precisar cancelar, fale com o atendente.</p>':''}${reviewPanel(order)}</div>`;
+    if(order.status==='ready'){let seen=false;const key='adega_ready_seen_'+trackingId;try{seen=localStorage.getItem(key)==='1';if(!seen)localStorage.setItem(key,'1');}catch{seen=readyNoticeId===trackingId;}if(!seen){readyNoticeId=trackingId;toast('Seu pedido está pronto! Retire no portão em até 15 minutos.');}}
     void bindNotifications();maybePromptReview(order);
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
 }
-let pushRegistration=null,pushKey=null,pushSubscription=null,pushBound='',pushBinding=false,pushLast=0;
+let pushRegistration=null,pushKey=null,pushSubscription=null,pushBound='',pushBinding=false,pushLast=0,readyNoticeId='';
 const supportsPush=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const notificationText=s=>{$('entryNotifyText').textContent=s;};
+function notificationPrepared(){
+ notificationText('Avisos autorizados. Serão vinculados ao seu pedido.');
+ $('entryNotify').classList.add('hidden');
+ $('entryNotify').closest('.entry-permissions-row')?.classList.add('hidden');
+ if(!shop.location_required||locationOptIn)dismissEntryPermissions();
+ pushLast=0;void bindNotifications();
+}
 async function initNotifications(){
  const b=$('entryNotify');if(!supportsPush()){notificationText('No iPhone, adicione o site à Tela de Início e abra por lá. Se não for compatível, acompanhe pela TV.');return;}
- try{const [k]=await Promise.all([api('push-key',null,{method:'GET'}),navigator.serviceWorker.register('/pedido-sw.js',{scope:'/'})]);pushRegistration=await navigator.serviceWorker.ready;const s=k.public_key;pushKey=Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-s.length%4)%4)),c=>c.charCodeAt(0));pushSubscription=await pushRegistration.pushManager.getSubscription();if(pushSubscription&&Notification.permission==='granted'){notificationText('Avisos ativados neste celular.');b.classList.add('hidden');void bindNotifications();}else if(Notification.permission==='denied')notificationText('Notificações bloqueadas. Altere nas permissões do navegador ou acompanhe pela TV.');else b.disabled=false;}catch{notificationText('Não foi possível preparar avisos. Acompanhe pela TV.');}
+ try{
+  const [k,reg]=await Promise.all([api('push-key',null,{method:'GET'}),navigator.serviceWorker.register('/pedido-sw.js',{scope:'/'})]);
+  pushRegistration=reg.active?reg:await navigator.serviceWorker.ready;
+  const key=k.public_key;pushKey=Uint8Array.from(atob(key.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-key.length%4)%4)),c=>c.charCodeAt(0));
+  pushSubscription=await pushRegistration.pushManager.getSubscription();
+  const savedKey=pushSubscription?.options?.applicationServerKey;
+  if(savedKey){const bytes=new Uint8Array(savedKey);if(bytes.length!==pushKey.length||bytes.some((v,i)=>v!==pushKey[i])){await pushSubscription.unsubscribe();pushSubscription=null;}}
+  if(Notification.permission==='granted'&&pushSubscription){notificationPrepared();}
+  else if(Notification.permission==='denied'){notificationText('Notificações bloqueadas. Altere nas permissões do navegador ou acompanhe pela TV.');}
+  else {b.disabled=false;notificationText('Ative os avisos para receber a chamada do seu pedido.');}
+ }catch{notificationText('Não foi possível preparar avisos. Tente novamente ou acompanhe pela TV.');b.disabled=false;}
 }
-async function enableNotifications(){const b=$('entryNotify');b.disabled=true;try{pushSubscription=await pushRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushKey});notificationText('Avisos ativados neste celular.');b.classList.add('hidden');pushLast=0;void bindNotifications();}catch{notificationText('Aviso não autorizado. Você pode acompanhar pela TV.');b.disabled=Notification.permission==='denied';}}
-async function bindNotifications(){if(!currentOrder||trackingFinished||!pushSubscription||Notification.permission!=='granted'||pushBinding||pushBound===currentOrder.id||Date.now()-pushLast<10000)return;const o=currentOrder;pushBinding=true;pushLast=Date.now();try{const r=await api('order-push',{id:o.id,token:o.token,subscription:pushSubscription.toJSON()});if(r.registered)pushBound=o.id;}catch{notificationText('Não foi possível vincular aviso. Acompanhe pela TV.');}finally{pushBinding=false;}}
+async function enableNotifications(){
+ const b=$('entryNotify');b.disabled=true;
+ try{
+  if(!pushRegistration||!pushKey){await initNotifications();if(!pushRegistration||!pushKey)throw Error('Avisos indisponíveis');}
+  if(Notification.permission==='default')await Notification.requestPermission();
+  if(Notification.permission!=='granted')throw Error('Permissão não concedida');
+  pushSubscription=await pushRegistration.pushManager.getSubscription()||await pushRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:pushKey});
+  pushBound='';notificationPrepared();
+ }catch{notificationText('Não foi possível ativar o aviso. Tente novamente ou acompanhe pela TV.');b.disabled=Notification.permission==='denied';}
+}
+async function bindNotifications(){
+ if(!currentOrder||trackingFinished||!pushSubscription||Notification.permission!=='granted'||pushBinding||pushBound===currentOrder.id||Date.now()-pushLast<10000)return;
+ const o=currentOrder;pushBinding=true;pushLast=Date.now();
+ try{const r=await api('order-push',{id:o.id,token:o.token,subscription:pushSubscription.toJSON()});if(r.registered){pushBound=o.id;notificationText('Avisos vinculados ao seu pedido.');}}
+ catch{notificationText('Não foi possível vincular aviso. Acompanhe pela TV.');}
+ finally{pushBinding=false;}
+}
 
 function syncChoiceCards(){
  for(const id of ['shakeAlcohol','doseEnergyKind','doseEnergy','doseIce']){
@@ -527,7 +568,7 @@ function syncChoiceCards(){
  }
 }
 function start(){
-  $('entryLocation').onclick=checkEntryLocation;$('entryPermissionsDismiss').onclick=()=>$('entryPermissions').classList.add('hidden');
+  $('entryLocation').onclick=checkEntryLocation;$('entryPermissionsDismiss').onclick=dismissEntryPermissions;
   $('entryNotify').onclick=enableNotifications;
   const header=document.querySelector('.hora-nav');
   // Keep one cart node; a fixed element must not inherit the sticky header's containing block.
