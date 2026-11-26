@@ -54,7 +54,7 @@ try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
 const smallTicket=o=>`<article class="tv-ticket" data-tv-order="${esc(o.id)}"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvPages={working:[],ready:[]};artSpotlightKey='';$('tvArtCall')?.classList.add('hidden');tvSnapshot='';setDemand(false);updateIdle();}
+function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvPages={working:[],ready:[]};artSpotlightKey='';$('tvArtCall')?.classList.add('hidden');tvSnapshot='';setDemand(false);setOrderFlowNotice(false);updateIdle();}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -101,9 +101,10 @@ function nextSpeech(){
   if(!soundEnabled || speaking || !queue.length)return;
   const item=queue.shift();if(item.demand){if(!demandActive)return nextSpeech();lastDemandSpeech=Date.now();}say(item.text,item.voice);
 }
+function setOrderFlowNotice(active){$('tvOrderFlowNotice').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-flow-notice-active',active);}
 function setDemand(active){
   if(!active){lastDemandSpeech=null;queue=queue.filter(item=>!item.demand);}
-  demandActive=active;
+  demandActive=active;$('tvBoard').classList.toggle('tv-demand-active',active);
   $('tvDemandNotice').classList.toggle('hidden',!active);
 }
 function announceDemand(){
@@ -145,7 +146,7 @@ async function poll(){
     const d=await api('tv',null,{method:'GET',tvCode:code,timeout:12000});
     if(tvCode!==code)return;
     if(!Array.isArray(d.orders))throw Error('Resposta inválida do painel da TV.');
-    setDemand(d.high_demand===true);
+    setDemand(d.high_demand===true);setOrderFlowNotice(d.out_of_sequence===true);
     const rows=d.orders,snapshot=JSON.stringify(rows);
     if(snapshot!==tvSnapshot||!started){renderTv(rows);tvSnapshot=snapshot;}
     connected=true;retryAt=0;updateIdle();announceDemand();

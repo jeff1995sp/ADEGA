@@ -59,3 +59,33 @@ body.tv-reference-ready .hora-tv-bottom .hora-developer-service{display:none}
 .tv-body .tv-idle-credit{position:absolute;bottom:1.5%;right:2%;display:flex;max-width:96%;z-index:2}
 .tv-body .tv-idle-credit .tv-developer-credit{font-size:clamp(11px,1.35vw,26px);padding:.5em .7em;background:#171217f5}
 @media(max-width:720px){body.tv-reference-ready .hora-tv-bottom{height:auto;flex-wrap:wrap;justify-content:center;gap:2px}body.tv-reference-ready .hora-tv-bottom .tv-developer-credit{font-size:8px}.tv-body .tv-idle-credit{bottom:1%;right:1%}.tv-body .tv-idle-credit .tv-developer-credit{font-size:10px}.tv-body .tv-developer-credit .hora-developer-service{display:none}}
+
+/* Street-art notice: uses the existing lower announcement zone, never the order lanes. */
+.tv-body .tv-flow-notice{position:absolute;left:5%;right:5%;top:81%;height:10.6%;box-sizing:border-box;z-index:5;display:flex;align-items:center;gap:1.2%;padding:.4% 1%;overflow:hidden;isolation:isolate;background:linear-gradient(105deg,#321308,#17100b 45%,#221609);border:2px solid #ffae25;border-radius:10px;box-shadow:0 0 8px #ff9a20a0,inset 0 0 12px #bf480b22;text-align:left;color:#fff}
+.tv-body .tv-flow-notice.hidden{display:none}
+.tv-body .tv-flow-notice::before{content:'';position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(125deg,transparent 0 20px,#fcd15d08 20px 21px,transparent 21px 40px);pointer-events:none}
+.tv-body .tv-flow-mark{display:grid;place-items:center;flex:none;width:4%;aspect-ratio:1;background:linear-gradient(140deg,#ffdf30,#ff751a);color:#251003;border-radius:7px;box-shadow:3px 3px #080809}
+.tv-body .tv-flow-mark svg{width:76%;height:76%}
+.tv-body .tv-flow-heading{display:grid;gap:.15em;flex:none;padding-right:1.2%;border-right:1px solid #ffb94f55;max-width:44%}
+.tv-body .tv-flow-heading small{font-size:clamp(7px,.62vw,14px);font-weight:800;letter-spacing:.1em;color:#ffb765;white-space:nowrap}
+.tv-body .tv-flow-heading strong{font-family:'Barlow Condensed',Impact,sans-serif;font-size:clamp(12px,2.05vw,41px);line-height:.95;font-style:italic;font-weight:900;text-shadow:2px 2px #000;white-space:nowrap}
+.tv-body .tv-flow-heading em{color:#ffd52c;font-style:inherit}
+.tv-body .tv-flow-copy{display:grid;gap:2px;min-width:0;flex:1;line-height:1.15}
+.tv-body .tv-flow-copy b{font-size:clamp(10px,1.16vw,24px);color:#fff;font-weight:850}
+.tv-body .tv-flow-copy span{font-size:clamp(8px,.94vw,19px);color:#ffedce}
+.tv-body .tv-flow-notice-active:not(.tv-demand-active) .tv-concept-list{height:33%}
+.tv-body .tv-flow-notice-active:not(.tv-demand-active) .hora-tv-bottom{bottom:1.3%;padding-top:4px}
+body.tv-reference-ready .tv-flow-notice{left:2%;right:2%;top:87%;height:8.5%}
+body.tv-reference-ready .tv-flow-notice-active:not(.tv-demand-active) .tv-concept-canvas .tv-concept-list{height:44%}
+body.tv-reference-ready .tv-flow-notice-active:not(.tv-demand-active) .hora-tv-bottom{bottom:.25%;padding:0}
+.tv-body .tv-flow-notice-active.tv-demand-active .tv-demand-notice{right:50.5%;left:5%;gap:1%;padding:.35% .6%}
+.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-notice{left:50.5%;right:5%;gap:1%;padding:.35% .6%}
+body.tv-reference-ready .tv-flow-notice-active.tv-demand-active .tv-demand-notice{left:2%;right:50.5%;top:87%;height:8.5%}
+body.tv-reference-ready .tv-flow-notice-active.tv-demand-active .tv-flow-notice{left:50.5%;right:2%}
+.tv-body .tv-flow-notice-active.tv-demand-active .demand-title strong{font-size:clamp(12px,1.55vw,31px)}
+.tv-body .tv-flow-notice-active.tv-demand-active .demand-title small,.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-heading small{display:none}
+.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-heading{max-width:34%;padding-right:1%}
+.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-heading strong{font-size:clamp(10px,1.28vw,26px);white-space:normal}
+.tv-body .tv-flow-notice-active.tv-demand-active .demand-copy b,.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-copy b{font-size:clamp(8px,.95vw,19px)}
+.tv-body .tv-flow-notice-active.tv-demand-active .demand-copy span,.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-copy span{font-size:clamp(7px,.72vw,15px)}
+@media(max-width:720px){.tv-body .tv-flow-mark{display:none}.tv-body .tv-flow-heading{max-width:38%}.tv-body .tv-flow-heading strong{white-space:normal}.tv-body .tv-flow-notice-active.tv-demand-active .demand-mark{display:none}.tv-body .tv-flow-notice-active.tv-demand-active .demand-title strong{white-space:normal}.tv-body .tv-flow-notice-active.tv-demand-active .demand-copy span,.tv-body .tv-flow-notice-active.tv-demand-active .tv-flow-copy span{line-height:1.05}}
