@@ -1,3 +1,4 @@
+import {tvQueue,stablePage,orderVoiceKey} from './order-queue.js?v=1';
 import {api,esc,pad,toast,setBrand} from './shared.js?v=20261124-auth';
 import {wavToMp3} from './tv-audio-codec.js?v=1';
 const $=id=>document.getElementById(id);
@@ -5,7 +6,7 @@ const STORAGE='adega_tv_code_v1', VOICES='adega_tv_voices_v1';
 let tvCode='',soundEnabled=false,started=false,seen=new Set(),voiceList=[],queue=[],speaking=false,checking=false,connected=false,retryAt=0;
 try{tvCode=localStorage.getItem(STORAGE)||'';}catch{}
 let voicePrefs={female:'',male:''};
-let tvPage=0,lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
+let tvPages={working:[],ready:[]},lastOrders=[],tvSnapshot='',demandActive=false,lastDemandSpeech=null;
 let idleEnabled=true;try{idleEnabled=localStorage.getItem('adega_tv_idle_v1')!=='off';}catch{}
 function updateIdle(){const active=idleEnabled&&connected&&!demandActive&&retryAt===0&&lastOrders.length===0;$('tvIdle').classList.toggle('hidden',!active);$('tvBoard').classList.toggle('tv-is-idle',active);}
 let voiceMode='auto',localVoicePromise=null,localVoiceReady=false,localAudioUrl='',speechGeneration=0,finishTimer=null;
@@ -47,10 +48,10 @@ function preloadLocalVoice(){if(useLocalAudio())loadLocalVoice().catch(()=>{if(!
 const DEMAND_INTERVAL=5*60*1000;
 const DEMAND_MESSAGE='Atenção! Estamos com alta demanda. Seu pedido pode demorar um pouco mais que o normal. Obrigado pela compreensão.';
 try{voicePrefs=JSON.parse(localStorage.getItem(VOICES)||'{}');}catch{}
-const smallTicket=o=>`<article class="tv-ticket"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
+const smallTicket=o=>`<article class="tv-ticket" data-tv-order="${esc(o.id)}"><div class="tv-ticket-number"><span>PEDIDO</span><b>${pad(o.number)}</b></div><div class="tv-ticket-body"><strong class="${String(o.public_name||'').length>25?'tv-name-long':''}">${esc(o.public_name)}</strong><span class="tv-ticket-status">${o.status==='ready'?'Pode retirar no portão':o.status==='preparing'?'Na preparação':'Pedido recebido'}</span></div></article>`;
 function showAuth(){ $('tvAuth').classList.remove('hidden');$('tvBoard').classList.add('hidden'); }
 function tvError(message){$('tvLoginError').textContent=message;}
-function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvSnapshot='';setDemand(false);updateIdle();}
+function tvClearCode(){soundEnabled=false;stopSpeech();updateSoundUI();try{localStorage.removeItem(STORAGE);}catch{}tvCode='';connected=false;started=false;seen.clear();lastOrders=[];tvPages={working:[],ready:[]};tvSnapshot='';setDemand(false);updateIdle();}
 function showBoard(){ $('tvAuth').classList.add('hidden');$('tvBoard').classList.remove('hidden'); }
 function updateVoices(){
   if(!('speechSynthesis' in window))return;
@@ -110,24 +111,27 @@ function announceDemand(){
   nextSpeech();
 }
 function speakOrder(o){
-  queue.push({text:o.status==='preparing'?`${o.first_name}, pedido número ${o.number}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, pedido número ${o.number}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
+  queue.push({orderKey:orderVoiceKey(o),text:o.status==='preparing'?`${o.first_name}, pedido número ${o.number}, seu pedido está sendo preparado.`:`Atenção! ${o.first_name}, pedido número ${o.number}, seu pedido está pronto! Aguarde a entrega no portão.`,voice:o.voice||'female'});
   nextSpeech();
 }
-function renderTv(orders){
-  const working=orders.filter(o=>o.status==='received'||o.status==='preparing').sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-  const ready=orders.filter(o=>o.status==='ready').sort((a,b)=>new Date(b.ready_at)-new Date(a.ready_at));
-  lastOrders=orders;
-  for(const [id,list] of [['preparingList',working],['readyList',ready]]){const el=$(id);const n=Math.max(1,Math.ceil(list.length/3));el.setAttribute('aria-label',list.length+' pedidos, página '+(tvPage%n+1)+' de '+n);el.title=list.length+' pedidos · '+(tvPage%n+1)+'/'+n;}
-  const paged=(list)=>{const n=Math.ceil(list.length/3);return !n?[]:list.slice((tvPage%n)*3,(tvPage%n)*3+3)};
-  $('preparingList').innerHTML=working.length?paged(working).map(smallTicket).join(''):'<div class="tv-empty"><strong>Nenhum pedido em preparação.</strong></div>';
-  $('readyList').innerHTML=ready.length?paged(ready).map(smallTicket).join(''):'<div class="tv-empty"><strong>Aguardando pedidos prontos.</strong></div>';
-  $('preparingList').dataset.count=String(paged(working).length);
-  $('readyList').dataset.count=String(paged(ready).length);
-  const readyNow=new Map(orders.filter(o=>['preparing','ready'].includes(o.status)).map(o=>[o.id+':'+o.status+(o.status==='ready'?':'+o.ready_at:''),o]));
-  if(!started){for(const key of readyNow.keys())seen.add(key);started=true;}
-  else for(const [key,o] of readyNow){if(!seen.has(key)){seen.add(key);if(soundEnabled)speakOrder(o);}}
-  if(seen.size>1500)seen=new Set([...seen].slice(-300));
+function renderTv(orders,rotate=false){
+ const lanes=tvQueue(orders);lastOrders=orders;
+ for(const [key,id] of [['working','preparingList'],['ready','readyList']]){
+  const list=lanes[key],el=$(id);tvPages[key]=stablePage(list,tvPages[key],rotate,6);
+  const selected=tvPages[key].map(id=>list.find(o=>o.id===id)).filter(Boolean);
+  const markup=selected.length?selected.map(smallTicket).join(''):'<div class="tv-empty"><strong>'+(key==='working'?'Nenhum pedido em andamento.':'Aguardando pedidos prontos.')+'</strong></div>';
+  if(el.dataset.markup!==markup){el.innerHTML=markup;el.dataset.markup=markup;}
+  el.dataset.count=String(selected.length);el.classList.toggle('tv-dense',selected.length>3);
+  $(key==='working'?'tvWorkingCount':'tvReadyCount').textContent=list.length+' no total'+(list.length>selected.length?' · '+selected.length+' por vez':'');
+  el.setAttribute('aria-label',list.length+' pedidos '+(key==='working'?'em andamento':'prontos'));
+ }
+ if(rotate)return;
+ const readyNow=new Map(orders.filter(o=>['preparing','ready'].includes(o.status)).map(o=>[orderVoiceKey(o),o]));
+ queue=queue.filter(item=>!item.orderKey||readyNow.has(item.orderKey));
+ if(!started){for(const key of readyNow.keys())seen.add(key);started=true;}
+ else for(const [key,o] of readyNow){if(!seen.has(key)){seen.add(key);if(soundEnabled)speakOrder(o);}}
 }
+
 async function poll(){
   if(checking||!tvCode||Date.now()<retryAt)return;
   const code=tvCode;
@@ -186,6 +190,6 @@ function start(){
   setInterval(poll,3000);
   window.addEventListener('focus',poll);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();});
-  setInterval(()=>{tvPage++; if(lastOrders.length)renderTv(lastOrders);},8500);
+  setInterval(()=>{if(connected&&retryAt===0&&lastOrders.length)renderTv(lastOrders,true);},15000);
 }
 start();

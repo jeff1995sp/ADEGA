@@ -1,3 +1,4 @@
+import {orderedQueue,nextOrder,queueSearch,needsPreparation} from './order-queue.js?v=1';
 import {preparationSummary} from './preparation.js?v=1';
 import {managementMetrics} from './admin-central.js?v=1';
 import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-auth';
@@ -64,19 +65,28 @@ function renderStats(){
   const p=[['Aguardando',pending.filter(o=>o.status==='received').length],['Preparando',pending.filter(o=>o.status==='preparing').length],['Prontos',pending.filter(o=>o.status==='ready').length],['Pagos em andamento',orders.filter(o=>paid(o)).length]];
   $('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
-let orderFilter='all',orderSearch='',orderPage=0;
+let orderFilter='all',orderSearch='',selectedOrderId=null,initialOrderSelection=true;
+function selectOrder(id){selectedOrderId=id;initialOrderSelection=false;renderOrders();}
 function renderOrders(){
-  const visible=orders.filter(o=>!['delivered','cancelled'].includes(o.status)).sort((x,y)=>({received:0,preparing:1,ready:2}[x.status]-{received:0,preparing:1,ready:2}[y.status])||new Date(x.created_at)-new Date(y.created_at));
-  const root=$('ordersList');if(!$('orderQueueTools')){const tools=document.createElement('div');tools.id='orderQueueTools';tools.style.cssText='display:grid;gap:10px;margin:12px 0';tools.innerHTML='<input id="orderQueueSearch" placeholder="Buscar nome ou número" aria-label="Buscar pedido"><div id="orderQueueTabs" style="display:flex;gap:8px;flex-wrap:wrap"></div><div id="orderQueuePages" style="display:flex;gap:10px;align-items:center"></div>';root.before(tools);$('orderQueueSearch').oninput=e=>{orderSearch=e.target.value.toLowerCase();orderPage=0;renderOrders();};}
-  const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos']];
-  $('orderQueueTabs').innerHTML=groups.map(([k,n])=>`<button class="btn btn-${orderFilter===k?'primary':'secondary'} btn-sm" data-queue="${k}">${n} · ${visible.filter(o=>k==='all'||o.status===k).length}</button>`).join('');
-  $('orderQueueTabs').querySelectorAll('button').forEach(el=>el.onclick=()=>{orderFilter=el.dataset.queue;orderPage=0;renderOrders();});
-  const filtered=visible.filter(o=>(orderFilter==='all'||o.status===orderFilter)&&(!orderSearch||(pad(o.order_no)+' '+o.first_name+' '+o.last_name).toLowerCase().includes(orderSearch)));
-  const pages=Math.max(1,Math.ceil(filtered.length/8));orderPage=Math.min(orderPage,pages-1);
-  $('orderQueuePages').innerHTML='<button class="btn btn-secondary btn-sm" id="queuePrev">Anterior</button><span>Página '+(orderPage+1)+' de '+pages+' · '+filtered.length+' pedidos</span><button class="btn btn-secondary btn-sm" id="queueNext">Próxima</button>';
-  $('queuePrev').disabled=orderPage===0;$('queueNext').disabled=orderPage>=pages-1;$('queuePrev').onclick=()=>{orderPage--;renderOrders();};$('queueNext').onclick=()=>{orderPage++;renderOrders();};
-  root.innerHTML=filtered.length?filtered.slice(orderPage*8,orderPage*8+8).map(o=>{
-    const cash=o.payment_method==='cash'
+ const visible=orderedQueue(orders),root=$('ordersList');
+ if(!$('orderQueueTools')){
+  root.innerHTML='<div class="order-workspace"><aside class="order-queue-side" aria-label="Fila de pedidos"><div id="orderQueueTools"><input id="orderQueueSearch" type="search" placeholder="Buscar nome ou número" aria-label="Buscar pedido"><div id="orderQueueTabs"></div><button type="button" id="queueNext" class="btn btn-primary btn-wide">Selecionar próximo da fila</button><p class="tiny sub" id="orderQueueCount"></p></div><div id="orderQueueRows"></div></aside><div id="orderSelected" class="order-selected"></div></div>';
+  $('orderQueueSearch').oninput=e=>{orderSearch=e.target.value;renderOrders();};
+  $('orderQueueTabs').onclick=e=>{const b=e.target.closest('[data-queue]');if(!b)return;orderFilter=b.dataset.queue;renderOrders();};
+  $('orderQueueRows').onclick=e=>{const b=e.target.closest('[data-select-order]');if(b){selectOrder(b.dataset.selectOrder);if(matchMedia('(max-width:800px)').matches)$('orderSelected').scrollIntoView({block:'start',behavior:'instant'});}};
+  $('queueNext').onclick=()=>{const next=nextOrder(orderedQueue(orders));if(next){orderFilter='all';orderSearch='';$('orderQueueSearch').value='';selectOrder(next.id);}};
+ }
+ if(initialOrderSelection&&visible.length){selectedOrderId=nextOrder(visible)?.id||null;initialOrderSelection=false;}
+ const selected=visible.find(o=>o.id===selectedOrderId);if(!selected)selectedOrderId=null;
+ const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos']];
+ const tabs=groups.map(([k,n])=>`<button type="button" class="btn btn-${orderFilter===k?'primary':'secondary'} btn-sm" data-queue="${k}" aria-pressed="${orderFilter===k}">${n} <b>${visible.filter(o=>k==='all'||o.status===k).length}</b></button>`).join('');
+ if($('orderQueueTabs').dataset.markup!==tabs){$('orderQueueTabs').innerHTML=tabs;$('orderQueueTabs').dataset.markup=tabs;}
+ const filtered=queueSearch(visible,orderFilter,orderSearch);$('queueNext').disabled=!visible.length;
+ $('orderQueueCount').textContent=filtered.length+' de '+visible.length+' pedidos ativos · ordem de chegada';
+ const rows=filtered.map(o=>`<button type="button" data-select-order="${esc(o.id)}" aria-pressed="${o.id===selectedOrderId}" class="queue-ticket queue-${esc(o.status)}"><b>#${pad(o.order_no)}</b><span class="queue-ticket-info"><strong>${esc(o.first_name)} ${esc(o.last_name)}</strong><small>${esc(stageLabels[o.status])} · ${(o.order_items||[]).reduce((n,i)=>n+Number(i.quantity||0),0)} un. · ${fmt(o.total_cents)}</small></span><span class="queue-kind">${o.status==='ready'?'RETIRADA':needsPreparation(o)?'PREPARO':'SEPARAR'}</span></button>`).join('')||'<div class="empty">Nenhum pedido nesta lista.</div>';
+ const list=$('orderQueueRows');if(list.dataset.markup!==rows){const scroll=list.scrollTop;list.innerHTML=rows;list.dataset.markup=rows;list.scrollTop=scroll;}
+ const detail=$('orderSelected');
+ const markup=selected?[selected].map(o=>{const cash=o.payment_method==='cash'
       ?o.cash_given_cents!==null
         ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Finalize somente após receber o dinheiro e entregar o pedido.</span></div>`
         :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
@@ -87,7 +97,7 @@ function renderOrders(){
     const stageIndex=['received','preparing','ready'].indexOf(o.status);
     const timeline=['Recebido','Preparando','Pronto'].map((label,i)=>`<span class="order-flow-step ${i<stageIndex?'done':i===stageIndex?'current':''}" ${i===stageIndex?'aria-current="step"':''}><b>${i<stageIndex?'✓':i+1}</b>${label}</span>`).join('');
     const cardAtPickup=o.payment_method==='card';
-    const steps=o.status==='received'?button('Iniciar preparo','status',o.id,'preparing','primary')+button('Marcar pronto','status',o.id,'ready','secondary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
+    const steps=o.status==='received'?button(needsPreparation(o)?'Iniciar preparo':'Separar itens','status',o.id,'preparing',needsPreparation(o)?'primary':'secondary')+button(needsPreparation(o)?'Marcar pronto':'Já está pronto','status',o.id,'ready',needsPreparation(o)?'secondary':'primary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card premium-order order-${esc(o.status)}" data-order-card="${esc(o.id)}" tabindex="-1"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
     ${o.status==='ready'&&Number.isFinite(deadline)?`<div class="notice ${overdue?'danger':''} order-pickup-timer" data-ready-deadline="${deadline}" data-paid="${paid(o)}">${overdue?(paid(o)?'Prazo de retirada excedido · pedido pago: conferir com cliente':'Prazo de 15 minutos excedido · pode cancelar se não retirado'):'Retirada até '+new Date(deadline).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}${o.duplicate_name?'<div class="order-duplicate-warning"><strong>Atenção: nome repetido na fila</strong><span>Confira o número do pedido na TV ou no celular do cliente. Não é necessário digitar código.</span></div>':''}<div class="order-flow" aria-label="Etapas do pedido">${timeline}</div><section class="order-items-panel"><div class="order-items-caption">ITENS DO PEDIDO</div><ul class="order-item-lines">${allItems(o)||'<li>Sem itens registrados</li>'}</ul><div class="order-payment-line"><div><small>Forma de pagamento</small><strong>${esc(labels[o.payment_method]||o.payment_method)}</strong></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div></div></section>${cash}
@@ -98,7 +108,8 @@ function renderOrders(){
       ${steps}${!paid(o)?button('Cancelar pedido','cancel',o.id,'','danger'):''}</div>
     <details class="order-voice-optional"><summary>Voz da TV (opcional) <small>${voice==='male'?'Masculina':voice==='female'?'Feminina':'Padrão · feminina'}</small></summary><p class="tiny sub">Não é necessário escolher uma voz para avançar. A chamada depende do áudio ativado na TV.</p><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div></details>
     </article>`;
-  }).join(''):'<div class="empty">Nenhum pedido aguardando. Os novos pedidos aparecerão aqui automaticamente.</div>';
+  }).join(''):'<div class="empty queue-empty"><strong>'+(visible.length?'Selecione um pedido na fila':'Nenhum pedido ativo')+'</strong><p>'+(visible.length?'Selecione pelo número ou use o botão da fila. Após finalizar, outro pedido não será aberto automaticamente.':'Os novos pedidos aparecerão automaticamente.')+'</p></div>';
+ if(detail.dataset.markup!==markup){const opened=detail.querySelector('details[open]')&&detail.querySelector('[data-order-card]')?.dataset.orderCard===selectedOrderId;detail.innerHTML=markup;detail.dataset.markup=markup;if(opened&&detail.querySelector('details'))detail.querySelector('details').open=true;}
 }
 function renderInventory(){
   const threshold=shop.low_stock_threshold??5;
@@ -405,6 +416,7 @@ function showProductPreview(p){
 async function performAction(btn){
   if(busy)return;
   const id=btn.dataset.id,action=btn.dataset.action,value=btn.dataset.value;
+ if(btn.closest('#ordersList')&&ordersConnectionFailed)return toast('Conexão interrompida. Reconecte antes de alterar o pedido.',true);
   const p=products.find(x=>x.id===id);
   let route='',body={},method='POST';
   if(action==='optiontoggle'||action==='optionstock'){
@@ -426,7 +438,8 @@ async function performAction(btn){
     if(!confirm('Pedido #'+pad(order.order_no)+' — '+order.first_name+' '+order.last_name+'\nConfirme que o pedido foi entregue e o pagamento de '+fmt(order.total_cents)+' foi recebido.'+(ageNeeded?'\nDocumento conferido: cliente tem 18 anos ou mais.':'')))return;
     route='admin-order-action';body={id,action:action==='finishcard'?'finishcard':'finishcash',received:true,age_confirmed:ageNeeded};
   }
-  if(action==='cancel'&&!confirm('Cancelar este pedido? Esta operação encerra o atendimento.'))return;
+  if(action==='status'&&value==='ready'){const o=orders.find(x=>x.id===id);if(!o||!['received','preparing'].includes(o.status))return toast('Pedido já atualizado.',true);if(!confirm('Pedido #'+pad(o.order_no)+' — '+o.first_name+' '+o.last_name+'\nTodos os itens estão separados ou preparados? A TV chamará este pedido.'))return;}
+ if(action==='cancel'&&!confirm('Cancelar este pedido? Esta operação encerra o atendimento.'))return;
   if(action==='paid'&&!confirm('O valor realmente foi recebido em dinheiro ou na maquininha?'))return;
   if(action==='age'&&!confirm('Você conferiu o documento e confirmou que a pessoa tem 18 anos ou mais?'))return;
   if(action==='receipt'&&!confirm('O gateway confirmou o Pix e você conferiu o comprovante na entrega?'))return;
@@ -448,9 +461,9 @@ async function performAction(btn){
   } else if(!route)return;
   busy=true;
   try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
-  catch(e){toast(e.message,true);}finally{busy=false;await refreshData(true);}
+  catch(e){toast(e.message,true);}finally{try{await refreshOrders(true);}finally{busy=false;}await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();selectedOrderId=null;initialOrderSelection=true;orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 let reviewsBusy=false;
 async function loadAdminReviews(){
@@ -485,7 +498,7 @@ function openCashAction(kind){
 async function start(){
  $('openPreparation').onclick=()=>{setTab('preparation');window.scrollTo({top:0,behavior:'instant'});};
  $('preparationBack').onclick=()=>{setTab('orders');window.scrollTo({top:0,behavior:'instant'});};
- $('preparationGroups').addEventListener('click',e=>{const b=e.target.closest('[data-preparation-order]');if(!b)return;if(ordersConnectionFailed)return toast('Aguarde reconectar.',true);setTab('orders');const card=[...$('ordersList').querySelectorAll('[data-order-card]')].find(el=>el.dataset.orderCard===b.dataset.preparationOrder);if(card){card.focus({preventScroll:true});card.scrollIntoView({block:'center',behavior:'instant'});}else toast('O pedido já saiu da fila.');});
+ $('preparationGroups').addEventListener('click',e=>{const b=e.target.closest('[data-preparation-order]');if(!b)return;if(ordersConnectionFailed)return toast('Aguarde reconectar.',true);setTab('orders');orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';selectOrder(b.dataset.preparationOrder);const card=[...$('ordersList').querySelectorAll('[data-order-card]')].find(el=>el.dataset.orderCard===b.dataset.preparationOrder);if(card){card.focus({preventScroll:true});card.scrollIntoView({block:'center',behavior:'instant'});}else toast('O pedido já saiu da fila.');});
  setInterval(()=>{document.querySelectorAll('[data-ready-deadline]').forEach(el=>{const left=Number(el.dataset.readyDeadline)-Date.now();if(left<=0){el.classList.add('danger');el.textContent=el.dataset.paid==='true'?'Prazo de retirada excedido · pedido pago: conferir com cliente':'Prazo de 15 minutos excedido · pode cancelar se não retirado';}else{const seconds=Math.ceil(left/1000);el.textContent='Retirada em até '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}});},1000);
  $('pickupTestSaved').onclick=()=>{const btn=$('pickupTestSaved'),out=$('pickupTestResult');if(!navigator.geolocation){out.textContent='GPS indisponível neste dispositivo.';return;}btn.disabled=true;out.textContent='Consultando localização…';navigator.geolocation.getCurrentPosition(async p=>{try{const r=await api('check-location',{position:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}});out.textContent=r.message+(Number.isFinite(r.distance)?' Distância: '+r.distance+' m · precisão: '+r.accuracy+' m · raio salvo: '+r.radius+' m.':'');}catch(e){out.textContent=e.message;}finally{btn.disabled=false;}},()=>{out.textContent='Permita o GPS preciso e tente novamente.';btn.disabled=false;},{enableHighAccuracy:true,maximumAge:0,timeout:15000});};
  $('overviewRefresh').onclick=async()=>{const b=$('overviewRefresh');b.disabled=true;try{await refreshData(false,true);}finally{b.disabled=false;renderOverview();}};

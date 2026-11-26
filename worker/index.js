@@ -523,7 +523,7 @@ async function handler(request,env,ctx){
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
  if(!await equal(request.headers.get('X-TV-Code'),env.TV_PASSCODE)){await rate(db,request,'tv',10,300);reject('Código da TV incorreto.',403);}
- const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 60");
+ const orders=await many(db,"SELECT id,order_no AS number,first_name,last_name,status,voice,ready_at,created_at FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at ASC,order_no ASC LIMIT 250");
  return json({orders:(await displayOrders(db,orders,'number')).map(o=>({...o,public_name:o.first_name+' '+o.last_name})),...await demandStatus(db)});
  }
  if(route==='recover-order'&&method==='POST'){if(!uuid(body.request_id))reject('Pedido inválido.');const order=await one(db,'SELECT o.* FROM order_requests r JOIN orders o ON o.id=r.order_id WHERE r.request_id=?',body.request_id);if(!order)return json({order:null});return orderResult(db,order);}
