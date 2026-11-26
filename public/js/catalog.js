@@ -114,6 +114,7 @@ function snackGroup(p){
 }
 function tabacariaGroup(p){
  const n=photoSlug(p.name);
+ if(/pod|ebcreate|ignite|elfbar/.test(n))return 'Pods';
  if(/seda|sadhu|piteira|tabaco|tabaquin|acrema/.test(n))return 'Sedas, Piteiras e Tabacos';
  if(/gift|eight|cigarro/.test(n))return 'Cigarros';
  if(/isqueiro|bic|tesoura|cuia/.test(n))return 'Isqueiros e Acessórios';
@@ -136,7 +137,7 @@ function renderProducts(){
    return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
   }).join('');
  }else if(category==='Tabacaria'&&list.length){
-  const groups=['Essências e Narguilé','Sedas, Piteiras e Tabacos','Cigarros','Isqueiros e Acessórios'];
+  const groups=['Pods','Essências e Narguilé','Sedas, Piteiras e Tabacos','Cigarros','Isqueiros e Acessórios'];
   $('productGrid').innerHTML=groups.map(group=>{
    const rows=list.filter(p=>tabacariaGroup(p)===group).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
    return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
