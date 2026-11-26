@@ -204,7 +204,7 @@ function refreshHouseGinEnergy(){
  $('doseEnergy').value=choice?.id||'';
  $('doseIce').disabled=!choice;
  if(!$('doseIce').value||!remainingOption(optionById($('doseIce').value)))$('doseIce').value='';
- $('dosePrice').textContent=(kind?fmt(doseUnitPrice(p,{name:kind==='redbull'?'Red Bull':''})):fmt(p.price_cents)+' / '+fmt(p.price_cents+1000))+' • Copo de 700 ml • Gelo e energético inclusos';
+ $('dosePrice').textContent=(kind?'Dose completa: '+fmt(doseUnitPrice(p,{name:kind==='redbull'?'Red Bull':''})):'Escolha a versão da dose')+' • Copo de 700 ml • Gelo incluso';
 }
 function showDoseConfigurator(p,editKey=null){
  if(!$('doseModal').classList.contains('open')){doseEditing=editKey;doseQty=editKey?(cart.get(editKey)?.quantity||1):1;}
@@ -225,13 +225,13 @@ function showDoseConfigurator(p,editKey=null){
  $('doseIncludedEnergy').textContent='✓ Vibe Original incluído no preço';
  $('doseEnergyKind').required=house;$('doseEnergyKind').disabled=!house;
  $('doseIce').disabled=house;$('doseEnergy').disabled=true;$('doseEnergyKind').value='';
- $('doseInstructions').textContent=house?'Escolha Energético ou Red Bull e o gelo. O valor muda conforme a escolha.':vibe?'Escolha apenas o sabor do gelo. O Vibe já está incluído no valor.':'Escolha o gelo. O Red Bull já está incluído; se quiser, altere o sabor entre os disponíveis.';
+ $('doseInstructions').textContent=house?'Escolha a dose completa: gin + gelo + energético comum por '+fmt(p.price_cents)+' ou gin + gelo + Red Bull por '+fmt(p.price_cents+1000)+'. Não há cobrança separada pelo gelo ou pelo energético.':vibe?'Escolha apenas o sabor do gelo. O Vibe já está incluído no valor.':'Escolha o gelo. O Red Bull já está incluído; se quiser, altere o sabor entre os disponíveis.';
  if(house){
   form.insertBefore(energyField,iceField);
-  $('doseEnergyLabel').textContent='2. Escolha o sabor do energético';$('doseIceLabel').textContent='3. Escolha o sabor do gelo';
+  $('doseEnergyLabel').textContent='02 — Escolha o sabor incluso';$('doseIceLabel').textContent='03 — Escolha seu gelo incluso';
   const common=energies.some(o=>isCommonEnergy(o)&&remainingOption(o)),redbull=energies.some(o=>String(o.name).startsWith('Red Bull')&&remainingOption(o));
-  $('doseEnergyKind').innerHTML='<option value="">Escolha o energético</option>'+[['common','Energético',p.price_cents,common],['redbull','Red Bull',p.price_cents+1000,redbull]].filter(row=>row[3]).map(([v,n,price,ok])=>`<option value="${v}" ${ok?'':'disabled'}>${n} — ${fmt(price)}${ok?'':' (indisponível)'}</option>`).join('');
-  refreshHouseGinEnergy();
+  $('doseEnergyKind').innerHTML='<option value="">Escolha o energético</option>'+[['common','Gin com energético',p.price_cents,common],['redbull','Gin com Red Bull',p.price_cents+1000,redbull]].filter(row=>row[3]).map(([v,n,price,ok])=>`<option value="${v}" ${ok?'':'disabled'}>${n} — ${fmt(price)}${ok?'':' (indisponível)'}</option>`).join('');
+  $('doseEnergyKind').value=common?'common':redbull?'redbull':'';refreshHouseGinEnergy();
  }else{
   form.insertBefore(iceField,energyField);
   $('doseIceLabel').textContent='01 — Escolha seu gelo';$('doseEnergyLabel').textContent=vibe?'Vibe incluído':'02 — Escolha seu energético';
@@ -558,7 +558,8 @@ function syncChoiceCards(){
    if(!opt.value||opt.disabled)continue;
    const b=document.createElement('button');b.type='button';b.className='hora-choice-card';b.disabled=select.disabled;b.setAttribute('aria-pressed',String(select.value===opt.value));
    const visual=flavorVisual(id,opt.textContent),isDose=id==='doseIce'||id==='doseEnergy'||id==='doseEnergyKind',mark=document.createElement('span');mark.className=isDose?'dose-photo-frame dose-photo-'+visual.kind:'hora-choice-mark choice-visual choice-'+visual.kind;mark.style.setProperty('--flavor-color',visual.color);mark.setAttribute('aria-hidden','true');mark.textContent=visual.symbol;let src=id==='doseEnergy'?(energyPhotos[opt.value]||(normalize(opt.textContent)==='red bull original'?energyPhotos['energy-1']:null)):id==='doseIce'?(icePhotos[opt.value]||(normalize(opt.textContent).includes('agua')?icePhotos['ice-1']:null)):null;if(src){const img=document.createElement('img');img.src=src;img.alt='';img.decoding='async';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();mark.textContent=visual.symbol;b.classList.remove('choice-has-image');};mark.replaceChildren(img);b.classList.add('choice-has-image');}
-   const name=document.createElement('span');name.className='dose-choice-name';const parts=opt.textContent.split(' — ');name.textContent=isDose?parts[0]:opt.textContent;const state=document.createElement('small');state.className='dose-choice-state';state.textContent=select.value===opt.value?'✓ Selecionado':'Disponível';b.append(mark,name);if(isDose&&parts.length>1){const sub=document.createElement('span');sub.className='dose-choice-detail';sub.textContent=parts.slice(1).join(' — ');b.append(sub);}b.append(state);
+   if(id==='doseEnergyKind'){b.classList.add('dose-package-card');mark.remove();const price=document.createElement('strong');price.className='dose-package-price';price.textContent=fmt(doseUnitPrice(doseSelected,{name:opt.value==='redbull'?'Red Bull':''}));const title=document.createElement('span');title.className='dose-choice-name';title.textContent=opt.value==='redbull'?'Gin com Red Bull':'Gin com energético';const desc=document.createElement('small');desc.className='dose-package-detail';desc.textContent='Dose de 700 ml • gelo e energético inclusos';const state=document.createElement('small');state.className='dose-choice-state';state.textContent=select.value===opt.value?'✓ Selecionado':'Escolher dose';b.replaceChildren(title,price,desc,state);b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);continue;}
+   const name=document.createElement('span');name.className='dose-choice-name';const parts=opt.textContent.split(' — ');name.textContent=isDose?parts[0]:opt.textContent;const state=document.createElement('small');state.className='dose-choice-state';state.textContent=select.value===opt.value?'✓ Selecionado':id==='doseEnergy'&&isHouseGin(doseSelected)?'Incluso na dose':'Disponível';b.append(mark,name);if(isDose&&parts.length>1){const sub=document.createElement('span');sub.className='dose-choice-detail';sub.textContent=parts.slice(1).join(' — ');b.append(sub);}b.append(state);
    b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);
   }
  }

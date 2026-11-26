@@ -6,7 +6,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 const reject=(message,status=400)=>{throw new ApiError(message,status);};
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
-const idOk=v=>uuid(v)||['energy-common','refri-sprite','refri-fanta-laranja','refri-fanta-uva','refri-guarana'].includes(v)||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
+const idOk=v=>uuid(v)||['energy-common','refri-sprite','refri-fanta-laranja','refri-fanta-uva','refri-guarana','refri-coca-cola'].includes(v)||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
 const int=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 const now=()=>new Date().toISOString();
@@ -160,7 +160,15 @@ async function nearbyResult(db,position){
 async function requireNearby(db,position){if(position===undefined||position===null)return;const r=await nearbyResult(db,position);if(!r.allowed)reject(r.message,409);}
 const sodaPatch='20261126-refri-sabores-v1';
 async function ensureSodaFlavors(db){await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',sodaPatch))return;const rows=[["refri-sprite","Sprite — Limão (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439309/180/Expresso-Delivery_4d331b252ac100d121c6107d76c37ef1.jpg"],["refri-fanta-laranja","Fanta Laranja (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439276/180/Expresso-Delivery_c3801a2bf5fb6512bb34a2e95faca8b4.jpg"],["refri-fanta-uva","Fanta Uva (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439277/180/Expresso-Delivery_b289f78e0ce5905bc4eb692d4aed0325.jpg"],["refri-guarana","Guaraná Antarctica (lata 350 ml)","https://static.expressodelivery.com.br/imagens/produtos/439272/180/Expresso-Delivery_7b9fd9864118bbdeef1157a8bb50edf7.jpg"]];await db.batch([...rows.map(([id,name,img],i)=>stmt(db,"INSERT OR IGNORE INTO products(id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order) SELECT ?,?,'Águas e Refrigerantes','Lata de 350 ml. Retirada no portão.',COALESCE((SELECT NULLIF(price_cents,0) FROM products WHERE id='produto-030'),600),10,0,1,'🥤',?,0,920+? WHERE NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",id,name,img,i,sodaPatch)),stmt(db,"UPDATE products SET active=0 WHERE id='produto-030' AND NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",sodaPatch),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',sodaPatch)]);}
-async function catalog(db,admin){await ensureSodaFlavors(db);
+async function ensureColaAndEnergyFlavors(db){
+ await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');
+ const patch='20261126-coca-e-energeticos-v1';if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',patch))return;
+ await db.batch([
+ stmt(db,"INSERT OR IGNORE INTO products(id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order) SELECT 'refri-coca-cola','Coca-Cola Original (lata 350 ml)','Águas e Refrigerantes','Lata de 350 ml. Retirada no portão.',COALESCE((SELECT NULLIF(price_cents,0) FROM products WHERE id='produto-030'),600),10,0,1,'🥤','https://santaluzia.vtexassets.com/arquivos/ids/997380/556297.jpg?v=638525861586730000',0,924 WHERE NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",patch),
+ stmt(db,"INSERT OR IGNORE INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-101','energy','Energético — Tropical',0,0,0,101),('energy-102','energy','Energético — Melancia',0,0,0,102)"),
+ stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',patch)]);
+}
+async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
@@ -195,7 +203,7 @@ async function orderResult(db,o){const [display]=await displayOrders(db,[o]);ret
 
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
- await ensureSodaFlavors(db);await ensureNumberSettings(db);
+ await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureNumberSettings(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');

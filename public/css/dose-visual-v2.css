@@ -21,3 +21,12 @@ body.catalog-body #doseModal .hora-choice-card:disabled{opacity:.5}
 body.catalog-body #doseModal .hora-choice-card:focus-visible{outline:2px solid #ff8585;outline-offset:2px}
 #doseModal .dose-quantity-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid #444}.dose-qty-control{display:flex;align-items:center;gap:10px}.dose-qty-control .btn{min-width:42px;min-height:42px}.checkout-line-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}#doseAddButton{min-height:48px}
 @media(max-width:580px){body.catalog-body #doseModal .hora-choice-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}body.catalog-body #doseModal .dose-photo-frame{height:132px;min-height:132px}body.catalog-body #doseModal .hora-choice-card{padding:8px}}
+
+/* The first choice is a complete package, not a separate can purchase. */
+body.catalog-body #doseModal #doseEnergyKindField .hora-choice-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.catalog-body #doseModal #doseEnergyKindField .dose-package-card{padding:16px 12px;min-height:142px;justify-content:center;text-align:left;gap:7px}
+body.catalog-body #doseModal #doseEnergyKindField .dose-package-card::after{top:8px;right:8px;width:20px;height:20px;font-size:12px}
+body.catalog-body #doseModal #doseEnergyKindField .dose-choice-name{padding-right:18px;font-size:clamp(13px,2vw,17px)}
+body.catalog-body #doseModal .dose-package-price{font-size:clamp(22px,4vw,32px);font-weight:900;letter-spacing:-.035em;color:#ff696e;line-height:1.1}
+body.catalog-body #doseModal .dose-package-detail{font-size:12px;line-height:1.4;color:#e8e0e3}
+body.catalog-body #doseModal #doseEnergyKindField .dose-package-card:only-child{grid-column:1/-1;min-height:106px}
