@@ -272,7 +272,7 @@ async function loadCatalog(){
     showStoreClosed(d.store?.accepting_orders===false||d.store?.accepting_orders===0);
     if(snapshot===lastSnapshot)return;
     lastSnapshot=snapshot;bestSellers=Array.isArray(d.best_sellers)?d.best_sellers:[];products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
-    setBrand(shop.name);updateLocationPanel();
+    setBrand(shop.name);updateLocationPanel();if(notificationIsPrepared&&(!shop.location_required||locationOptIn))dismissEntryPermissions();
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
     if($('doseModal').classList.contains('open')&&doseSelected){
@@ -510,7 +510,9 @@ async function loadTracking(){
 let pushRegistration=null,pushKey=null,pushSubscription=null,pushBound='',pushBinding=false,pushLast=0,readyNoticeId='';
 const supportsPush=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 const notificationText=s=>{$('entryNotifyText').textContent=s;};
+let notificationIsPrepared=false;
 function notificationPrepared(){
+ notificationIsPrepared=true;
  notificationText('Avisos autorizados. Serão vinculados ao seu pedido.');
  $('entryNotify').classList.add('hidden');
  $('entryNotify').closest('.entry-permissions-row')?.classList.add('hidden');

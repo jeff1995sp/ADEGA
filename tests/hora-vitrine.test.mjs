@@ -15,4 +15,4 @@ test('Corrigir nomes não altera IDs nem os nomes personalizados pelo proprietá
 });
 test('Batidas e Caipirinhas juntas; atalho de Tabacaria no admin',()=>{const c=read('js/catalog.js');assert.ok(c.includes("['Todos','Batidas','Caipirinhas','Whisky'"));assert.match(read('admin.html'),/data-tab="tabacaria"/);});
 
-test('Tabacaria consta no menu público com todos os produtos liberados',()=>{const c=read('js/catalog.js');assert.match(c,/publicCategoryOrder=.*'Tabacaria'/);assert.ok(c.includes("exist.has(c)||c==='Tabacaria'"));});
+test('Categorias públicas só aparecem se houver produtos visíveis, inclusive Tabacaria',()=>{const c=read('js/catalog.js');assert.match(c,/publicCategoryOrder=.*'Tabacaria'/);assert.ok(c.includes("c==='Todos'||exist.has(c)"));assert.match(c,/visibleInCatalog=p=>p.active&&p.price_cents>0/);});

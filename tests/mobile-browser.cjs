@@ -7,7 +7,7 @@ const product={id:'produto-061',name:'Água',category:'Águas e Refrigerantes',d
 const dose={id:'test-dose',name:'Dose teste',category:'Whisky',description:'Dose teste',price_cents:1500,stock:5,active:true,unlimited:false,age_restricted:true,image_url:'/imagens/agua.webp'};
 const paused={...dose,id:'test-paused',name:'Dose pausada',active:false};
 const missing={...dose,id:'test-missing',name:'Dose com Vibe'};
-const options=[{id:'test-ice',option_group:'ice',name:'Gelo de água',active:true,stock:10},{id:'test-energy',option_group:'energy',name:'Red Bull Original',active:true,stock:10}];
+const options=[{id:'test-ice',option_group:'ice',name:'Gelo de água',active:true,stock:10},{id:'test-energy',option_group:'energy',name:'Red Bull Original',active:true,stock:10},{id:'paused-ice',option_group:'ice',name:'Coco',active:false,stock:10},{id:'empty-energy',option_group:'energy',name:'Red Bull Melancia',active:true,stock:0}];
 const snacks=Array.from({length:4},(_,i)=>({...product,id:'test-snack-'+i,name:'Salgadinho teste '+i,category:'Salgadinhos'}));
 const demoOrder={id:'mock-order',order_no:123,first_name:'Cliente',last_name:'Teste',status:'received',payment_method:'cash',payment_status:'pending',total_cents:250,cash_given_cents:1000,voice:null,duplicate_name:true,created_at:new Date().toISOString(),order_items:[{product_id:'produto-061',category:'Águas e Refrigerantes',product_name:'Água',quantity:1,unit_price_cents:250}]};
 const server=http.createServer((req,res)=>{
@@ -33,13 +33,14 @@ const server=http.createServer((req,res)=>{
    const page=await ctx.newPage();await page.route('**/*',r=>r.request().url().startsWith(origin)?r.continue():r.abort());
    await page.addInitScript(()=>{sessionStorage.setItem('adega_age_ok','1');sessionStorage.setItem('adega_customer_profile_v1',JSON.stringify({first:'Bruna',last:'Teste'}));});
    await page.goto(origin);await page.locator('#productGrid .product').first().waitFor();
+   await page.locator('#entryPermissionsDismiss').click();assert.equal(await page.locator('#entryPermissions').isVisible(),false);
    const dimensions=await page.evaluate(()=>({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth}));
    assert.ok(dimensions.actual<=dimensions.viewport+2,device+' catálogo '+JSON.stringify(dimensions));
    assert.equal(await page.locator('body > #cartBar').count(),1);const menuRect=await page.locator('#menuToggle').boundingBox(),cartRect=await page.locator('#headerCart').boundingBox(),searchRect=await page.locator('#productSearch').boundingBox();assert.ok(Math.abs(menuRect.y-cartRect.y)<4&&cartRect.x>width/2&&searchRect.y>menuRect.y+menuRect.height-2,device+' cabeçalho '+JSON.stringify({menuRect,cartRect,searchRect}));assert.equal(await page.locator('#cartBar').isVisible(),false);assert.equal(await page.locator('.hora-nav-links').isVisible(),false);assert.equal(await page.locator('#mobileCategoryTabs').isVisible(),true);await page.locator('#menuToggle').click();await page.locator('#mobileHelpBtn').click();await page.locator('#helpModal.open').waitFor();assert.match(await page.locator('#helpModal').innerText(),/Pix/);assert.match(await page.locator('#helpModal').innerText(),/Cartão de crédito ou débito/);assert.match(await page.locator('#helpModal').innerText(),/Apple Pay/);assert.doesNotMatch(await page.locator('#helpModal').innerText(),/Google Pay/);assert.match(await page.locator('#helpModal').innerText(),/QR Code ou copia e cola/);await page.locator('#closeHelp').click();await page.locator('#categorySideLinks [data-category="Todos"]').click();
    // Wait for the category navigation's scheduled scroll before simulating user scrolling.
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
    const allCount=await page.locator('#productGrid article.product').count();
-   assert.equal(allCount,8);
+   assert.equal(allCount,6);
    await page.evaluate(()=>{const heading=document.querySelector('[data-scroll-section="Doces e Salgadinhos"]');const header=document.querySelector('.hora-nav');window.scrollTo({top:window.scrollY+heading.getBoundingClientRect().top-header.getBoundingClientRect().height+24,behavior:'instant'});});
    await page.locator('#mobileCategoryTabs [data-category="Doces e Salgadinhos"].active').waitFor();
    assert.equal(await page.locator('#mobileCategoryTabs [data-category="Todos"]').getAttribute('aria-pressed'),'true');
@@ -49,12 +50,9 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator('#productGrid article.product').count(),allCount);
    await page.locator('#mobileCategoryTabs [data-category="Whisky"]').click();
    const doseButton=page.locator('[data-configure="test-dose"]'),pausedButton=page.locator('[data-configure="test-paused"]'),missingButton=page.locator('[data-configure="test-missing"]');
-   assert.equal(await doseButton.isEnabled(),true);assert.equal(await pausedButton.isDisabled(),true);assert.equal(await missingButton.isDisabled(),true);
-   const controlRects=await Promise.all([doseButton,pausedButton,missingButton].map(button=>button.boundingBox()));assert.ok(controlRects.every(r=>r&&Math.abs(r.height-48)<=1),device+' botões uniformes '+JSON.stringify(controlRects));
-   assert.equal(await pausedButton.locator('xpath=ancestor::article').locator('.dose-qty strong').isVisible(),false);
-   assert.match(await missingButton.locator('xpath=ancestor::article').innerText(),/gelo ou energético sem estoque/);
-   for(const button of [doseButton,pausedButton,missingButton]){const rect=await button.boundingBox(),card=await button.locator('xpath=ancestor::article').boundingBox();assert.ok(rect&&card&&rect.x>=card.x&&rect.x+rect.width<=card.x+card.width+1&&rect.y+rect.height<=card.y+card.height+1&&rect.height>=44,device+' dose cortada '+JSON.stringify({rect,card}));}
-   await doseButton.click();await page.locator('#doseModal.open').waitFor();assert.equal(await page.locator('#doseEnergy').inputValue(),'test-energy');await page.locator('#doseIce').selectOption('test-ice');assert.equal(await page.locator('#doseEnergy').inputValue(),'test-energy');await page.locator('#closeDose').click();
+   assert.equal(await doseButton.isEnabled(),true);assert.equal(await pausedButton.count(),0);assert.equal(await missingButton.count(),0);
+   const rect=await doseButton.boundingBox(),card=await doseButton.locator('xpath=ancestor::article').boundingBox();assert.ok(rect&&card&&rect.x>=card.x&&rect.x+rect.width<=card.x+card.width+1&&rect.y+rect.height<=card.y+card.height+1&&rect.height>=44,device+' dose cortada');
+   await doseButton.click();await page.locator('#doseModal.open').waitFor();assert.equal(await page.locator('#doseIce option[value="paused-ice"]').count(),0);assert.equal(await page.locator('#doseEnergy option[value="empty-energy"]').count(),0);assert.equal(await page.locator('#doseEnergy').inputValue(),'test-energy');await page.locator('#doseIce + .hora-choice-cards button').filter({hasText:'Gelo de água'}).click();assert.equal(await page.locator('#doseEnergy').inputValue(),'test-energy');await page.locator('#closeDose').click();
    await page.locator('#mobileCategoryTabs [data-category="Águas e Refrigerantes"]').click();
    assert.equal(await page.locator('[data-pay-now]').count(),0);await page.locator('#productGrid button[data-qty="1"][data-id="produto-061"]').click();assert.equal(await page.locator('[data-pay-now]').first().isVisible(),false);await page.locator('#cartBar').waitFor();const cartBox=await page.locator('#cartBar').boundingBox();assert.ok(cartBox.y>height/2&&Math.abs(cartBox.y+cartBox.height-height)<3,device+' barra inferior '+JSON.stringify(cartBox));assert.equal(await page.locator('#goPayment').isVisible(),false);await page.locator('#openCart').click();
    await page.locator('#cartModal.open').waitFor();
