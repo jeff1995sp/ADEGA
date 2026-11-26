@@ -6,7 +6,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 const reject=(message,status=400)=>{throw new ApiError(message,status);};
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
-const idOk=v=>uuid(v)||v==='energy-common'||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
+const idOk=v=>uuid(v)||['energy-common','refri-sprite','refri-fanta-laranja','refri-fanta-uva','refri-guarana'].includes(v)||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
 const int=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 const now=()=>new Date().toISOString();
