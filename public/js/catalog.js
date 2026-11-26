@@ -1,3 +1,4 @@
+import {searchScore,repeatLine,lineKey,normalize,flavorVisual} from './customer-convenience.js?v=1';
 import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-12';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
@@ -124,7 +125,7 @@ function renderProducts(){
  showCategories();
  const general=products.filter(p=>visibleInCatalog(p));
  const norm=photoSlug(searchText);
- const list=general.filter(p=>(category==='Todos'||catalogCategory(p)===category)&&(!norm||photoSlug(p.name+' '+catalogCategory(p)).includes(norm)));
+ const list=general.filter(p=>(category==='Todos'||catalogCategory(p)===category)&&(!norm||Number.isFinite(searchScore(p,searchText,catalogCategory(p)))));
  $('catalogHeading').textContent=searchText?'RESULTADOS DA BUSCA':category==='Todos'?'DESTAQUES DA HORA EXTRA':categoryLabel(category).toUpperCase();
  $('catalogResultCount').textContent=list.length+' produtos';
  const message='<div class="empty">Nenhum produto encontrado.</div>';
@@ -141,7 +142,7 @@ function renderProducts(){
    return rows.length?`<h3 class="hora-product-group">${group}</h3>`+rows.map(p=>productCard(p)).join(''):'';
   }).join('');
  }else{
-  const ordered=category==='Todos'?[...list].sort((a,b)=>publicCategoryOrder.indexOf(catalogCategory(a))-publicCategoryOrder.indexOf(catalogCategory(b))||(a.sort_order||0)-(b.sort_order||0)):list;
+  const ordered=norm?[...list].sort((a,b)=>searchScore(a,searchText,catalogCategory(a))-searchScore(b,searchText,catalogCategory(b))||a.name.localeCompare(b.name,'pt-BR')):category==='Todos'?[...list].sort((a,b)=>publicCategoryOrder.indexOf(catalogCategory(a))-publicCategoryOrder.indexOf(catalogCategory(b))||(a.sort_order||0)-(b.sort_order||0)):list;
   const featured=category==='Todos'&&!norm?bestSellers.map(id=>ordered.find(p=>p.id===id)).filter(p=>p&&available(p)&&(!isDoseProduct(p)||hasDrinkOptions(p))):[];
   const featuredIds=new Set(featured.map(p=>p.id));
   const rest=ordered.filter(p=>!featuredIds.has(p.id));
@@ -272,7 +273,7 @@ async function loadCatalog(){
     showStoreClosed(d.store?.accepting_orders===false||d.store?.accepting_orders===0);
     if(snapshot===lastSnapshot)return;
     lastSnapshot=snapshot;bestSellers=Array.isArray(d.best_sellers)?d.best_sellers:[];products=(d.products||[]).map(normalizeProduct);drinkOptions=d.drink_options||[];shop=d.store||shop;
-    setBrand(shop.name);updateLocationPanel();if(notificationIsPrepared&&(!shop.location_required||locationOptIn))dismissEntryPermissions();
+    setBrand(shop.name);updateLocationPanel();updateRepeatButton();if(notificationIsPrepared&&(!shop.location_required||locationOptIn))dismissEntryPermissions();
     const banner=$('modeBanner');banner.className='mode-banner live';banner.textContent=shop.accepting_orders?'● Catálogo conectado • Estoque atualizado automaticamente':'● Pedidos temporariamente pausados pelo proprietário';
     cleanCart();renderProducts();
     if($('doseModal').classList.contains('open')&&doseSelected){
@@ -449,13 +450,17 @@ async function submitOrder(event){
     sessionStorage.setItem(key,JSON.stringify({fingerprint,id:request_id,at:Date.now()}));
     const d=await api('create-order',{...payload,request_id,...(position?{position}:{}),...(pushSubscription&&Notification.permission==='granted'?{subscription:pushSubscription.toJSON()}: {})});
     sessionStorage.removeItem(key);
-    trackingFinished=false;
+    trackingFinished=false;repeatOrderData=null;updateRepeatButton();
     currentOrder={id:d.order.id,token:d.order.token,number:d.order.number};pushLast=0;void bindNotifications();
     localStorage.setItem('adega_my_order_v1',JSON.stringify(currentOrder));
     cart.clear();close('cartModal');renderProducts();await loadTracking();open('trackingModal');toast('Pedido recebido pela adega!');
     $('trackBtn')?.classList.remove('hidden');
   }catch(e){if(shop.location_required||/localização|proximidade|GPS|área de retirada/i.test(e.message))updatePickupNotice(e.message);toast(e.message,true);}finally{working=false;button.disabled=false;button.textContent='Confirmar pedido →';void loadCatalog();}
 }
+let repeatOrderData=null,repeatBusy=false;
+function updateRepeatButton(){const b=$('repeatLastOrder');if(!b)return;b.classList.toggle('hidden',!repeatOrderData);b.disabled=!shop.accepting_orders||repeatBusy;}
+function canRepeat(order){return order?.status==='delivered'&&Array.isArray(order.repeat_items)&&order.repeat_items.length>0&&normalize(order.first_name)===normalize($('first').value)&&normalize(order.last_name)===normalize($('last').value);}
+async function repeatLastOrder(){if(repeatBusy||working||!repeatOrderData)return;if(count()&&!confirm('Adicionar os itens disponíveis do pedido anterior ao carrinho atual?'))return;repeatBusy=true;updateRepeatButton();try{await loadCatalog();if(!shop.accepting_orders||!lastSnapshot)throw Error('Cardápio indisponível ou loja fechada.');const before=count();let requested=0;for(const raw of repeatOrderData.repeat_items){const item=repeatLine(raw);if(!item)continue;requested+=item.quantity;const product=products.find(p=>p.id===item.id);if(!product||!visibleInCatalog(product)||!available(product))continue;const key=lineKey(item),old=cart.get(key);const max=Math.max(0,99-desiredQty(product));const qty=Math.min(item.quantity,max);if(qty)cart.set(key,{...item,quantity:(old?.quantity||0)+qty});}cleanCart();renderProducts();const added=Math.max(0,count()-before);if(!added){toast('Nenhum item do pedido anterior está disponível agora.',true);return;}close('trackingModal');showCheckout(false);toast(added<requested?'Itens disponíveis adicionados. Alguns itens ou sabores não estavam disponíveis. Confira o carrinho.':'Pedido anterior adicionado. Confira preços e confirme quando quiser.');}catch(e){toast(e.message,true);}finally{repeatBusy=false;updateRepeatButton();}}
 let trackingBusy=false,trackingFinished=false,customerCancelBusy=false,reviewSubmitting=false,reviewPrompted='',reviewRows=[],reviewExpanded=false,reviewLoading=false;
 const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
 function reviewPanel(order){
@@ -498,11 +503,11 @@ async function loadTracking(){
   try{
     const {order}=await api('track',{id:currentOrder.id,token:currentOrder.token});
     if(currentOrder?.id!==trackingId)return;
-    trackingFinished=['delivered','cancelled'].includes(order.status);
+    trackingFinished=['delivered','cancelled'].includes(order.status);repeatOrderData=canRepeat(order)?order:null;updateRepeatButton();
     $('trackBtn').classList.toggle('review-pending',order.status==='delivered'&&order.payment_status==='paid'&&!order.reviewed);
     const instructions=order.payment_status==='paid'?'Pagamento confirmado.':order.payment_method==='cash'?'Pagamento em dinheiro na retirada.':order.payment_method==='card'?'Pagamento na maquininha, na retirada.':'Aguardando confirmação do pagamento pelo provedor.';
     const steps=['received','preparing','ready','delivered'];let current=steps.indexOf(order.status);
-    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${order.status==='received'&&order.payment_status==='pending'?'<div class="notice"><p class="small">Você pode cancelar enquanto a adega ainda não iniciou o preparo.</p><button type="button" class="btn btn-danger btn-wide" id="customerCancelOrder">Cancelar meu pedido</button></div>':order.status==='preparing'||order.status==='ready'?'<p class="small sub">O preparo já começou. Se precisar cancelar, fale com o atendente.</p>':''}${reviewPanel(order)}</div>`;
+    $('trackingContent').innerHTML=`<div class="track premium-track track-${esc(order.status)}"><div class="track-reference"><span>SEU PEDIDO · RETIRADA NO PORTÃO</span><b class="track-order-number">#${esc(pad(order.order_no))}</b></div><div class="track-person">${esc(order.first_name)} ${esc(order.last_name)}</div><div class="track-status"><span class="track-status-dot"></span>${esc(stageLabels[order.status]||order.status)}</div><h3 class="track-message">${esc(orderMessage(order.first_name,order.status))}</h3><div class="track-timeline" aria-label="Etapas do pedido">${steps.map((s,n)=>`<div class="track-stage ${n===current?'current':n<current?'done':''}"><span class="track-stage-point">${n<current?'✓':n+1}</span><span>${esc(stageLabels[s])}</span></div>`).join('')}</div><div class="track-payment"><span>${esc(instructions)}</span><strong>${fmt(order.total_cents)}</strong></div><p class="small sub">Quando estiver pronto, retire no portão em até 15 minutos. Depois desse prazo, o pedido não retirado poderá ser cancelado. Se houver nomes iguais, basta informar o número do pedido.</p>${order.status==='ready'&&order.ready_at?`<div class="notice">Retire até ${esc(new Date(Date.parse(order.ready_at)+900000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))}.</div>`:''}${order.status==='received'&&order.payment_status==='pending'?'<div class="notice"><p class="small">Você pode cancelar enquanto a adega ainda não iniciou o preparo.</p><button type="button" class="btn btn-danger btn-wide" id="customerCancelOrder">Cancelar meu pedido</button></div>':order.status==='preparing'||order.status==='ready'?'<p class="small sub">O preparo já começou. Se precisar cancelar, fale com o atendente.</p>':''}${repeatOrderData?'<button type="button" class="btn btn-primary btn-wide" id="repeatFromTracking">↻ Repetir este pedido</button>':''}${reviewPanel(order)}</div>`;
     if(order.status==='ready'){let seen=false;const key='adega_ready_seen_'+trackingId;try{seen=localStorage.getItem(key)==='1';if(!seen)localStorage.setItem(key,'1');}catch{seen=readyNoticeId===trackingId;}if(!seen){readyNoticeId=trackingId;toast('Seu pedido está pronto! Retire no portão em até 15 minutos.');}}
     void bindNotifications();maybePromptReview(order);
   }catch(e){$('trackingContent').innerHTML=`<p class="notice danger">${esc(e.message)}</p>`;}finally{trackingBusy=false;}
@@ -563,7 +568,7 @@ function syncChoiceCards(){
   for(const opt of select.options){
    if(!opt.value||opt.disabled)continue;
    const b=document.createElement('button');b.type='button';b.className='hora-choice-card';b.disabled=select.disabled;b.setAttribute('aria-pressed',String(select.value===opt.value));
-   const mark=document.createElement('span');mark.className='hora-choice-mark';mark.textContent=id==='doseIce'?'❄':id==='shakeAlcohol'?(opt.value==='com'?'🍹':'🥤'):'⚡';
+   const visual=flavorVisual(id,opt.textContent),mark=document.createElement('span');mark.className='hora-choice-mark choice-visual choice-'+visual.kind;mark.style.setProperty('--flavor-color',visual.color);mark.setAttribute('aria-hidden','true');mark.textContent=visual.symbol;if(id==='doseIce'&&normalize(opt.textContent).includes('agua')){const img=document.createElement('img');img.src='/imagens/gelo-de-agua.webp';img.alt='';img.onerror=()=>{img.remove();mark.textContent=visual.symbol;};mark.replaceChildren(img);}
    const name=document.createElement('span');name.textContent=opt.textContent;b.append(mark,name);
    b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);
   }
@@ -594,7 +599,8 @@ function start(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('helpModal').classList.contains('open'))closeHelp();});
   $('headerCart').addEventListener('animationend',()=> $('headerCart').classList.remove('cart-attention'));
   $('moreReviews').onclick=()=>{reviewExpanded=!reviewExpanded;renderPublicReviews();};
-  $('trackingContent').addEventListener('click',async e=>{
+  $('repeatLastOrder').onclick=repeatLastOrder;
+   $('trackingContent').addEventListener('click',async e=>{if(e.target.closest('#repeatFromTracking')){void repeatLastOrder();return;}
    const btn=e.target.closest('#customerCancelOrder');if(!btn||!currentOrder||customerCancelBusy)return;
    if(!confirm('Cancelar este pedido? Os itens serão liberados para outros clientes.'))return;
    const order=currentOrder;customerCancelBusy=true;btn.disabled=true;

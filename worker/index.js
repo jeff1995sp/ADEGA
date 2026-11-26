@@ -275,11 +275,14 @@ async function orderAction(db,body){
 async function orders(db){
  const list=await many(db,"SELECT * FROM orders WHERE status IN ('received','preparing','ready') ORDER BY created_at DESC,order_no DESC LIMIT 250");
  const demand=await demandStatus(db);
- if(!list.length)return json({orders:[],...demand});
+ await ensureCashArchive(db);
+ const {start,end}=cashDay();
+ const service_metrics=await one(db,"SELECT COUNT(*) AS count,AVG((julianday(ready_at)-julianday(created_at))*86400) AS average_seconds FROM orders o WHERE status IN ('ready','delivered') AND ready_at>=? AND ready_at<? AND julianday(ready_at)>=julianday(created_at) AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a JOIN cash_batches b ON b.id=a.batch_id WHERE a.order_id=o.id AND b.kind='test')",start,end);
+ if(!list.length)return json({orders:[],...demand,service_metrics});
  const ids=JSON.stringify(list.map(o=>o.id));
  const lines=await many(db,'SELECT i.order_id,i.product_id,i.product_name,i.quantity,i.unit_price_cents,i.ice_option_id,i.energy_option_id,p.category FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id IN (SELECT value FROM json_each(?)) ORDER BY i.id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
- const same=duplicateNames(list);return json({orders:(await displayOrders(db,list)).map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand});
+ const same=duplicateNames(list);return json({orders:(await displayOrders(db,list)).map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand,service_metrics});
 }
 async function ensureCashArchive(db){
  await run(db,"CREATE TABLE IF NOT EXISTS cash_batches (id TEXT PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('closed','test')),created_at TEXT NOT NULL)");
@@ -518,7 +521,7 @@ async function handler(request,env,ctx){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}const [display]=await displayOrders(db,[order]);return json({order:{...display,reviewed}});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}const [display]=await displayOrders(db,[order]);const repeat_items=order.status==='delivered'?await many(db,"SELECT product_id AS id,quantity,ice_option_id AS ice_id,energy_option_id AS energy_id,CASE WHEN product_name LIKE '% | Com álcool' THEN 'com' WHEN product_name LIKE '% | Sem álcool' THEN 'sem' ELSE NULL END AS shake_alcohol FROM order_items WHERE order_id=? ORDER BY id",order.id):[];return json({order:{...display,reviewed,repeat_items}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);

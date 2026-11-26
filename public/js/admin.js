@@ -1,4 +1,4 @@
-import {orderedQueue,nextOrder,queueSearch,needsPreparation} from './order-queue.js?v=1';
+import {orderedQueue,nextOrder,queueSearch,needsPreparation,isQuickOrder} from './order-queue.js?v=2';
 import {preparationSummary} from './preparation.js?v=1';
 import {managementMetrics} from './admin-central.js?v=1';
 import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-auth';
@@ -26,10 +26,11 @@ async function refreshOrders(quiet=true){
  if(ordersRequest){orderRefreshPending=true;return ordersRequest;}
  const request=async()=>{
   try{
-   const {orders:incoming=[],high_demand=false,demand_manual=false,demand_count=0}=await api('admin-orders',null,{method:'GET',admin:true});
+   const {orders:incoming=[],high_demand=false,demand_manual=false,demand_count=0,service_metrics={count:0,average_seconds:null}}=await api('admin-orders',null,{method:'GET',admin:true});
    if(!demandBusy){demandActive=Boolean(high_demand);demandManual=Boolean(demand_manual);demandCount=demand_count;renderDemand();}
    if(!authRead()?.token||$('appScreen').classList.contains('hidden'))return;
-   const snapshot=JSON.stringify(incoming);
+   serviceMetrics=service_metrics;renderServiceMetrics();
+    const snapshot=JSON.stringify(incoming);
    if(ordersInitialized){for(const order of incoming){if(!knownOrders.has(order.id)){adminAnnounce('Novo pedido recebido de '+order.first_name+'.');toast('Novo pedido: '+order.first_name);}}}
    for(const order of incoming)knownOrders.add(order.id);
    if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
@@ -63,9 +64,11 @@ const allItems=o=>(o.order_items||[]).map(i=>`<li><strong>${esc(i.quantity)}×</
 function renderStats(){
   const pending=orders.filter(o=>o.status!=='delivered'&&o.status!=='cancelled');
   const p=[['Aguardando',pending.filter(o=>o.status==='received').length],['Preparando',pending.filter(o=>o.status==='preparing').length],['Prontos',pending.filter(o=>o.status==='ready').length],['Pagos em andamento',orders.filter(o=>paid(o)).length]];
-  $('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
+  renderServiceMetrics();$('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
 let orderFilter='all',orderSearch='',selectedOrderId=null,initialOrderSelection=true;
+let serviceMetrics={count:0,average_seconds:null};
+function renderServiceMetrics(){const el=$('serviceAverage');if(!el)return;const n=Number(serviceMetrics.count)||0,seconds=serviceMetrics.average_seconds;el.textContent=n&&Number.isFinite(seconds)?Math.floor(seconds/60)+'m '+Math.round(seconds%60)+'s':'—';$('serviceSamples').textContent=n?n+' pedidos prontos hoje · do recebimento até ficar pronto':'Sem pedidos prontos hoje';}
 function selectOrder(id){selectedOrderId=id;initialOrderSelection=false;renderOrders();}
 function renderOrders(){
  const visible=orderedQueue(orders),root=$('ordersList');
@@ -74,14 +77,14 @@ function renderOrders(){
   $('orderQueueSearch').oninput=e=>{orderSearch=e.target.value;renderOrders();};
   $('orderQueueTabs').onclick=e=>{const b=e.target.closest('[data-queue]');if(!b)return;orderFilter=b.dataset.queue;renderOrders();};
   $('orderQueueRows').onclick=e=>{const b=e.target.closest('[data-select-order]');if(b){selectOrder(b.dataset.selectOrder);if(matchMedia('(max-width:800px)').matches)$('orderSelected').scrollIntoView({block:'start',behavior:'instant'});}};
-  $('queueNext').onclick=()=>{const next=nextOrder(orderedQueue(orders));if(next){orderFilter='all';orderSearch='';$('orderQueueSearch').value='';selectOrder(next.id);}};
+  $('queueNext').onclick=()=>{const next=orderFilter==='quick'?orderedQueue(orders).find(isQuickOrder):nextOrder(orderedQueue(orders));if(next){if(orderFilter!=='quick')orderFilter='all';orderSearch='';$('orderQueueSearch').value='';selectOrder(next.id);}};
  }
  if(initialOrderSelection&&visible.length){selectedOrderId=nextOrder(visible)?.id||null;initialOrderSelection=false;}
  const selected=visible.find(o=>o.id===selectedOrderId);if(!selected)selectedOrderId=null;
- const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos']];
- const tabs=groups.map(([k,n])=>`<button type="button" class="btn btn-${orderFilter===k?'primary':'secondary'} btn-sm" data-queue="${k}" aria-pressed="${orderFilter===k}">${n} <b>${visible.filter(o=>k==='all'||o.status===k).length}</b></button>`).join('');
+ const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos'],['quick','⚡ Fila rápida']];
+ const tabs=groups.map(([k,n])=>`<button type="button" class="btn btn-${orderFilter===k?'primary':'secondary'} btn-sm" data-queue="${k}" aria-pressed="${orderFilter===k}">${n} <b>${visible.filter(o=>k==='all'||(k==='quick'?isQuickOrder(o):o.status===k)).length}</b></button>`).join('');
  if($('orderQueueTabs').dataset.markup!==tabs){$('orderQueueTabs').innerHTML=tabs;$('orderQueueTabs').dataset.markup=tabs;}
- const filtered=queueSearch(visible,orderFilter,orderSearch);$('queueNext').disabled=!visible.length;
+ const filtered=queueSearch(visible,orderFilter,orderSearch);$('queueNext').disabled=orderFilter==='quick'?!visible.some(isQuickOrder):!visible.length;$('queueNext').textContent=orderFilter==='quick'?'⚡ Próximo pedido rápido':'Selecionar próximo da fila';
  $('orderQueueCount').textContent=filtered.length+' de '+visible.length+' pedidos ativos · ordem de chegada';
  const rows=filtered.map(o=>`<button type="button" data-select-order="${esc(o.id)}" aria-pressed="${o.id===selectedOrderId}" class="queue-ticket queue-${esc(o.status)}"><b>#${pad(o.order_no)}</b><span class="queue-ticket-info"><strong>${esc(o.first_name)} ${esc(o.last_name)}</strong><small>${esc(stageLabels[o.status])} · ${(o.order_items||[]).reduce((n,i)=>n+Number(i.quantity||0),0)} un. · ${fmt(o.total_cents)}</small></span><span class="queue-kind">${o.status==='ready'?'RETIRADA':needsPreparation(o)?'PREPARO':'SEPARAR'}</span></button>`).join('')||'<div class="empty">Nenhum pedido nesta lista.</div>';
  const list=$('orderQueueRows');if(list.dataset.markup!==rows){const scroll=list.scrollTop;list.innerHTML=rows;list.dataset.markup=rows;list.scrollTop=scroll;}
@@ -463,7 +466,7 @@ async function performAction(btn){
   try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{try{await refreshOrders(true);}finally{busy=false;}await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();selectedOrderId=null;initialOrderSelection=true;orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();selectedOrderId=null;initialOrderSelection=true;serviceMetrics={count:0,average_seconds:null};renderServiceMetrics();orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 let reviewsBusy=false;
 async function loadAdminReviews(){
