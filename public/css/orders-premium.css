@@ -66,3 +66,14 @@ body.tv-body .tv-concept-canvas{background:radial-gradient(ellipse at 12% 3%,#38
 @media(max-width:600px){.admin-body .order-flow-step{flex-direction:column;gap:4px;font-size:.68rem}.admin-body .order-items-panel{padding:10px}.admin-body .order-item-lines li{gap:6px;font-size:.78rem}.admin-body .order-item-lines li b{font-size:.73rem}.admin-body .order-voice-optional summary{min-height:44px}.admin-body .order-actions>span{flex-basis:100%}}
 
 .admin-body .order-duplicate-warning{display:grid;gap:5px;padding:12px;margin:12px 0;border:1px solid #94612e;background:#39291c;color:#ffdb9d;border-radius:10px;font-size:.85rem}.admin-body .order-duplicate-warning span{font-size:.76rem;line-height:1.4}.catalog-body .track-reference .track-order-number{font-size:1.4rem;line-height:1.2;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;border-color:#8b4859;background:#2b1b25}
+
+/* Compact item photo tiles inside the selected order only. */
+.admin-body .order-item-lines.order-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin:12px 0 15px;align-items:stretch}
+.admin-body .order-item-lines.order-photo-grid li.order-photo-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:9px 7px;border:1px solid #44343c;border-radius:12px;background:linear-gradient(150deg,#242027,#18161b);text-align:center;line-height:1.3}
+.admin-body .order-photo-preview{position:relative;display:grid;place-items:center;width:84px;height:84px;max-width:100%;border-radius:9px;background:#f4f4f4;flex:none}
+.admin-body .order-photo-preview img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;border-radius:9px;transform:none}
+.admin-body .order-item-lines .order-photo-preview .order-photo-qty{position:absolute;top:3px;right:3px;background:#c51d30;color:#fff;border-radius:7px;padding:4px 7px;font-weight:900;font-size:13px;box-shadow:0 2px 5px #0005}
+.admin-body .order-photo-name{font-weight:800;font-size:.85rem;color:#fff;overflow-wrap:anywhere}
+.admin-body .order-photo-details{display:flex;flex-direction:column;gap:3px;width:100%;font-size:.72rem;color:#ffd5aa;overflow-wrap:anywhere}
+.admin-body .order-item-lines li .order-photo-price{margin-top:auto;padding-top:5px;font-size:.83rem;color:#e8dfe6}
+@media(max-width:540px){.admin-body .order-item-lines.order-photo-grid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:7px}.admin-body .order-photo-preview{width:72px;height:72px}.admin-body .order-photo-name{font-size:.79rem}}

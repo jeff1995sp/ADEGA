@@ -315,7 +315,7 @@ async function orders(db){
  const service_metrics=await one(db,"SELECT COUNT(*) AS count,AVG((julianday(ready_at)-julianday(created_at))*86400) AS average_seconds FROM orders o WHERE status IN ('ready','delivered') AND ready_at>=? AND ready_at<? AND julianday(ready_at)>=julianday(created_at) AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a JOIN cash_batches b ON b.id=a.batch_id WHERE a.order_id=o.id AND b.kind='test')",start,end);
  if(!list.length)return json({orders:[],...demand,service_metrics});
  const ids=JSON.stringify(list.map(o=>o.id));
- const lines=await many(db,'SELECT i.order_id,i.product_id,i.product_name,i.quantity,i.unit_price_cents,i.ice_option_id,i.energy_option_id,p.category FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id IN (SELECT value FROM json_each(?)) ORDER BY i.id',ids);
+ const lines=await many(db,'SELECT i.order_id,i.product_id,i.product_name,i.quantity,i.unit_price_cents,i.ice_option_id,i.energy_option_id,p.category,p.image_url FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id IN (SELECT value FROM json_each(?)) ORDER BY i.id',ids);
  const groups=new Map();for(const i of lines){if(!groups.has(i.order_id))groups.set(i.order_id,[]);groups.get(i.order_id).push(i);}
  const same=duplicateNames(list);return json({orders:(await displayOrders(db,list)).map(({public_token,...o})=>({...o,duplicate_name:same.has(pickupNameKey(o)),order_items:groups.get(o.id)||[]})),...demand,service_metrics});
 }
