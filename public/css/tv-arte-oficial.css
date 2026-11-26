@@ -36,3 +36,12 @@ body.tv-reference-ready .tv-idle{background:#050505 url('/img/tv-arte-descanso.p
 body.tv-reference-ready .tv-is-idle .tv-concept-clock{z-index:9}
 body.tv-reference-ready .tv-is-idle .tv-concept-sound{z-index:9}
 @media(prefers-reduced-motion:reduce){.tv-art-new{animation:none}}
+
+/* Visible developer credit, independent of the original background artwork. */
+.tv-body .tv-developer-credit{display:inline-flex;align-items:center;justify-content:center;gap:.55em;font-size:clamp(9px,.8vw,17px);font-weight:600;letter-spacing:.025em;line-height:1.3;text-transform:none;color:#f1e5de;white-space:nowrap;text-shadow:0 1px 3px #000}
+.tv-body .tv-developer-credit strong{font-weight:850;color:#fff}
+.tv-body .tv-developer-credit a{display:inline-flex;align-items:center;gap:.3em;color:#ffaf97;text-decoration:none;font-weight:800}
+.tv-body .tv-developer-credit svg{width:1.05em;height:1.05em;flex:none}
+.tv-body .hora-tv-bottom{column-gap:clamp(8px,1.1vw,18px);row-gap:3px}
+.tv-body .tv-idle-credit{position:absolute;bottom:1.5%;left:50%;transform:translateX(-50%);display:flex;justify-content:center;padding:.35em .8em;background:#090909e8;border:1px solid #f65d486b;border-radius:8px;max-width:96%;z-index:2}
+@media(max-width:580px){.tv-body .tv-developer-credit{font-size:9px}.tv-body .hora-tv-bottom .tv-developer-credit{flex-basis:100%;justify-content:center}.tv-reference-ready .hora-tv-bottom{bottom:.5%}}
