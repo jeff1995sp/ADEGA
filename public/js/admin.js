@@ -241,7 +241,7 @@ function renderShopControl(){
  $('shopControlAction').textContent=pending?'Salvando…':!ready?'Consultando…':open?'Toque para fechar':'Toque para abrir';
 }
 let numberSettingsLoaded=false,numberSettingsLoading=false;
-async function loadNumberSettings(){if(numberSettingsLoaded||numberSettingsLoading)return;numberSettingsLoading=true;try{const d=await api('admin-order-number',null,{admin:true,method:'GET'});$('dailyNumberEnabled').checked=Boolean(d.settings.enabled);$('dailyNumberHour').value=String(d.settings.hour);$('numberSettingsStatus').textContent='Configuração salva. A próxima sequência começa em #0001.';numberSettingsLoaded=true;}catch(e){$('numberSettingsStatus').textContent=e.message;}finally{numberSettingsLoading=false;}}
+async function loadNumberSettings(){if(numberSettingsLoaded||numberSettingsLoading)return;numberSettingsLoading=true;try{const d=await api('admin-order-number',null,{admin:true,method:'GET'});$('dailyNumberEnabled').checked=Boolean(d.settings.enabled);$('dailyNumberHour').value=String(d.settings.hour);$('numberSettingsStatus').textContent='Configuração carregada. A numeração reinicia no próximo pedido após o horário, quando a fila estiver vazia.';numberSettingsLoaded=true;}catch(e){$('numberSettingsStatus').textContent=e.message;}finally{numberSettingsLoading=false;}}
 function renderSettings(){if($('orderNumberForm'))void loadNumberSettings();
  renderPickupSettings();
  renderShopControl();

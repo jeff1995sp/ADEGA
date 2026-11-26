@@ -2,7 +2,7 @@ import {searchScore,repeatLine,lineKey,normalize,flavorVisual} from './customer-
 import {api,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,isDoseProduct,energyMatchesDose,optionAvailable,isHouseGin,isCommonEnergy,doseUnitPrice,normalizeProduct,unconfirmedDuplicate} from './shared.js?v=20261124-12';
 
 let products=[],drinkOptions=[],shop={name:'Hora Extra Drinks',accepting_orders:true},category='Todos',working=false,lastSnapshot='',doseSelected=null;
-const cart=new Map();
+const cart=new Map();let doseQty=1,doseEditing=null;
 let bestSellers=[];
 let currentOrder=null,searchText='',shakeSelected=null;
 const isShake=p=>p?.category==='Batidas';
@@ -10,7 +10,7 @@ const validShake=v=>v==='com'||v==='sem';
 const $=id=>document.getElementById(id);
 const photoSlug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const open=id=>$(id)?.classList.add('open');
-const close=id=>$(id)?.classList.remove('open');
+const close=id=>{$(id)?.classList.remove('open');if(id==='doseModal')doseEditing=null;};
 const available=p=>p.active && p.price_cents>0 && (p.unlimited || p.stock>0) && shop.accepting_orders;
 const total=()=>[...cart.values()].reduce((sum,item)=>sum+doseUnitPrice(products.find(p=>p.id===item.id),optionById(item.energy_id))*item.quantity,0);
 const count=()=>[...cart.values()].reduce((sum,item)=>sum+item.quantity,0);
@@ -27,7 +27,8 @@ const iceSummary=item=>{
 };
 const getAvailableOption=id=>{const o=optionById(id);return optionAvailable(o)?o:null;};
 const amountUsed=(id,field)=>[...cart.values()].filter(i=>i[field]===id).reduce((s,i)=>s+i.quantity,0);
-const remainingOption=o=>optionAvailable(o)&&(o.unlimited||amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')<o.stock);
+const editCredit=(id,field)=>{const item=doseEditing&&cart.get(doseEditing);return item&&item[field]===id?item.quantity:0;};
+const remainingOption=o=>optionAvailable(o)&&(o.unlimited||amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')-editCredit(o.id,o.option_group==='ice'?'ice_id':'energy_id')<o.stock);
 const availableOptionMarkup=(choices,placeholder)=>`<option value="">${esc(placeholder)}</option>`+choices.filter(remainingOption).map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
 const preferredEnergy=(choices,name)=>choices.find(o=>o.name===name&&remainingOption(o))||choices.find(remainingOption);
 
@@ -205,10 +206,11 @@ function refreshHouseGinEnergy(){
  if(!$('doseIce').value||!remainingOption(optionById($('doseIce').value)))$('doseIce').value='';
  $('dosePrice').textContent=(kind?fmt(doseUnitPrice(p,{name:kind==='redbull'?'Red Bull':''})):fmt(p.price_cents)+' / '+fmt(p.price_cents+1000))+' • Copo de 700 ml • Gelo e energético inclusos';
 }
-function showDoseConfigurator(p){
- if(!available(p)||!hasDrinkOptions(p))return toast('Dose ou sabores indisponíveis. O dono precisa liberar no admin.',true);
+function showDoseConfigurator(p,editKey=null){
+ if(!$('doseModal').classList.contains('open')){doseEditing=editKey;doseQty=editKey?(cart.get(editKey)?.quantity||1):1;}
+ if(!available(p)||!hasDrinkOptions(p)){doseEditing=null;return toast('Dose ou sabores indisponíveis. O dono precisa liberar no admin.',true);}
  doseSelected=p;
- $('doseTitle').textContent=p.name;const hero=$('doseHeroPhoto');if(hero){const source=document.querySelector('[data-id="'+CSS.escape(p.id)+'"]')?.closest('article')?.querySelector('img');hero.src=source?.getAttribute('src')||p.image_url||'/imagens/foto-pendente.webp';hero.alt=p.name;}
+ $('doseTitle').textContent=p.name;const hero=$('doseHeroPhoto');if(hero){const source=document.querySelector('[data-id="'+CSS.escape(p.id)+'"]')?.closest('article')?.querySelector('img');hero.src=photoFor(p);hero.alt=p.name;}
  $('dosePrice').textContent=fmt(p.price_cents)+' • Copo de 700 ml • Gelo e energético inclusos';
  const choices=drinkChoiceList('ice',p).filter(remainingOption);
  const energies=drinkChoiceList('energy',p).filter(remainingOption);
@@ -239,28 +241,12 @@ function showDoseConfigurator(p){
   $('doseEnergy').disabled=vibe;
   $('doseIce').disabled=false;
  }
+ if(editKey){const item=cart.get(editKey);if(item){if(isHouseGin(p)){const energy=optionById(item.energy_id);$('doseEnergyKind').value=isCommonEnergy(energy)?'common':'redbull';refreshHouseGinEnergy();}if([...$('doseIce').options].some(o=>o.value===item.ice_id))$('doseIce').value=item.ice_id;if([...$('doseEnergy').options].some(o=>o.value===item.energy_id))$('doseEnergy').value=item.energy_id;}}
  open('doseModal');syncChoiceCards();
 }
-function addConfiguredDose(event){
- event.preventDefault();
- if(!doseSelected)return;
- const p=products.find(x=>x.id===doseSelected.id);
- if(!p||!available(p))return toast('Esta dose está indisponível.',true);
- const ice=getAvailableOption($('doseIce').value),energy=getAvailableOption($('doseEnergy').value);
- if(!ice||!energy||ice.option_group!=='ice'||energy.option_group!=='energy'||!energyMatchesDose(p,energy)){
-  return toast('Selecione um gelo e um energético disponíveis.',true);
- }
- if(!p.unlimited&&desiredQty(p)>=p.stock)return toast('Dose esgotada.',true);
- for(const o of [ice,energy])if(!o.unlimited&&amountUsed(o.id,o.option_group==='ice'?'ice_id':'energy_id')>=o.stock){
-  return toast(o.name+' esgotou. Escolha outro sabor.',true);
- }
- const key=p.id+'|'+ice.id+'|'+energy.id;
- const item=cart.get(key)||{id:p.id,quantity:0,ice_id:ice.id,energy_id:energy.id};
- item.quantity++;
- cart.set(key,item);
- close('doseModal');renderProducts();
- toast('Dose adicionada com gelo '+ice.name+' e '+energy.name+'.');
-}
+function configuredDoseLimit(p,ice,energy){if(!p||!ice||!energy||!available(p)||!energyMatchesDose(p,energy))return 0;return Math.max(0,Math.min(99-desiredQty(p)+editCredit(p.id,'id'),p.unlimited?99:p.stock-desiredQty(p)+editCredit(p.id,'id'),ice.unlimited?99:ice.stock-amountUsed(ice.id,'ice_id')+editCredit(ice.id,'ice_id'),energy.unlimited?99:energy.stock-amountUsed(energy.id,'energy_id')+editCredit(energy.id,'energy_id')));}
+function updateDoseQuantity(){if(!$('doseModal')?.classList.contains('open'))return;const p=doseSelected,ice=getAvailableOption($('doseIce').value),energy=getAvailableOption($('doseEnergy').value),max=configuredDoseLimit(p,ice,energy);doseQty=Math.min(Math.max(1,max),Math.max(1,doseQty));$('doseQtyValue').textContent=doseQty;$('doseQtyMinus').disabled=doseQty<=1;$('doseQtyPlus').disabled=!max||doseQty>=max;$('doseSelectionSummary').textContent=(ice?.name||'Escolha o gelo')+' · '+(energy?.name||'Escolha o energético');$('doseAddButton').disabled=!max;$('doseAddButton').textContent=(doseEditing?'Salvar':'Adicionar')+' '+doseQty+' '+(doseQty===1?'dose':'doses')+' · '+fmt(doseUnitPrice(p,energy)*doseQty);}
+function addConfiguredDose(event){event.preventDefault();if(!doseSelected)return;const p=products.find(x=>x.id===doseSelected.id);if(!p||!available(p))return toast('Esta dose está indisponível.',true);const ice=getAvailableOption($('doseIce').value),energy=getAvailableOption($('doseEnergy').value);if(!ice||!energy||ice.option_group!=='ice'||energy.option_group!=='energy'||!energyMatchesDose(p,energy))return toast('Selecione um gelo e um energético disponíveis.',true);if(doseQty>configuredDoseLimit(p,ice,energy))return toast('Estoque insuficiente. Escolha outra quantidade.',true);const editing=Boolean(doseEditing);if(doseEditing)cart.delete(doseEditing);const key=p.id+'|'+ice.id+'|'+energy.id;const item=cart.get(key)||{id:p.id,quantity:0,ice_id:ice.id,energy_id:energy.id};item.quantity+=doseQty;cart.set(key,item);close('doseModal');renderProducts();if($('cartModal').classList.contains('open')){renderCheckoutSummary();renderCheckoutExtras();}toast(editing?'Dose atualizada.':'Dose adicionada com gelo '+ice.name+' e '+energy.name+'.');}
 
 function showStoreClosed(closed){for(const id of ['storeClosedNotice','storeClosedEntry'])$(id)?.classList.toggle('hidden',!closed);if(closed&&$('cartModal').classList.contains('open'))close('cartModal');}
 let loadingCatalog=false;
@@ -279,7 +265,7 @@ async function loadCatalog(){
     cleanCart();renderProducts();
     if($('doseModal').classList.contains('open')&&doseSelected){
       const p=products.find(x=>x.id===doseSelected.id),ice=$('doseIce').value,energy=$('doseEnergy').value,kind=$('doseEnergyKind').value;
-      if(!p||!available(p)||!hasDrinkOptions(p)||(!p.unlimited&&desiredQty(p)>=p.stock)){close('doseModal');doseSelected=null;toast('A disponibilidade desta dose mudou. Confira o cardápio.',true);}
+      if(!p||!available(p)||!hasDrinkOptions(p)||(!p.unlimited&&desiredQty(p)-editCredit(p.id,'id')>=p.stock)){close('doseModal');doseSelected=null;toast('A disponibilidade desta dose mudou. Confira o cardápio.',true);}
       else {showDoseConfigurator(p);if(isHouseGin(p)&&[...$('doseEnergyKind').options].some(o=>o.value===kind&&kind)){ $('doseEnergyKind').value=kind;refreshHouseGinEnergy(); }if([...$('doseEnergy').options].some(o=>o.value===energy&&energy))$('doseEnergy').value=energy;if([...$('doseIce').options].some(o=>o.value===ice&&ice))$('doseIce').value=ice;syncChoiceCards();}
     }
     if($('cartModal').classList.contains('open')){
@@ -326,7 +312,7 @@ const renderCheckoutSummary=()=>{
   const p=products.find(p=>p.id===item.id);
   if(!p)return '';
   return `<div class="order-line"><span>${item.quantity}x ${esc(p.name)}<small style="display:block">${esc(iceSummary(item))}</small>
-   <button type="button" class="btn btn-secondary btn-sm" data-remove-choice="${esc(key)}">Remover</button></span><strong>${fmt(item.quantity*doseUnitPrice(p,optionById(item.energy_id)))}</strong></div>`;
+   <div class="checkout-line-actions">${item.ice_id?`<button type="button" class="btn btn-secondary btn-sm" data-edit-choice="${esc(key)}">Editar sabores</button>`:''}<button type="button" class="btn btn-secondary btn-sm" data-change-line="${esc(key)}" data-delta="-1" aria-label="Diminuir quantidade">−</button><button type="button" class="btn btn-secondary btn-sm" data-change-line="${esc(key)}" data-delta="1" aria-label="Adicionar mais um">+</button><button type="button" class="btn btn-secondary btn-sm" data-remove-choice="${esc(key)}">Remover</button></div></span><strong>${fmt(item.quantity*doseUnitPrice(p,optionById(item.energy_id)))}</strong></div>`;
  }).join('')+`<div class="order-line"><strong>Total</strong><strong class="gold">${fmt(total())}</strong></div>`;
  updateCashPreview();
 };
@@ -576,6 +562,7 @@ function syncChoiceCards(){
    b.addEventListener('click',()=>{select.value=opt.value;select.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceCards();});panel.append(b);
   }
  }
+ updateDoseQuantity();
 }
 function start(){
   $('entryLocation').onclick=checkEntryLocation;$('entryPermissionsDismiss').onclick=dismissEntryPermissions;
@@ -631,10 +618,11 @@ function start(){
   // Changing ice never clears the already included energy drink.
   $('shakeForm').addEventListener('submit',e=>{e.preventDefault();const p=products.find(x=>x.id===shakeSelected),v=$('shakeAlcohol').value;if(!p||!isShake(p)||!validShake(v)||!available(p)||(!p.unlimited&&desiredQty(p)>=p.stock))return toast('Confira o preparo e a disponibilidade.',true);const key=p.id+':shake:'+v;const item=cart.get(key)||{id:p.id,quantity:0,shake_alcohol:v};item.quantity++;cart.set(key,item);close('shakeModal');renderProducts();toast('Batida adicionada: '+(v==='com'?'com álcool':'sem álcool'));});
   $('closeShake').addEventListener('click',()=>close('shakeModal'));
+  $('doseQtyMinus').onclick=()=>{doseQty--;updateDoseQuantity();};$('doseQtyPlus').onclick=()=>{doseQty++;updateDoseQuantity();};$('doseIce').addEventListener('change',updateDoseQuantity);$('doseEnergy').addEventListener('change',updateDoseQuantity);
   $('doseForm').addEventListener('submit',addConfiguredDose);
   $('closeDose').addEventListener('click',()=>close('doseModal'));
   $('checkoutSummary').addEventListener('click',e=>{
-   const btn=e.target.closest('[data-remove-choice]');if(!btn)return;
+   const edit=e.target.closest('[data-edit-choice]');if(edit){const item=cart.get(edit.dataset.editChoice),p=item&&products.find(x=>x.id===item.id);if(p)showDoseConfigurator(p,edit.dataset.editChoice);return;}const change=e.target.closest('[data-change-line]');if(change){const item=cart.get(change.dataset.changeLine),p=item&&products.find(x=>x.id===item.id);if(!item||!p)return;const delta=Number(change.dataset.delta);if(delta>0&&(!available(p)||desiredQty(p)>=99||(!p.unlimited&&desiredQty(p)>=p.stock)||[item.ice_id,item.energy_id].filter(Boolean).some(id=>!remainingOption(optionById(id)))))return toast('Não há mais unidades disponíveis.',true);item.quantity+=delta;if(item.quantity<=0)cart.delete(change.dataset.changeLine);if(!count())close('cartModal');else{renderCheckoutSummary();renderCheckoutExtras();}renderProducts();return;}const btn=e.target.closest('[data-remove-choice]');if(!btn)return;
    cart.delete(btn.dataset.removeChoice);
    if(!count())close('cartModal');
    else {renderCheckoutSummary();renderCheckoutExtras();}
