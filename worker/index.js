@@ -297,7 +297,7 @@ async function orderAction(db,body){
  sql="status='delivered',payment_status='paid',paid_at=COALESCE(paid_at,?),age_checked=CASE WHEN age_required=1 AND ?=1 THEN 1 ELSE age_checked END,updated_at=? WHERE id=? AND status='ready' AND payment_method=? AND payment_status IN ('pending','paid') AND (age_required=0 OR age_checked=1 OR ?=1)";
  args=[date,body.age_confirmed===true,date,body.id,body.action==='finishcard'?'card':'cash',body.age_confirmed===true];break;
  case 'status':
- if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";args=[date,body.id];}
+ if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";if(body.solo===true)sql+=" AND (payment_method IN ('cash','card') OR payment_status='paid') AND NOT EXISTS (SELECT 1 FROM orders AS active WHERE active.status='preparing')";args=[date,body.id];}
  else if(body.value==='ready'){sql="status='ready',ready_at=?,updated_at=? WHERE id=? AND status IN ('received','preparing')";args=[date,date,body.id];}
  else if(body.value==='delivered'){sql="status='delivered',updated_at=? WHERE id=? AND status='ready' AND payment_status='paid' AND (age_required=0 OR age_checked=1) AND (payment_method<>'pix' OR receipt_checked=1)";args=[date,body.id];}
  else reject('Status inválido.');break;

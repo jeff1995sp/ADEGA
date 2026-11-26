@@ -15,3 +15,10 @@ export function stablePage(rows,previous=[],rotate=false,limit=6){
 export const orderVoiceKey=o=>o.id+':'+o.status+(o.status==='ready'?':'+(o.ready_at||''):'');
 
 export const isQuickOrder=o=>['received','preparing'].includes(o.status)&&!needsPreparation(o);
+
+/* Solo: resume existing work before opening another, and never prepare unpaid online orders. */
+export const soloEligible=o=>o.status==='received'&&(['cash','card'].includes(o.payment_method)||o.payment_status==='paid');
+export function soloQueue(orders){
+ const rows=orderedQueue(orders),working=rows.filter(o=>o.status==='preparing'),waiting=rows.filter(soloEligible);
+ return {current:working[0]||waiting[0]||null,next:working[0]?working[1]||waiting[0]||null:waiting[1]||null,working,waiting,ready:rows.filter(o=>o.status==='ready'),blocked:rows.filter(o=>o.status==='received'&&!soloEligible(o))};
+}
