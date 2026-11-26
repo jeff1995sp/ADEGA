@@ -331,7 +331,7 @@ const renderCheckoutSummary=()=>{
 const renderCheckoutExtras=()=>{
  const panel=$('checkoutExtras');
  if(!panel)return;
- const rows=extrasDismissed?[]:checkoutExtras.map(extra=>{
+ const rows=extrasDismissed?'':checkoutExtras.map(extra=>{
   const p=extraProduct(extra.key);
   const usable=Boolean(p&&available(p)&&(!p.unlimited?desiredQty(p)<p.stock:true));
   const qty=p?desiredQty(p):0;
