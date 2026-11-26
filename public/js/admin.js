@@ -133,7 +133,7 @@ function renderInventory(){
   const row=p=>{
     const stock=p.unlimited?'Ilimitado':p.stock===0?'<span class="stock-badge out">Esgotado</span>':p.stock<=threshold?`<span class="stock-badge low">⚠ Só ${p.stock} restantes</span>`:`<span class="stock-badge">${p.stock} unidades</span>`;
     return `<div class="inventory-row"><div class="inventory-product-info"><img class="inventory-thumb" src="${esc(photoFor(p))}" data-fallback="${esc(photoFallbackFor(p))}" alt="Foto de ${esc(p.name)}" loading="lazy" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;delete this.dataset.fallback;this.src=f}else{this.onerror=null;this.src='/imagens/foto-pendente.webp'}"><div><b>${esc(p.name)}</b><div class="tiny">${esc(catalogCategory(p))} · ${p.price_cents?fmt(p.price_cents):'Sem preço'} · ${p.active?'Ativo':'Pausado'}</div></div></div>
-      <div>${stock}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
+      <div>${stock}${p.standalone_limit!==undefined?`<div class="tiny sub">Limite avulso: ${p.standalone_limit} · saldo em Sabores: ${p.shared_stock}</div>`:''}</div><div><span class="pill ${p.active?'good':'bad'}">${p.active?'Ativo':'Pausado'}</span></div>
       <div class="controls"><button class="btn btn-secondary btn-sm" data-action="stock" data-value="5" data-id="${p.id}">+5</button><button class="btn btn-secondary btn-sm" data-action="stock" data-value="10" data-id="${p.id}">+10</button>
       <input class="stock-set" type="number" min="0" max="1000000" data-stock-input="${p.id}" placeholder="Qtd." aria-label="Nova quantidade de ${esc(p.name)}">
       ${button('Definir','setstock',p.id)}<span class="price-inline"><label for="price-${p.id}">Preço R$</label><input id="price-${p.id}" data-price-input="${p.id}" class="price-set" inputmode="decimal" value="${p.price_cents?(p.price_cents/100).toFixed(2).replace('.',','):''}" placeholder="0,00" aria-label="Preço de ${esc(p.name)} em reais">${button('Salvar preço','setprice',p.id,'','primary')}</span>${button(p.active?'Pausar':'Reativar','toggle',p.id,'',p.active?'danger':'primary')}${button('Prévia do produto','preview',p.id)}${button('Editar / foto','edit',p.id)}</div></div>`;
@@ -155,7 +155,7 @@ function renderDrinkOptions(){
     <div><b>${esc(o.name)}</b><div class="tiny">${esc(status)}</div></div>
     <div class="controls">${o.id==='energy-99'?'<span class="pill good">Incluso na dose · sem estoque</span>':o.unlimited?'<span class="pill good">Sem estoque físico</span>':`<input class="stock-set" type="number" min="0" max="1000000" value="${o.stock}" data-option-stock-input="${esc(o.id)}" aria-label="Estoque ${esc(o.name)}">
     ${button('Salvar qtd.','optionstock',o.id)}`}</div>
-    <div class="controls">${o.id==='energy-99'?'<span class="tiny sub">Sempre disponível nas doses com Vibe</span>':button(o.active?'Pausar sabor':'Ativar sabor','optiontoggle',o.id,'',o.active?'danger':'primary')}</div>
+    <div class="controls">${button(o.active?'Pausar sabor':'Ativar sabor','optiontoggle',o.id,'',o.active?'danger':'primary')}</div>
    </div>`;
   }).join('')}</section>`;
  }).join('');

@@ -6,7 +6,8 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 class ApiError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 const reject=(message,status=400)=>{throw new ApiError(message,status);};
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
-const idOk=v=>uuid(v)||['energy-common','refri-sprite','refri-fanta-laranja','refri-fanta-uva','refri-guarana','refri-coca-cola'].includes(v)||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
+const standaloneEnergyId=id=>typeof id==='string'&&/^redbull-(?:[1-9]|1[0-4])$/.test(id)?'energy-'+id.slice(8):null;
+const idOk=v=>uuid(v)||Boolean(standaloneEnergyId(v))||['energy-common','refri-sprite','refri-fanta-laranja','refri-fanta-uva','refri-guarana','refri-coca-cola'].includes(v)||typeof v==='string'&&/^(?:produto|interno|ice|energy)-\d{1,6}$/.test(v);
 const int=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
 const text=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 const now=()=>new Date().toISOString();
@@ -169,9 +170,11 @@ async function ensureColaAndEnergyFlavors(db){
  stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',patch)]);
 }
 async function ensureIncludedVibe(db){
- await run(db,"INSERT INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-99','energy','Vibe Original',1,0,1,99) ON CONFLICT(id) DO UPDATE SET active=1,unlimited=1 WHERE drink_options.active<>1 OR drink_options.unlimited<>1");
+ await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');const patch='20261126-vibe-toggle-v2';if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',patch))return;await db.batch([stmt(db,"INSERT INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-99','energy','Vibe Original',1,0,1,99) ON CONFLICT(id) DO UPDATE SET active=1,unlimited=1 WHERE NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",patch),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',patch)]);
 }
-async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);
+const standaloneRedBulls=[[1,"Original","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/3695a10545/br_ed_250ml_energy-drink_country_rgb__cold_closed_front_com_25.png/m/168x0"],[2,"Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/8083114670/br_sf_250ml_sugarfree_country_rgb__cold_closed_front_com_full.png/m/168x0"],[3,"Zero","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/a58094ed39/br_zr_250ml_ac_zero_country_rgb_packrq-2750_cold_closed_front_com_full.png/m/168x0"],[4,"Tropical","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/635d955ea9/br_yl_250ml_the-tropical-edition_country_rgb_do238698_cold_closed_front_com_25.png/m/168x0"],[5,"Melancia","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/8c43f3f482/br_wm_250ml_the-melancia-edition_country_rgb_do238714_cold_closed_front_com_25.png/m/168x0"],[6,"Melão","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/63c692f0a6/br_ce_250ml_the-melao-edition_country_rgb_initi8-40_cold_closed_front_com_full-1.png/m/168x0"],[7,"Pêssego","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/6faa6f0f46/br_as_250ml_the-pessego-edition_country_rgb__cold_closed_front_com_full.png/m/168x0"],[8,"Cereja","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/14471adf6c/br_jb_250ml_the-cereja-edition_country_rgb_do243994_cold_closed_front_com_25.png/m/168x0"],[9,"White Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/97bb5a49dc/br_sf-cs_250ml_ac_the-white-edition_country_rgb_packrq-4842_cold_closed_front_com_25.png/m/168x0"],[10,"Nectarina Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/222e943f79/br_sf-wp_250ml_ac_the-nectarina-edition-sugarfree_country_rgb_packrq-5170_cold_closed_front_com_25.png/m/168x0"],[11,"Ice Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/48c7ee3693/br_sf-igb_250ml_ac_the-ice-edition-sugarfree_country_rgb_initi8-188_cold_closed_front_com_25.png/m/168x0"],[12,"Maçã Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/6b32a22fb3/br_sf-fai_250ml_ac_the-maca-edition-sugarfree_country_rgb_packrq-3400_cold_closed_front_com_full.png/m/168x0"],[13,"Amora Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/528x1348/2d9f981288/new_br_sf-ff_250ml_the-amora-edition-sugarfree_country_rgb_initi8-49_cold_closed_front_com_full.png/m/168x0"],[14,"Pomelo Sugarfree","https://www.redbull.com/energydrink/v1/resources/storyblok/images/f/287059/870x2200/030bc3b020/br_sf-wpg_250ml_the-pomelo-edition-sugarfree_country_rgb_initi8-56_cold_closed_front_com_25.png/m/168x0"]];
+async function ensureStandaloneRedBulls(db){await run(db,'CREATE TABLE IF NOT EXISTS catalog_patches (id TEXT PRIMARY KEY NOT NULL)');const patch='20261126-redbull-avulso-v1';if(await one(db,'SELECT id FROM catalog_patches WHERE id=?',patch))return;await db.batch([...standaloneRedBulls.map(([i,name,url])=>stmt(db,"INSERT OR IGNORE INTO products(id,name,category,description,price_cents,stock,unlimited,active,icon,image_url,age_restricted,sort_order) VALUES (?,?,'Águas e Refrigerantes','Energético avulso em lata de 250 ml. Retirada no portão.',1200,?,0,?,'🥤',?,0,?)",'redbull-'+i,'Red Bull '+name+' (250 ml)',i===1?3:0,i===1?1:0,url,930+i)),stmt(db,"INSERT OR IGNORE INTO drink_options(id,option_group,name,active,stock,unlimited,sort_order) VALUES ('energy-1','energy','Red Bull Original',1,3,0,1)"),stmt(db,"UPDATE drink_options SET active=1,stock=MAX(stock,3) WHERE id='energy-1' AND NOT EXISTS(SELECT 1 FROM catalog_patches WHERE id=?)",patch),stmt(db,'INSERT OR IGNORE INTO catalog_patches(id) VALUES (?)',patch)]);}
+async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);await ensureStandaloneRedBulls(db);
  await ensureCashArchive(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
@@ -182,11 +185,12 @@ async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAnd
  admin?Promise.resolve([]):many(db,"SELECT i.product_id,SUM(i.quantity) AS quantity FROM order_items i JOIN orders o ON o.id=i.order_id WHERE o.payment_status='paid' AND o.status<>'cancelled' AND o.paid_at>=? AND o.paid_at<=? AND NOT EXISTS(SELECT 1 FROM cash_archived_orders a JOIN cash_batches b ON b.id=a.batch_id WHERE a.order_id=o.id AND b.kind='test') GROUP BY i.product_id ORDER BY quantity DESC,i.product_id ASC",new Date(Date.now()-30*86400000).toISOString(),now())
  ]);
  if(!store)reject('Configuração da loja ausente.',503);
- const publicProducts=dedupePublicProducts(products.filter(visible));
+ const optionMap=new Map(drink_options.map(o=>[o.id,o]));const effectiveProducts=products.map(p=>{const id=standaloneEnergyId(p.id);if(!id)return p;const o=optionMap.get(id);return {...p,standalone_limit:p.stock,shared_stock:o?.stock??0,stock:o?.active?Math.min(p.stock,o.unlimited?p.stock:o.stock):0,unlimited:false};});
+ const publicProducts=dedupePublicProducts(effectiveProducts.filter(visible));
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  const location=await readPickupLocation(db);
- return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?products:publicProducts,drink_options:admin?drink_options:drink_options.filter(o=>o.active&&(o.unlimited||o.stock>0)),drink_options_ready:true,online_enabled:false,best_sellers});
+ return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?effectiveProducts:publicProducts,drink_options:admin?drink_options:drink_options.filter(o=>o.active&&(o.unlimited||o.stock>0)),drink_options_ready:true,online_enabled:false,best_sellers});
 }
 async function ensureOrderCycles(db){await run(db,'CREATE TABLE IF NOT EXISTS cash_order_cycles (cutoff INTEGER NOT NULL UNIQUE CHECK(cutoff>=0),created_at TEXT NOT NULL)');}
 const numberDay=(hour=6,at=Date.now())=>new Date(at-(3+hour)*3600000).toISOString().slice(0,10);
@@ -206,7 +210,7 @@ async function orderResult(db,o){const [display]=await displayOrders(db,[o]);ret
 
 const aggregate=(items,key)=>{const m=new Map();for(const i of items){const k=i[key];if(k)m.set(k,(m.get(k)||0)+i.quantity);}return m;};
 async function createOrder(db,body){
- await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);await ensureNumberSettings(db);
+ await ensureSodaFlavors(db);await ensureColaAndEnergyFlavors(db);await ensureIncludedVibe(db);await ensureStandaloneRedBulls(db);await ensureNumberSettings(db);
  await applyCatalogPricePatch(db);
  await ensureInternalInventory(db);
  if(body.honeypot||body.age_confirmed!==true)reject('Confirme ter pelo menos 18 anos.');
@@ -226,6 +230,7 @@ async function createOrder(db,body){
  if(!store?.accepting_orders)reject('A adega está temporariamente fechada para pedidos.',409);
  await requireNearby(db,body.position);
  const quantities=aggregate(items,'id'),ice=aggregate(items,'ice_id'),energy=aggregate(items,'energy_id');
+ for(const [id,qty] of quantities){const opt=standaloneEnergyId(id);if(opt)energy.set(opt,(energy.get(opt)||0)+qty);}
  const ids=[...quantities.keys()],opts=[...new Set([...ice.keys(),...energy.keys()])];
  const placeholders=a=>a.map(()=>'?').join(',');
  const [pp,oo]=await Promise.all([many(db,'SELECT * FROM products WHERE id IN ('+placeholders(ids)+')',...ids),opts.length?many(db,'SELECT * FROM drink_options WHERE id IN ('+placeholders(opts)+')',...opts):[]]);
@@ -245,7 +250,7 @@ async function createOrder(db,body){
  if(!int(total,1,MAX_MONEY)||total!==body.expected_total_cents)reject('O preço mudou. Atualize o carrinho e confira o total.',409);
  if(method==='cash'&&cash<total)reject('O valor em dinheiro deve cobrir o total do pedido.',409);
  const oid=crypto.randomUUID(),publicToken=crypto.randomUUID(),date=now(),payload=JSON.stringify(lines);
- const sqlItems="INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents,ice_option_id,energy_option_id) SELECT ?,CASE WHEN p.id IS NOT NULL AND p.active=1 AND p.category=json_extract(j.value,'$.category') AND p.name=json_extract(j.value,'$.base_name') AND p.price_cents=json_extract(j.value,'$.base_price') AND p.age_restricted=json_extract(j.value,'$.age') AND p.unlimited=json_extract(j.value,'$.product_unlimited') AND (json_extract(j.value,'$.ice_id') IS NULL OR (a.active=1 AND a.option_group='ice' AND a.name=json_extract(j.value,'$.ice_name') AND a.unlimited=json_extract(j.value,'$.ice_unlimited'))) AND (json_extract(j.value,'$.energy_id') IS NULL OR (b.active=1 AND b.option_group='energy' AND b.name=json_extract(j.value,'$.energy_name') AND b.unlimited=json_extract(j.value,'$.energy_unlimited'))) THEN p.id ELSE NULL END,json_extract(j.value,'$.name'),json_extract(j.value,'$.quantity'),json_extract(j.value,'$.price'),json_extract(j.value,'$.ice_id'),json_extract(j.value,'$.energy_id') FROM json_each(?) j LEFT JOIN products p ON p.id=json_extract(j.value,'$.id') LEFT JOIN drink_options a ON a.id=json_extract(j.value,'$.ice_id') LEFT JOIN drink_options b ON b.id=json_extract(j.value,'$.energy_id')";
+ const sqlItems="INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price_cents,ice_option_id,energy_option_id) SELECT ?,CASE WHEN p.id IS NOT NULL AND p.active=1 AND p.category=json_extract(j.value,'$.category') AND p.name=json_extract(j.value,'$.base_name') AND p.price_cents=json_extract(j.value,'$.base_price') AND p.age_restricted=json_extract(j.value,'$.age') AND p.unlimited=json_extract(j.value,'$.product_unlimited') AND (p.id NOT LIKE 'redbull-%' OR EXISTS(SELECT 1 FROM drink_options ro WHERE ro.id='energy-'||substr(p.id,9) AND ro.active=1 AND ro.option_group='energy')) AND (json_extract(j.value,'$.ice_id') IS NULL OR (a.active=1 AND a.option_group='ice' AND a.name=json_extract(j.value,'$.ice_name') AND a.unlimited=json_extract(j.value,'$.ice_unlimited'))) AND (json_extract(j.value,'$.energy_id') IS NULL OR (b.active=1 AND b.option_group='energy' AND b.name=json_extract(j.value,'$.energy_name') AND b.unlimited=json_extract(j.value,'$.energy_unlimited'))) THEN p.id ELSE NULL END,json_extract(j.value,'$.name'),json_extract(j.value,'$.quantity'),json_extract(j.value,'$.price'),json_extract(j.value,'$.ice_id'),json_extract(j.value,'$.energy_id') FROM json_each(?) j LEFT JOIN products p ON p.id=json_extract(j.value,'$.id') LEFT JOIN drink_options a ON a.id=json_extract(j.value,'$.ice_id') LEFT JOIN drink_options b ON b.id=json_extract(j.value,'$.energy_id')";
  const stockRows=[...quantities].map(([id,qty])=>({id,qty}));
  const optionRows=[...ice,...energy].map(([id,qty])=>({id,qty}));
  const stockSql=table=>"UPDATE "+table+" SET stock=CASE WHEN unlimited=1 THEN stock ELSE stock-(SELECT SUM(json_extract(j.value,'$.qty')) FROM json_each(?) j WHERE json_extract(j.value,'$.id')="+table+".id) END WHERE id IN (SELECT json_extract(value,'$.id') FROM json_each(?))";
@@ -422,7 +427,7 @@ async function productsAdmin(db,body,method){
  return json({product:saved},201);
  }
  if(!idOk(body.id))reject('Produto inválido.');
- const old=await one(db,'SELECT name,category FROM products WHERE id=?',body.id);if(!old)missing();
+ const old=await one(db,'SELECT name,category FROM products WHERE id=?',body.id);if(!old)missing();if(standaloneEnergyId(body.id)&&p.unlimited===true)reject('Red Bull avulso utiliza estoque físico compartilhado.',409);
  return json({product:await patchRow(db,'products',body.id,p)});
 }
 async function photo(db,body){
@@ -572,7 +577,7 @@ async function handler(request,env,ctx){
  if(route==='admin-products'&&['POST','PATCH'].includes(method)){await applyCatalogPricePatch(db);await ensureInternalInventory(db);return productsAdmin(db,body,method);}
  if(route==='admin-photo'&&method==='POST')return photo(db,body);
  if(route==='admin-drink-options'&&method==='PATCH'){
- if(!idOk(body.id))reject('Sabor inválido.');if(body.id==='energy-99')reject('Vibe já está incluso nas doses e não possui controle individual de estoque. Pause a dose para suspender a venda.',409);const p={};
+ if(!idOk(body.id))reject('Sabor inválido.');if(body.id==='energy-99'){await ensureIncludedVibe(db);if(body.stock!==undefined)reject('Vibe não possui controle individual de estoque.',409);}const p={};
  if(body.active!==undefined){if(typeof body.active!=='boolean')reject('Status inválido.');p.active=body.active;}
  if(body.stock!==undefined){if(!int(body.stock,0,MAX_STOCK))reject('Estoque inválido.');p.stock=body.stock;}
  return json({option:await patchRow(db,'drink_options',body.id,p)});
