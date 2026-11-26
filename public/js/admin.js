@@ -1,4 +1,4 @@
-import {orderedQueue,nextOrder,queueSearch,needsPreparation,isQuickOrder} from './order-queue.js?v=2';
+import {orderedQueue,nextOrder,queueSearch,needsPreparation,isQuickOrder,soloQueue,soloEligible} from './order-queue.js?v=3';
 import {preparationSummary} from './preparation.js?v=1';
 import {managementMetrics} from './admin-central.js?v=1';
 import {api,authSave,authRead,authClear,CATEGORIES,fmt,esc,pad,priceParse,toast,setBrand,minutesAgo,labels,stageLabels,photoFor,photoFallbackFor,photoStatusFor,catalogCategory,isStandaloneIce,productDescription,normalizeProduct} from './shared.js?v=20261124-auth';
@@ -35,12 +35,12 @@ async function refreshOrders(quiet=true){
    for(const order of incoming)knownOrders.add(order.id);
    if(knownOrders.size>2000)knownOrders=new Set([...knownOrders].slice(-1000));
    ordersInitialized=true;orders=incoming;lastOrdersAt=Date.now();ordersConnectionFailed=false;renderOverview();renderPreparation();
-   if(snapshot!==ordersSnapshot){ordersSnapshot=snapshot;renderStats();renderOrders();}
+   if(snapshot!==ordersSnapshot||soloMode){ordersSnapshot=snapshot;renderStats();renderOrders();}
    const pending=incoming.filter(o=>o.status==='received').length;
    $('pendingOrderBadge').textContent=String(pending);$('pendingOrderBadge').classList.toggle('hidden',!pending);
    $('orderHeartbeat').textContent='● Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
    $('orderHeartbeat').className='pill good';
-  }catch(e){ordersConnectionFailed=true;renderOverview();renderPreparation();$('orderHeartbeat').textContent='Reconectando…';$('orderHeartbeat').className='pill warn';handleRefreshError(e,quiet);}
+  }catch(e){ordersConnectionFailed=true;renderOverview();renderPreparation();if(soloMode)renderOrders();$('orderHeartbeat').textContent='Reconectando…';$('orderHeartbeat').className='pill warn';handleRefreshError(e,quiet);}
  };
  ordersRequest=request();
  try{await ordersRequest;}finally{ordersRequest=null;if(orderRefreshPending){orderRefreshPending=false;void refreshOrders(true);}}
@@ -74,18 +74,49 @@ function renderStats(){
   renderServiceMetrics();$('stats').innerHTML=p.map(([l,v],k)=>`<div class="stat dashboard-stat dashboard-stat-${k}"><span>${l}</span><b>${v}</b><span class="stat-indicator" aria-hidden="true"></span></div>`).join('');
 }
 let orderFilter='all',orderSearch='',selectedOrderId=null,initialOrderSelection=true;
+let soloMode=false,soloView='prep',soloWakeLock=null,soloWakePending=false;
+async function syncSoloWakeLock(){
+ if(!soloMode||activeTab!=='orders'||document.hidden||!authRead()?.token||$('appScreen').classList.contains('hidden')){const lock=soloWakeLock;soloWakeLock=null;if(lock)try{await lock.release();}catch{}return;}
+ if(soloWakeLock||soloWakePending||!navigator.wakeLock)return;
+ soloWakePending=true;try{const lock=await navigator.wakeLock.request('screen');if(!soloMode||activeTab!=='orders'||document.hidden||!authRead()?.token||$('appScreen').classList.contains('hidden')){await lock.release();return;}soloWakeLock=lock;lock.addEventListener('release',()=>{if(soloWakeLock===lock)soloWakeLock=null;});}catch{}finally{soloWakePending=false;}
+}
 let serviceMetrics={count:0,average_seconds:null};
 function renderServiceMetrics(){const el=$('serviceAverage');if(!el)return;const n=Number(serviceMetrics.count)||0,seconds=serviceMetrics.average_seconds;el.textContent=n&&Number.isFinite(seconds)?Math.floor(seconds/60)+'m '+Math.round(seconds%60)+'s':'—';$('serviceSamples').textContent=n?n+' pedidos prontos hoje · do recebimento até ficar pronto':'Sem pedidos prontos hoje';}
 function selectOrder(id){selectedOrderId=id;initialOrderSelection=false;renderOrders();}
 function renderOrders(){
  const visible=orderedQueue(orders),root=$('ordersList');
  if(!$('orderQueueTools')){
-  root.innerHTML='<div class="order-workspace"><aside class="order-queue-side" aria-label="Fila de pedidos"><div id="orderQueueTools"><input id="orderQueueSearch" type="search" placeholder="Buscar nome ou número" aria-label="Buscar pedido"><div id="orderQueueTabs"></div><button type="button" id="queueNext" class="btn btn-primary btn-wide">Selecionar próximo da fila</button><p class="tiny sub" id="orderQueueCount"></p></div><div id="orderQueueRows"></div></aside><div id="orderSelected" class="order-selected"></div></div>';
+  root.innerHTML='<div id="soloControls" class="solo-controls"></div><div class="order-workspace"><aside class="order-queue-side" aria-label="Fila de pedidos"><div id="orderQueueTools"><input id="orderQueueSearch" type="search" placeholder="Buscar nome ou número" aria-label="Buscar pedido"><div id="orderQueueTabs"></div><button type="button" id="queueNext" class="btn btn-primary btn-wide">Selecionar próximo da fila</button><p class="tiny sub" id="orderQueueCount"></p></div><div id="orderQueueRows"></div></aside><div id="orderSelected" class="order-selected"></div></div>';
+  $('soloControls').onclick=e=>{
+   const b=e.target.closest('button[data-solo]');if(!b||busy)return;
+   const kind=b.dataset.solo;
+   if(kind==='demand'){if(!demandBusy&&!ordersConnectionFailed)$('demandToggle').click();return;}
+   if(kind==='toggle'){soloMode=!soloMode;soloView='prep';selectedOrderId=null;initialOrderSelection=!soloMode;void syncSoloWakeLock();}
+   if(kind==='prep'){soloView='prep';selectedOrderId=null;}
+   if(kind==='pickup'){soloView='pickup';selectedOrderId=b.dataset.pickupId||soloQueue(orders).ready[0]?.id||null;}
+   renderOrders();
+  };
   $('orderQueueSearch').oninput=e=>{orderSearch=e.target.value;renderOrders();};
   $('orderQueueTabs').onclick=e=>{const b=e.target.closest('[data-queue]');if(!b)return;orderFilter=b.dataset.queue;renderOrders();};
   $('orderQueueRows').onclick=e=>{const b=e.target.closest('[data-select-order]');if(b){selectOrder(b.dataset.selectOrder);if(matchMedia('(max-width:800px)').matches)$('orderSelected').scrollIntoView({block:'start',behavior:'instant'});}};
   $('queueNext').onclick=()=>{const next=orderFilter==='quick'?orderedQueue(orders).find(isQuickOrder):nextOrder(orderedQueue(orders));if(next){if(orderFilter!=='quick')orderFilter='all';orderSearch='';$('orderQueueSearch').value='';selectOrder(next.id);}};
  }
+ const solo=soloQueue(visible);
+ root.classList.toggle('solo-active',soloMode);
+ const controls=$('soloControls');
+ const readyButtons=solo.ready.map(o=>'<button type="button" class="btn btn-secondary solo-pickup" data-solo="pickup" data-pickup-id="'+esc(o.id)+'" aria-pressed="'+(soloView==='pickup'&&selectedOrderId===o.id)+'"><b>#'+pad(o.order_no)+' · '+esc(o.first_name)+'</b><small>'+esc(labels[o.payment_method]||o.payment_method)+' · '+fmt(o.total_cents)+' · '+(paid(o)?'Pago':'Cobrar na retirada')+'</small></button>').join('');
+ if(soloMode){
+  if(soloView==='pickup'&&!solo.ready.some(o=>o.id===selectedOrderId)){soloView='prep';selectedOrderId=null;}
+  if(soloView==='prep')selectedOrderId=solo.current?.id||null;
+  initialOrderSelection=false;
+ }
+ const soloMarkup='<div class="solo-heading"><div><span class="eyebrow">HORA EXTRA • OPERAÇÃO SOLO</span><strong>'+(soloMode?'Um pedido por vez':'Atendendo sozinho?')+'</strong></div><button type="button" data-solo="toggle" class="btn btn-'+(soloMode?'secondary':'primary')+'">'+(soloMode?'Voltar à lista':'Ativar modo solo')+'</button></div>'+
+ (soloMode?'<div class="solo-demand"><div><b>'+(demandActive?'⚡ Alta demanda ativa':'Movimento normal')+'</b><small>Comunicado no site e na TV · '+(demandManual?'manual':'automático')+'</small></div><button type="button" class="btn btn-'+(demandManual?'secondary':'primary')+'" data-solo="demand" '+(demandBusy||ordersConnectionFailed||!lastOrdersAt?'disabled':'')+'>'+(demandManual?'Voltar ao automático':'Avisar clientes')+'</button></div><div class="solo-nav"><button type="button" class="btn btn-'+(soloView==='prep'?'primary':'secondary')+'" data-solo="prep">Preparo · '+(solo.working.length+solo.waiting.length)+'</button><button type="button" class="btn btn-'+(soloView==='pickup'?'primary':'secondary')+'" data-solo="pickup" '+(!solo.ready.length?'disabled':'')+'>Retiradas · '+solo.ready.length+'</button></div>'+
+ (ordersConnectionFailed?'<div class="notice danger">Sem conexão. Aguarde a fila atualizar antes de avançar.</div>':'')+
+ (solo.working.length>1?'<div class="notice danger">Há mais de um pedido iniciado anteriormente. Conclua os já iniciados antes de abrir novos.</div>':'')+
+ (solo.blocked.length?'<div class="notice">'+solo.blocked.length+' pedido(s) aguardando confirmação do pagamento online.</div>':'')+
+ (soloView==='pickup'?'<div class="solo-pickups">'+readyButtons+'</div>':'<p class="solo-next">Próximo da fila: '+(solo.next?'#'+pad(solo.next.order_no)+' · '+esc(solo.next.first_name):'Nenhum outro pedido liberado')+'</p>'):'');
+ if(controls.dataset.markup!==soloMarkup){controls.innerHTML=soloMarkup;controls.dataset.markup=soloMarkup;}
  if(initialOrderSelection&&visible.length){selectedOrderId=nextOrder(visible)?.id||null;initialOrderSelection=false;}
  const selected=visible.find(o=>o.id===selectedOrderId);if(!selected)selectedOrderId=null;
  const groups=[['all','Todos'],['received','Novos'],['preparing','Em preparo'],['ready','Prontos'],['quick','⚡ Fila rápida']];
@@ -96,8 +127,8 @@ function renderOrders(){
  const rows=filtered.map(o=>`<button type="button" data-select-order="${esc(o.id)}" aria-pressed="${o.id===selectedOrderId}" class="queue-ticket queue-${esc(o.status)}"><b>#${pad(o.order_no)}</b><span class="queue-ticket-info"><strong>${esc(o.first_name)} ${esc(o.last_name)}</strong><small>${esc(stageLabels[o.status])} · ${(o.order_items||[]).reduce((n,i)=>n+Number(i.quantity||0),0)} un. · ${fmt(o.total_cents)}</small></span><span class="queue-kind">${o.status==='ready'?'RETIRADA':needsPreparation(o)?'PREPARO':'SEPARAR'}</span></button>`).join('')||'<div class="empty">Nenhum pedido nesta lista.</div>';
  const list=$('orderQueueRows');if(list.dataset.markup!==rows){const scroll=list.scrollTop;list.innerHTML=rows;list.dataset.markup=rows;list.scrollTop=scroll;}
  const detail=$('orderSelected');
- const markup=selected?[selected].map(o=>{const cash=o.payment_method==='cash'
-      ?o.cash_given_cents!==null
+ const markup=soloMode&&ordersConnectionFailed?'<div class="notice danger">Aguarde a reconexão para operar com segurança.</div>':selected?[selected].map(o=>{const cash=o.payment_method==='cash'
+      ?o.cash_given_cents!==null&&o.cash_given_cents!==undefined
         ?`<div class="order-cash-summary"><div><small>PREPARAR TROCO:</small><strong>${fmt(Math.max(0,o.cash_given_cents-o.total_cents))}</strong></div><div><small>Cliente entrega:</small><b>${fmt(o.cash_given_cents)}</b></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div><span class="cash-order-note">Finalize somente após receber o dinheiro e entregar o pedido.</span></div>`
         :'<div class="notice danger" style="margin:12px 0">⚠ O cliente não informou o valor em dinheiro; confirmar no atendimento.</div>'
       :'';
@@ -107,7 +138,7 @@ function renderOrders(){
     const stageIndex=['received','preparing','ready'].indexOf(o.status);
     const timeline=['Recebido','Preparando','Pronto'].map((label,i)=>`<span class="order-flow-step ${i<stageIndex?'done':i===stageIndex?'current':''}" ${i===stageIndex?'aria-current="step"':''}><b>${i<stageIndex?'✓':i+1}</b>${label}</span>`).join('');
     const cardAtPickup=o.payment_method==='card';
-    const steps=o.status==='received'?button(needsPreparation(o)?'Iniciar preparo':'Separar itens','status',o.id,'preparing',needsPreparation(o)?'primary':'secondary')+button(needsPreparation(o)?'Marcar pronto':'Já está pronto','status',o.id,'ready',needsPreparation(o)?'secondary':'primary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
+    const steps=soloMode&&soloView==='prep'&&o.status==='received'?button('INICIAR PREPARO','status',o.id,'preparing','primary',solo.working.length>0||!soloEligible(o)):soloMode&&soloView==='prep'&&o.status==='preparing'?button('PEDIDO PRONTO — PRÓXIMO','status',o.id,'ready','primary'):o.status==='received'?button(needsPreparation(o)?'Iniciar preparo':'Separar itens','status',o.id,'preparing',needsPreparation(o)?'primary':'secondary')+button(needsPreparation(o)?'Marcar pronto':'Já está pronto','status',o.id,'ready',needsPreparation(o)?'secondary':'primary'):o.status==='preparing'?button('Marcar pedido pronto','status',o.id,'ready','primary'):o.payment_method==='cash'?button('Finalizar pedido','finishcash',o.id,'','primary'):cardAtPickup?button('Finalizar pedido','finishcard',o.id,'','primary'):button('Finalizar pedido','status',o.id,'delivered','primary',!paid(o)||(o.payment_method==='pix'&&!o.receipt_checked));
     const proof=o.payment_method==='pix'?`<div class="notice ${paid(o)?'':'danger'}"><b>CONFERIR COMPROVANTE NA ENTREGA</b><br>${paid(o)?o.receipt_checked?'✓ Comprovante conferido':'Compare o comprovante com a transação confirmada no gateway.':'⚠ Pix pendente: NÃO liberar entrega.'}</div>`:'';
     return `<article class="order-card premium-order order-${esc(o.status)}" data-order-card="${esc(o.id)}" tabindex="-1"><div class="order-top"><div><div class="order-kicker">PEDIDO ${pad(o.order_no)} · ${minutesAgo(o.created_at)}</div><div class="order-name">${esc(o.first_name)} ${esc(o.last_name)}</div></div><div class="order-status-stack"><span class="order-stage">${esc(stageLabels[o.status])}</span>${statusBadge(o)}</div></div>
     ${o.status==='ready'&&Number.isFinite(deadline)?`<div class="notice ${overdue?'danger':''} order-pickup-timer" data-ready-deadline="${deadline}" data-paid="${paid(o)}">${overdue?(paid(o)?'Prazo de retirada excedido · pedido pago: conferir com cliente':'Prazo de 15 minutos excedido · pode cancelar se não retirado'):'Retirada até '+new Date(deadline).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}${o.duplicate_name?'<div class="order-duplicate-warning"><strong>Atenção: nome repetido na fila</strong><span>Confira o número do pedido na TV ou no celular do cliente. Não é necessário digitar código.</span></div>':''}<div class="order-flow" aria-label="Etapas do pedido">${timeline}</div><section class="order-items-panel"><div class="order-items-caption">ITENS DO PEDIDO</div><ul class="order-item-lines order-photo-grid">${allItems(o)||'<li>Sem itens registrados</li>'}</ul><div class="order-payment-line"><div><small>Forma de pagamento</small><strong>${esc(labels[o.payment_method]||o.payment_method)}</strong></div><div><small>Total do pedido</small><b>${fmt(o.total_cents)}</b></div></div></section>${cash}
@@ -118,7 +149,7 @@ function renderOrders(){
       ${steps}${!paid(o)?button('Cancelar pedido','cancel',o.id,'','danger'):''}</div>
     <details class="order-voice-optional"><summary>Voz da TV (opcional) <small>${voice==='male'?'Masculina':voice==='female'?'Feminina':'Padrão · feminina'}</small></summary><p class="tiny sub">Não é necessário escolher uma voz para avançar. A chamada depende do áudio ativado na TV.</p><div class="order-bottom">${button(`${voice==='female'?'✓ ':''}Feminina`,'voice',o.id,'female',voice==='female'?'primary':'secondary')}${button(`${voice==='male'?'✓ ':''}Masculina`,'voice',o.id,'male',voice==='male'?'primary':'secondary')}</div></details>
     </article>`;
-  }).join(''):'<div class="empty queue-empty"><strong>'+(visible.length?'Selecione um pedido na fila':'Nenhum pedido ativo')+'</strong><p>'+(visible.length?'Selecione pelo número ou use o botão da fila. Após finalizar, outro pedido não será aberto automaticamente.':'Os novos pedidos aparecerão automaticamente.')+'</p></div>';
+  }).join(''):'<div class="empty queue-empty"><strong>'+(soloMode?'Nenhum pedido liberado para preparo':visible.length?'Selecione um pedido na fila':'Nenhum pedido ativo')+'</strong><p>'+(soloMode?'Aguardando novos pedidos ou confirmação de pagamento. Confira as retiradas acima.':visible.length?'Selecione pelo número ou use o botão da fila. Após finalizar, outro pedido não será aberto automaticamente.':'Os novos pedidos aparecerão automaticamente.')+'</p></div>';
  if(detail.dataset.markup!==markup){const opened=detail.querySelector('details[open]')&&detail.querySelector('[data-order-card]')?.dataset.orderCard===selectedOrderId;detail.innerHTML=markup;detail.dataset.markup=markup;if(opened&&detail.querySelector('details'))detail.querySelector('details').open=true;}
 }
 function renderInventory(){
@@ -278,7 +309,7 @@ async function loadAudit(append=false){
  }catch(e){if(version===auditVersion){if(!append)$('auditList').textContent='Não foi possível carregar a auditoria. '+e.message;toast(e.message,true);}}
  finally{if(version===auditVersion){auditLoading=false;$('auditMore').disabled=false;}}
 }
-function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['overview','orders','preparation','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={overview:'Central de gestão',orders:'Pedidos ao vivo',preparation:'Central de preparo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();if(activeTab==='overview')renderOverview();if(activeTab==='preparation')renderPreparation();document.querySelectorAll('.side-link').forEach(el=>{if(el.dataset.tab===tab)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});}
+function setTab(tab){const internal=tab==='tabacaria';if(internal||tab==='inventory'){inventoryFilter=internal?'Tabacaria':'Todos';inventorySearch='';inventoryStatus='all';$('inventorySearch').value='';$('inventoryStatus').value='all';}activeTab=internal?'inventory':tab;if(tab==='cash')loadReport();if(tab==='reviews')loadAdminReviews();if(tab==='audit')loadAudit();for(const name of ['overview','orders','preparation','inventory','cash','reviews','audit','settings'])$('tab-'+name).classList.toggle('hidden',name!==activeTab);document.querySelectorAll('.side-link').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));$('pageTitle').textContent={overview:'Central de gestão',orders:'Pedidos ao vivo',preparation:'Central de preparo',inventory:'Produtos e estoque',tabacaria:'Tabacaria',cash:'Caixa e faturamento',reviews:'Avaliações dos clientes',audit:'Auditoria do sistema',settings:'Configurações da adega'}[tab];if(activeTab==='inventory')renderInventory();if(activeTab==='overview')renderOverview();if(activeTab==='preparation')renderPreparation();void syncSoloWakeLock();document.querySelectorAll('.side-link').forEach(el=>{if(el.dataset.tab===tab)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');});}
 let preparationMarkupKey='';
 function renderPreparation(){
  const fresh=$('preparationFreshness');
@@ -471,11 +502,16 @@ async function performAction(btn){
     if(raw===''||!Number.isInteger(Number(raw))||Number(raw)<0)return toast('Informe uma quantidade válida.',true);
     route='admin-stock';body={id,mode:'set',quantity:Number(raw)};
   } else if(!route)return;
+  const advanceSolo=soloMode&&soloView==='prep'&&action==='status'&&value==='ready';
+  if(soloMode&&action==='status'&&value==='preparing'){
+    const s=soloQueue(orders);if(s.working.length||s.current?.id!==id||!soloEligible(s.current))return toast('Confira o pedido atual da fila.',true);
+    body.solo=true;
+  }
   busy=true;
-  try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
+  try{if(action==='status'&&value==='delivered'){const order=orders.find(o=>o.id===id);if(order?.age_required&&!order.age_checked){if(!confirm('Confirme que verificou o documento e que o cliente tem 18 anos ou mais antes da entrega.'))return;await api('admin-order-action',{id,action:'age'},{admin:true});}}await api(route,body,{admin:true,method});if(advanceSolo){await refreshOrders(true);const s=soloQueue(orders);if(!ordersConnectionFailed&&!s.working.length&&s.current&&soloEligible(s.current)){try{await api('admin-order-action',{id:s.current.id,action:'status',value:'preparing',solo:true},{admin:true});}catch(e){toast('Pedido anterior pronto. Confira o próximo: '+e.message,true);}}}toast(['finishcash','finishcard'].includes(action)?'Pedido finalizado e pagamento registrado no caixa.':action==='status'&&value==='ready'?'Pedido pronto! TV será atualizada.':'Alteração salva.');}
   catch(e){toast(e.message,true);}finally{try{await refreshOrders(true);}finally{busy=false;}await refreshData(true);}
 }
-function showLogin(){ closeProductPreview();selectedOrderId=null;initialOrderSelection=true;serviceMetrics={count:0,average_seconds:null};renderServiceMetrics();orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
+function showLogin(){ closeProductPreview();soloMode=false;soloView='prep';void syncSoloWakeLock();selectedOrderId=null;initialOrderSelection=true;serviceMetrics={count:0,average_seconds:null};renderServiceMetrics();orderFilter='all';orderSearch='';if($('orderQueueSearch'))$('orderQueueSearch').value='';orders=[];preparationMarkupKey='';$('preparationGroups').replaceChildren();$('preparationOrderCount').textContent='—';$('preparationItemCount').textContent='—';lastOrdersAt=0;lastCatalogAt=0;ordersConnectionFailed=false;ordersInitialized=false;knownOrders.clear();ordersSnapshot='';$('pendingOrderBadge').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('appScreen').classList.add('hidden'); }
 function showAdmin(){ $('loginScreen').classList.add('hidden');$('appScreen').classList.remove('hidden'); }
 let reviewsBusy=false;
 async function loadAdminReviews(){
@@ -515,7 +551,7 @@ async function start(){
  $('pickupTestSaved').onclick=()=>{const btn=$('pickupTestSaved'),out=$('pickupTestResult');if(!navigator.geolocation){out.textContent='GPS indisponível neste dispositivo.';return;}btn.disabled=true;out.textContent='Consultando localização…';navigator.geolocation.getCurrentPosition(async p=>{try{const r=await api('check-location',{position:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}});out.textContent=r.message+(Number.isFinite(r.distance)?' Distância: '+r.distance+' m · precisão: '+r.accuracy+' m · raio salvo: '+r.radius+' m.':'');}catch(e){out.textContent=e.message;}finally{btn.disabled=false;}},()=>{out.textContent='Permita o GPS preciso e tente novamente.';btn.disabled=false;},{enableHighAccuracy:true,maximumAge:0,timeout:15000});};
  $('overviewRefresh').onclick=async()=>{const b=$('overviewRefresh');b.disabled=true;try{await refreshData(false,true);}finally{b.disabled=false;renderOverview();}};
  $('tab-overview').addEventListener('click',e=>{const b=e.target.closest('[data-admin-jump]');if(!b)return;setTab(b.dataset.adminJump);if(b.dataset.adminJump==='inventory'){const filter=b.dataset.adminFilter||'all';if(filter==='options'){inventoryFilter='Sabores';}else{inventoryStatus=filter;$('inventoryStatus').value=filter;}renderInventory();}window.scrollTo({top:0,behavior:'instant'});});
- $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso manual enviado à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;}};
+ $('demandToggle').onclick=async()=>{if(demandBusy)return;demandBusy=true;const b=$('demandToggle');b.disabled=true;if(soloMode)renderOrders();try{const r=await api('admin-demand',{enabled:!demandManual},{admin:true,method:'PATCH'});demandActive=r.high_demand;demandManual=r.demand_manual;demandCount=r.demand_count;renderDemand();toast(demandManual?'Aviso de alta demanda enviado ao site e à TV.':'Controle automático restaurado.');}catch(e){toast(e.message,true);}finally{demandBusy=false;b.disabled=false;if(soloMode)renderOrders();}};
  $('closeCash').onclick=()=>openCashAction('closed');$('clearTestCash').onclick=()=>openCashAction('test');
  $('resetCash').onclick=()=>openCashAction('reset');
  $('cashSearch').oninput=renderCashTransactions;$('cashMethod').onchange=renderCashTransactions;
@@ -635,7 +671,7 @@ async function start(){
   setInterval(()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);},3000);
   setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshData(true,false);},30000);
   window.addEventListener('focus',()=>{if(!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
+  document.addEventListener('visibilitychange',()=>{void syncSoloWakeLock();if(!document.hidden&&!$('appScreen').classList.contains('hidden'))void refreshOrders(true);});
   setInterval(()=>{if(!document.hidden&&!$('appScreen').classList.contains('hidden')&&activeTab==='cash')loadReport();},30000);
 }
 start();

@@ -190,7 +190,8 @@ async function catalog(db,admin){await ensureSodaFlavors(db);await ensureColaAnd
  const readyIds=new Set(publicProducts.filter(p=>p.active&&p.price_cents>0&&(p.unlimited||p.stock>0)).map(p=>p.id));
  const best_sellers=paidSales.filter(r=>r.quantity>0&&readyIds.has(r.product_id)).slice(0,6).map(r=>r.product_id);
  const location=await readPickupLocation(db);
- return json({store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?effectiveProducts:publicProducts,drink_options:admin?drink_options:drink_options.filter(o=>o.active&&(o.unlimited||o.stock>0)),drink_options_ready:true,online_enabled:false,best_sellers});
+ const high_demand=admin?false:(await demandStatus(db)).high_demand;
+ return json({high_demand,store:{...store,location_required:Boolean(location?.enabled),location_optional:true,location_radius:location?.radius??50,...(admin?{pickup_location:location,pickup_address:await readPickupAddress(db)}: {})},products:admin?effectiveProducts:publicProducts,drink_options:admin?drink_options:drink_options.filter(o=>o.active&&(o.unlimited||o.stock>0)),drink_options_ready:true,online_enabled:false,best_sellers});
 }
 async function ensureOrderCycles(db){await run(db,'CREATE TABLE IF NOT EXISTS cash_order_cycles (cutoff INTEGER NOT NULL UNIQUE CHECK(cutoff>=0),created_at TEXT NOT NULL)');}
 const numberDay=(hour=6,at=Date.now())=>new Date(at-(3+hour)*3600000).toISOString().slice(0,10);
@@ -297,7 +298,7 @@ async function orderAction(db,body){
  sql="status='delivered',payment_status='paid',paid_at=COALESCE(paid_at,?),age_checked=CASE WHEN age_required=1 AND ?=1 THEN 1 ELSE age_checked END,updated_at=? WHERE id=? AND status='ready' AND payment_method=? AND payment_status IN ('pending','paid') AND (age_required=0 OR age_checked=1 OR ?=1)";
  args=[date,body.age_confirmed===true,date,body.id,body.action==='finishcard'?'card':'cash',body.age_confirmed===true];break;
  case 'status':
- if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";args=[date,body.id];}
+ if(body.value==='preparing'){sql="status='preparing',updated_at=? WHERE id=? AND status='received'";if(body.solo===true)sql+=" AND (payment_method IN ('cash','card') OR payment_status='paid') AND NOT EXISTS (SELECT 1 FROM orders AS active WHERE active.status='preparing')";args=[date,body.id];}
  else if(body.value==='ready'){sql="status='ready',ready_at=?,updated_at=? WHERE id=? AND status IN ('received','preparing')";args=[date,date,body.id];}
  else if(body.value==='delivered'){sql="status='delivered',updated_at=? WHERE id=? AND status='ready' AND payment_status='paid' AND (age_required=0 OR age_checked=1) AND (payment_method<>'pix' OR receipt_checked=1)";args=[date,body.id];}
  else reject('Status inválido.');break;
@@ -556,7 +557,7 @@ async function handler(request,env,ctx){
  }
  if(route==='track'&&method==='POST'){
  if(!uuid(body.id)||!uuid(body.token))reject('Acompanhamento inválido.');
- const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}const [display]=await displayOrders(db,[order]);const repeat_items=order.status==='delivered'?await many(db,"SELECT product_id AS id,quantity,ice_option_id AS ice_id,energy_option_id AS energy_id,CASE WHEN product_name LIKE '% | Com álcool' THEN 'com' WHEN product_name LIKE '% | Sem álcool' THEN 'sem' ELSE NULL END AS shake_alcohol FROM order_items WHERE order_id=? ORDER BY id",order.id):[];return json({order:{...display,reviewed,repeat_items}});
+ const order=await one(db,'SELECT id,order_no,first_name,last_name,status,payment_status,total_cents,payment_method,created_at,updated_at,ready_at FROM orders WHERE id=? AND public_token=?',body.id,body.token);if(!order)missing();let reviewed=false;if(order.status==='delivered'){await ensureReviews(db);reviewed=Boolean(await one(db,'SELECT id FROM store_reviews WHERE order_id=?',order.id));}if(order.status==='ready'){const task=notifyReady(db,order.id,url.origin).catch(()=>false);if(ctx?.waitUntil)ctx.waitUntil(task);else await task;}const [display]=await displayOrders(db,[order]);const repeat_items=order.status==='delivered'?await many(db,"SELECT product_id AS id,quantity,ice_option_id AS ice_id,energy_option_id AS energy_id,CASE WHEN product_name LIKE '% | Com álcool' THEN 'com' WHEN product_name LIKE '% | Sem álcool' THEN 'sem' ELSE NULL END AS shake_alcohol FROM order_items WHERE order_id=? ORDER BY id",order.id):[];return json({high_demand:['received','preparing'].includes(order.status)?(await demandStatus(db)).high_demand:false,order:{...display,reviewed,repeat_items}});
  }
  if(route==='tv'&&method==='GET'){
  if(!env.TV_PASSCODE||env.TV_PASSCODE.length<12)reject('Configure TV_PASSCODE.',503);
